@@ -15,6 +15,7 @@ class OracleRecord:
     args: tuple
     kwargs: dict
     return_val: Any = None
+    call_site: str = ""
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,7 @@ class ClosureVerdict:
     is_closed: bool
     known_impls: list[type]
     open_signals: list[str] = field(default_factory=list)
+    signal: str = "CLOSED"
 
 
 @dataclass(frozen=True)
@@ -30,3 +32,4 @@ class TransformPlan:
     target_node: cst.CSTNode
     replacement: cst.CSTNode
     verdict: ClosureVerdict
+    rationale: str = ""

@@ -21,10 +21,11 @@ def test_transform_plan_replaces_target_call_only():
     module = cst.parse_module(source)
     target = _first_call(module, "run")
     verdict = ClosureVerdict("Base.run", True, [])
-    plan = TransformPlan(target, cst.Integer("10"), verdict)
+    plan = TransformPlan(target, cst.Integer("10"), verdict, "single observed impl")
 
     result = module.visit(CollapseTransformer([plan])).code
 
+    assert plan.rationale == "single observed impl"
     assert "return 10 + obj.skip(2)" in result
 
 
