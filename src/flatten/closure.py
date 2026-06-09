@@ -1,68 +1,86 @@
-"""닫힌/열린 계층 판정 (OS1~OS5 신호 검사)."""
+"""Closure analysis for observed polymorphic implementations."""
 
 from __future__ import annotations
 
-import inspect
-import sys
+import dis
+from types import FunctionType
 
 from flatten.contracts import ClosureVerdict
 
 
-def _all_subclasses(cls: type) -> list[type]:
+def get_all_subclasses(cls: type) -> list[type]:
+    """Return every subclass below cls, including indirect descendants."""
     result: list[type] = []
     queue = list(cls.__subclasses__())
     while queue:
-        sub = queue.pop()
-        result.append(sub)
-        queue.extend(sub.__subclasses__())
+        subclass = queue.pop(0)
+        result.append(subclass)
+        queue.extend(subclass.__subclasses__())
     return result
 
 
-def _check_os1(cls: type, subs: list[type]) -> str | None:
-    """OS1: 모듈 경계 밖 상속 — 외부 모듈에서 온 서브클래스 존재."""
-    base_module = getattr(sys.modules.get(cls.__module__), "__name__", cls.__module__)
-    for sub in subs:
-        if not sub.__module__.startswith(base_module.split(".")[0]):
-            return f"OS1: external subclass {sub.__qualname__} from {sub.__module__}"
+def _method_for(cls: type, method_name: str) -> FunctionType | None:
+    for item in cls.__mro__:
+        candidate = item.__dict__.get(method_name)
+        if isinstance(candidate, staticmethod):
+            candidate = candidate.__func__
+        elif isinstance(candidate, classmethod):
+            candidate = candidate.__func__
+        if isinstance(candidate, FunctionType):
+            return candidate
     return None
 
 
-def _check_os2(cls: type) -> str | None:
-    """OS2: 동적 클래스 생성 — type() 또는 types.new_class 사용 흔적."""
-    for sub in _all_subclasses(cls):
-        if sub.__qualname__.endswith("<locals>.<class>") or "<locals>" in sub.__qualname__:
-            return f"OS2: dynamically created subclass {sub.__qualname__}"
+def _observed_methods(method_name: str, observed_impls: list[type]) -> list[FunctionType]:
+    methods: list[FunctionType] = []
+    for cls in observed_impls:
+        method = _method_for(cls, method_name)
+        if method is not None and method not in methods:
+            methods.append(method)
+    return methods
+
+
+def _check_os1(methods: list[FunctionType]) -> str | None:
+    for method in methods:
+        if method.__code__.co_freevars:
+            return f"OS1: free variables in {method.__qualname__}"
     return None
 
 
-def _check_os3(cls: type, method_name: str) -> str | None:
-    """OS3: 덕타이핑 — ABC 없이 같은 이름 메서드만 공유."""
-    import abc
-    if not issubclass(cls, abc.ABC) and not getattr(cls, "__abstractmethods__", None):
-        # 모든 서브클래스가 같은 메서드를 독립적으로 정의했는지 확인
-        defining_classes = [s for s in _all_subclasses(cls) if method_name in s.__dict__]
-        if len(defining_classes) > 1 and method_name not in cls.__dict__:
-            return f"OS3: duck-typed method '{method_name}' without ABC"
+def _check_os2(methods: list[FunctionType]) -> str | None:
+    for method in methods:
+        if method.__closure__:
+            return f"OS2: closure cells in {method.__qualname__}"
     return None
 
 
-def _check_os4(cls: type) -> str | None:
-    """OS4: __getattr__ / __getattribute__ 오버라이드."""
-    for klass in [cls] + _all_subclasses(cls):
-        if "__getattr__" in klass.__dict__ or "__getattribute__" in klass.__dict__:
-            return f"OS4: {klass.__qualname__} overrides __getattr__/__getattribute__"
+def _check_os3(methods: list[FunctionType]) -> str | None:
+    for method in methods:
+        if any(instruction.opname == "STORE_DEREF" for instruction in dis.get_instructions(method)):
+            return f"OS3: nonlocal write in {method.__qualname__}"
     return None
 
 
-def _check_os5(cls: type) -> str | None:
-    """OS5: 조건부 클래스 정의 — if 블록 안에 class 정의."""
-    try:
-        source = inspect.getsource(cls)
-        # 간단한 휴리스틱: 소스에 조건 분기가 포함된 경우
-        if "\nif " in source and "\nclass " in source:
-            return f"OS5: conditional class definition detected in {cls.__qualname__}"
-    except (OSError, TypeError):
-        pass
+def _check_os4(methods: list[FunctionType]) -> str | None:
+    for method in methods:
+        previous = None
+        for instruction in dis.get_instructions(method):
+            if (
+                previous is not None
+                and previous.opname == "LOAD_FAST"
+                and previous.argval == "self"
+                and instruction.opname in {"LOAD_ATTR", "STORE_ATTR", "DELETE_ATTR"}
+            ):
+                return f"OS4: instance attribute access in {method.__qualname__}"
+            previous = instruction
+    return None
+
+
+def _check_os5(base_cls: type, observed_impls: list[type]) -> str | None:
+    missing = [cls for cls in get_all_subclasses(base_cls) if cls not in observed_impls]
+    if missing:
+        names = ", ".join(cls.__qualname__ for cls in missing)
+        return f"OS5: unobserved subclasses: {names}"
     return None
 
 
@@ -71,28 +89,28 @@ class ClosureChecker:
         if not observed_impls:
             return ClosureVerdict(method_qualname, False, [], ["no observed impls"])
 
-        base_cls = observed_impls[0]
         method_name = method_qualname.rsplit(".", 1)[-1]
-
-        # 메서드를 최초 정의한 클래스를 찾는다
+        base_cls = observed_impls[0]
         for cls in observed_impls[0].__mro__:
             if method_name in cls.__dict__:
                 base_cls = cls
                 break
 
-        all_subs = _all_subclasses(base_cls)
-        signals: list[str] = []
-
-        for check in [
-            lambda: _check_os1(base_cls, all_subs),
-            lambda: _check_os2(base_cls),
-            lambda: _check_os3(base_cls, method_name),
-            lambda: _check_os4(base_cls),
-            lambda: _check_os5(base_cls),
-        ]:
-            sig = check()
-            if sig:
-                signals.append(sig)
-
-        is_closed = len(signals) == 0 and set(observed_impls).issuperset(set(all_subs))
-        return ClosureVerdict(method_qualname, is_closed, list(observed_impls), signals)
+        methods = _observed_methods(method_name, observed_impls)
+        signals = [
+            signal
+            for signal in (
+                _check_os1(methods),
+                _check_os2(methods),
+                _check_os3(methods),
+                _check_os4(methods),
+                _check_os5(base_cls, observed_impls),
+            )
+            if signal is not None
+        ]
+        return ClosureVerdict(
+            method_qualname=method_qualname,
+            is_closed=not signals,
+            known_impls=list(observed_impls),
+            open_signals=signals,
+        )
