@@ -2,22 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
-
 import libcst as cst
 
-from flatten.closure import ClosureVerdict
+from flatten.contracts import ClosureVerdict, TransformPlan
 
 OPEN_DISPATCH_COMMENT = "# OPEN_DISPATCH: {qualname} — unobserved impls possible"
-
-
-@dataclass
-class TransformPlan:
-    target_node: Any  # cst.CSTNode
-    replacement: Any  # cst.BaseExpression
-    verdict: ClosureVerdict
-
 
 class DispatchTransformer(cst.CSTTransformer):
     """다형 메서드 호출을 isinstance 체인으로 교체한다."""

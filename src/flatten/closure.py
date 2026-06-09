@@ -4,17 +4,8 @@ from __future__ import annotations
 
 import inspect
 import sys
-from dataclasses import dataclass, field
-from types import ModuleType
-from typing import Any
 
-
-@dataclass
-class ClosureVerdict:
-    method_qualname: str
-    is_closed: bool
-    known_impls: list[type]
-    open_signals: list[str] = field(default_factory=list)
+from flatten.contracts import ClosureVerdict
 
 
 def _all_subclasses(cls: type) -> list[type]:
