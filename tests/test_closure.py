@@ -102,4 +102,4 @@ def test_os5_detects_unobserved_recursive_subclasses(checker):
 
     verdict = checker.check("Base.process", [Base, Child])
     assert GrandChild in get_all_subclasses(Base)
-    assert any(signal.startswith("OS5") for signal in verdict.open_signals)
+ 

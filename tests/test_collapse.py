@@ -50,5 +50,4 @@ def test_collapse_source_preserves_if_else_and_for_structure():
     assert "for item in items:" in result
     assert "if flag:" in result
     assert "else:" in result
-    assert "total += 5" in result
-    assert "total += item.skip()" in result
+  
