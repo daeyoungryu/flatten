@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "flatten"
 version = "0.1.0"
 description = "Flatten Python polymorphic dispatch into single-path logic via runtime tracing + LibCST transformation"
-requires-python = ">=3.12"
+requires-python = ">=3.8"
 dependencies = [
     "libcst>=1.1.0",
 ]
