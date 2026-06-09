@@ -8,20 +8,12 @@ Python 버전별 동작:
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
 from typing import Any
+
+from flatten.contracts import OracleRecord
 
 _USE_MONITORING = sys.version_info >= (3, 12)
 TOOL_ID = sys.monitoring.DEBUGGER_ID if _USE_MONITORING else None
-
-
-@dataclass
-class OracleRecord:
-    qualname: str
-    impl_class: type
-    args: tuple
-    kwargs: dict
-    return_val: Any = None
 
 
 class Tracer:
