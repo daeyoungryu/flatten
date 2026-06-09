@@ -1,13 +1,10 @@
-"""런타임 추적 — 어떤 다형 구현이 실제로 호출됐는지 확정.
-
-Python 버전별 동작:
-- 3.12+: sys.monitoring (PY_START 이벤트) 사용. 오버헤드 낮음.
-- 3.8~3.11: sys.settrace fallback 사용. co_qualname 없는 경우 co_name으로 대체.
-"""
+"""Runtime tracing for observed polymorphic calls."""
 
 from __future__ import annotations
 
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 from flatten.contracts import OracleRecord
@@ -17,43 +14,103 @@ TOOL_ID = sys.monitoring.DEBUGGER_ID if _USE_MONITORING else None
 
 
 class Tracer:
-    """함수 진입을 기록한다. 3.12+는 sys.monitoring, 3.8~3.11은 sys.settrace."""
+    """Collect OracleRecord values for Python function calls."""
 
-    def __init__(self) -> None:
+    def __init__(self, target: Any | None = None) -> None:
         self.records: list[OracleRecord] = []
+        self._target = unwrap(target) if target is not None else None
+        self._target_code = getattr(self._target, "__code__", None)
         self._active = False
+        self._pending: dict[Any, tuple[str, type, tuple, dict]] = {}
 
     def start(self) -> None:
+        if self._active:
+            return
+
         if _USE_MONITORING:
             sys.monitoring.use_tool_id(TOOL_ID, "flatten-tracer")
-            sys.monitoring.set_events(TOOL_ID, sys.monitoring.events.PY_START)
-            sys.monitoring.register_callback(TOOL_ID, sys.monitoring.events.PY_START, self._on_py_start)
-        else:
-            sys.settrace(self._settrace_handler)
+            sys.monitoring.register_callback(
+                TOOL_ID, sys.monitoring.events.PY_START, self._on_py_start
+            )
+            sys.monitoring.register_callback(
+                TOOL_ID, sys.monitoring.events.PY_RETURN, self._on_py_return
+            )
+            sys.monitoring.set_events(
+                TOOL_ID,
+                sys.monitoring.events.PY_START | sys.monitoring.events.PY_RETURN,
+            )
+
+        sys.settrace(self._settrace_handler)
         self._active = True
 
     def stop(self) -> None:
-        if self._active:
-            if _USE_MONITORING:
-                sys.monitoring.set_events(TOOL_ID, sys.monitoring.events.NO_EVENTS)
-                sys.monitoring.free_tool_id(TOOL_ID)
-            else:
-                sys.settrace(None)
-            self._active = False
+        if not self._active:
+            return
 
-    def _on_py_start(self, code, instruction_offset: int) -> None:
+        sys.settrace(None)
+        if _USE_MONITORING:
+            sys.monitoring.set_events(TOOL_ID, sys.monitoring.events.NO_EVENTS)
+            sys.monitoring.register_callback(
+                TOOL_ID, sys.monitoring.events.PY_START, None
+            )
+            sys.monitoring.register_callback(
+                TOOL_ID, sys.monitoring.events.PY_RETURN, None
+            )
+            sys.monitoring.free_tool_id(TOOL_ID)
+
+        self._pending.clear()
+        self._active = False
+
+    def _on_py_start(self, code: Any, instruction_offset: int) -> None:
+        return None
+
+    def _on_py_return(
+        self, code: Any, instruction_offset: int, return_val: Any
+    ) -> None:
+        return None
+
+    def _should_record(self, code: Any) -> bool:
+        return self._target_code is None or code is self._target_code
+
+    def _record_call(self, frame: Any) -> None:
+        code = frame.f_code
+        if not self._should_record(code):
+            return
+
         qualname: str = getattr(code, "co_qualname", code.co_name)
+        local_vars = frame.f_locals
+        positional_names = code.co_varnames[: code.co_argcount]
+        keyword_only_names = code.co_varnames[
+            code.co_argcount : code.co_argcount + code.co_kwonlyargcount
+        ]
+        args = tuple(local_vars[name] for name in positional_names if name in local_vars)
+        kwargs = {
+            name: local_vars[name] for name in keyword_only_names if name in local_vars
+        }
+        impl_class = args[0].__class__ if args else object
+        self._pending[frame] = (qualname, impl_class, args, kwargs)
+
+    def _record_return(self, frame: Any, return_val: Any) -> None:
+        pending = self._pending.pop(frame, None)
+        if pending is None:
+            return
+
+        qualname, impl_class, args, kwargs = pending
         self.records.append(
-            OracleRecord(qualname=qualname, impl_class=object, args=(), kwargs={})
+            OracleRecord(
+                qualname=qualname,
+                impl_class=impl_class,
+                args=args,
+                kwargs=kwargs,
+                return_val=return_val,
+            )
         )
 
-    def _settrace_handler(self, frame, event: str, arg: Any):
+    def _settrace_handler(self, frame: Any, event: str, arg: Any):
         if event == "call":
-            code = frame.f_code
-            qualname: str = getattr(code, "co_qualname", code.co_name)
-            self.records.append(
-                OracleRecord(qualname=qualname, impl_class=object, args=(), kwargs={})
-            )
+            self._record_call(frame)
+        elif event == "return":
+            self._record_return(frame, arg)
         return self._settrace_handler
 
     def __enter__(self) -> "Tracer":
@@ -65,7 +122,14 @@ class Tracer:
 
 
 def unwrap(func):
-    """__wrapped__ 체인을 끝까지 풀어 원본 함수를 반환한다."""
+    """Return the original function at the end of a __wrapped__ chain."""
     while hasattr(func, "__wrapped__"):
         func = func.__wrapped__
     return func
+
+
+@contextmanager
+def trace_calls(fn) -> Iterator[Tracer]:
+    tracer = Tracer(unwrap(fn))
+    with tracer:
+        yield tracer
