@@ -20,6 +20,7 @@ class Tracer:
         self.records: list[OracleRecord] = []
         self._target = unwrap(target) if target is not None else None
         self._target_code = getattr(self._target, "__code__", None)
+        self._target_name = getattr(self._target_code, "co_name", None)
         self._active = False
         self._pending: dict[Any, tuple[str, type, tuple, dict]] = {}
 
@@ -70,7 +71,9 @@ class Tracer:
         return None
 
     def _should_record(self, code: Any) -> bool:
-        return self._target_code is None or code is self._target_code
+        if self._target_code is None:
+            return True
+        return code is self._target_code or code.co_name == self._target_name
 
     def _record_call(self, frame: Any) -> None:
         code = frame.f_code
