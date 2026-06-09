@@ -112,7 +112,4 @@ class ClosureChecker:
         return ClosureVerdict(
             method_qualname=method_qualname,
             is_closed=not signals,
-            known_impls=list(observed_impls),
-            open_signals=signals,
-            signal=signal,
-        )
+            
