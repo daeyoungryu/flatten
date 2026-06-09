@@ -1,16 +1,20 @@
-"""데이터 분기 보존 변환 — LibCST 기반."""
+"""LibCST transforms that collapse planned call sites."""
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import libcst as cst
-from libcst.metadata import MetadataWrapper
+
+from flatten.contracts import TransformPlan
 
 
 class CollapseTransformer(cst.CSTTransformer):
-    """조건 분기를 보존하면서 불필요한 중간 변수 할당을 인라인한다."""
+    """Apply a batch of TransformPlan replacements while preserving structure."""
 
-    def __init__(self, inline_targets: set[str]) -> None:
-        self._inline_targets = inline_targets
+    def __init__(self, plans: Iterable[TransformPlan] | set[str]) -> None:
+        self._plans = list(plans) if not isinstance(plans, set) else []
+        self._inline_targets = plans if isinstance(plans, set) else set()
         self._bindings: dict[str, cst.BaseExpression] = {}
 
     def visit_Assign(self, node: cst.Assign) -> bool:
@@ -20,15 +24,19 @@ class CollapseTransformer(cst.CSTTransformer):
                     self._bindings[target.target.value] = node.value
         return True
 
-    def leave_Name(self, original: cst.Name, updated: cst.Name) -> cst.BaseExpression:
+    def leave_Call(self, original: cst.Call, updated: cst.Call) -> cst.CSTNode:
+        for plan in self._plans:
+            if original is plan.target_node or original.deep_equals(plan.target_node):
+                return plan.replacement
+        return updated
+
+    def leave_Name(self, original: cst.Name, updated: cst.Name) -> cst.CSTNode:
         if updated.value in self._bindings:
             return self._bindings[updated.value]
         return updated
 
 
-def collapse_source(source: str, inline_targets: set[str]) -> str:
-    """소스 코드에서 지정된 변수 바인딩을 인라인한 새 소스를 반환한다."""
+def collapse_source(source: str, plans: Iterable[TransformPlan] | set[str]) -> str:
     tree = cst.parse_module(source)
-    transformer = CollapseTransformer(inline_targets)
-    new_tree = tree.visit(transformer)
-    return new_tree.code
+    transformer = CollapseTransformer(plans)
+    return tree.visit(transformer).code
