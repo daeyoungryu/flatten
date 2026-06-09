@@ -1,7 +1,7 @@
 """closure.py 단위 테스트 — OS1~OS5 신호 및 닫힌/열린 판정."""
 
 import pytest
-from flatten.closure import ClosureChecker, ClosureVerdict
+from flatten.closure import ClosureChecker, ClosureVerdict, get_all_subclasses
 from tests.fixtures.diamond import A, B, C, D, E
 
 
@@ -34,3 +34,71 @@ def test_verdict_fields(checker):
     assert verdict.method_qualname == "B.process"
     assert isinstance(verdict.known_impls, list)
     assert isinstance(verdict.open_signals, list)
+
+
+def test_get_all_subclasses_is_recursive():
+    assert set(get_all_subclasses(A)) == {B, C, D, E}
+
+
+def test_os1_detects_freevars(checker):
+    prefix = "x"
+
+    class Base:
+        def process(self, value):
+            return prefix + value
+
+    verdict = checker.check("Base.process", [Base])
+    assert any(signal.startswith("OS1") for signal in verdict.open_signals)
+
+
+def test_os2_detects_closure_cells(checker):
+    state = {"prefix": "x"}
+
+    class Base:
+        def process(self, value):
+            return state["prefix"] + value
+
+    verdict = checker.check("Base.process", [Base])
+    assert any(signal.startswith("OS2") for signal in verdict.open_signals)
+
+
+def test_os3_detects_nonlocal(checker):
+    def make_base():
+        counter = 0
+
+        class Base:
+            def process(self, value):
+                nonlocal counter
+                counter += 1
+                return value + counter
+
+        return Base
+
+    base = make_base()
+    verdict = checker.check("Base.process", [base])
+    assert any(signal.startswith("OS3") for signal in verdict.open_signals)
+
+
+def test_os4_detects_instance_variable_access(checker):
+    class Base:
+        def process(self, value):
+            return self.factor * value
+
+    verdict = checker.check("Base.process", [Base])
+    assert any(signal.startswith("OS4") for signal in verdict.open_signals)
+
+
+def test_os5_detects_unobserved_recursive_subclasses(checker):
+    class Base:
+        def process(self, value):
+            return value
+
+    class Child(Base):
+        pass
+
+    class GrandChild(Child):
+        pass
+
+    verdict = checker.check("Base.process", [Base, Child])
+    assert GrandChild in get_all_subclasses(Base)
+    assert any(signal.startswith("OS5") for signal in verdict.open_signals)
