@@ -34,6 +34,7 @@ def test_verdict_fields(checker):
     assert verdict.method_qualname == "B.process"
     assert isinstance(verdict.known_impls, list)
     assert isinstance(verdict.open_signals, list)
+    assert verdict.signal in {"CLOSED", "OS1", "OS2", "OS3", "OS4", "OS5"}
 
 
 def test_get_all_subclasses_is_recursive():

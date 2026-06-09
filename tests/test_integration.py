@@ -42,6 +42,7 @@ def test_a1_tracer_paths_create_same_oracle_record_shape():
         "args",
         "kwargs",
         "return_val",
+        "call_site",
     }
     assert record.impl_class is Worker
     assert record.return_val == 3

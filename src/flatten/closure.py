@@ -87,7 +87,7 @@ def _check_os5(base_cls: type, observed_impls: list[type]) -> str | None:
 class ClosureChecker:
     def check(self, method_qualname: str, observed_impls: list[type]) -> ClosureVerdict:
         if not observed_impls:
-            return ClosureVerdict(method_qualname, False, [], ["no observed impls"])
+            return ClosureVerdict(method_qualname, False, [], ["no observed impls"], "OPEN")
 
         method_name = method_qualname.rsplit(".", 1)[-1]
         base_cls = observed_impls[0]
@@ -108,9 +108,11 @@ class ClosureChecker:
             )
             if signal is not None
         ]
+        signal = signals[0].split(":", 1)[0] if signals else "CLOSED"
         return ClosureVerdict(
             method_qualname=method_qualname,
             is_closed=not signals,
             known_impls=list(observed_impls),
             open_signals=signals,
+            signal=signal,
         )

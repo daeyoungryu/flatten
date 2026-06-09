@@ -22,7 +22,8 @@ class Tracer:
         self._target_code = getattr(self._target, "__code__", None)
         self._target_name = getattr(self._target_code, "co_name", None)
         self._active = False
-        self._pending: dict[Any, tuple[str, type, tuple, dict]] = {}
+        self._pending: dict[Any, tuple[str, type, tuple, dict, str]] = {}
+        self._monitoring_frames: dict[Any, Any] = {}
 
     def start(self) -> None:
         if self._active:
@@ -63,11 +64,22 @@ class Tracer:
         self._active = False
 
     def _on_py_start(self, code: Any, instruction_offset: int) -> None:
+        frame = self._find_frame_for_code(code)
+        if frame is None:
+            return None
+        self._monitoring_frames[code] = frame
+        self._record_call(frame)
         return None
 
     def _on_py_return(
         self, code: Any, instruction_offset: int, return_val: Any
     ) -> None:
+        frame = self._monitoring_frames.pop(code, None)
+        if frame is None:
+            frame = self._find_frame_for_code(code)
+        if frame is None:
+            return None
+        self._record_return(frame, return_val)
         return None
 
     def _should_record(self, code: Any) -> bool:
@@ -75,12 +87,30 @@ class Tracer:
             return True
         return code is self._target_code or code.co_name == self._target_name
 
+    def _find_frame_for_code(self, code: Any) -> Any | None:
+        frame = sys._getframe()
+        while frame is not None:
+            if frame.f_code is code:
+                return frame
+            frame = frame.f_back
+        return None
+
+    def _qualname_for(self, frame: Any) -> str:
+        code = frame.f_code
+        qualname = getattr(code, "co_qualname", None)
+        if qualname is not None:
+            return qualname
+        self_obj = frame.f_locals.get("self")
+        cls_name = type(self_obj).__name__ if self_obj else ""
+        return f"{cls_name}.{code.co_name}" if cls_name else code.co_name
+
     def _record_call(self, frame: Any) -> None:
         code = frame.f_code
         if not self._should_record(code):
             return
 
-        qualname: str = getattr(code, "co_qualname", code.co_name)
+        qualname = self._qualname_for(frame)
+        call_site = f"{code.co_filename}:{code.co_firstlineno}"
         local_vars = frame.f_locals
         positional_names = code.co_varnames[: code.co_argcount]
         keyword_only_names = code.co_varnames[
@@ -91,14 +121,14 @@ class Tracer:
             name: local_vars[name] for name in keyword_only_names if name in local_vars
         }
         impl_class = args[0].__class__ if args else object
-        self._pending[frame] = (qualname, impl_class, args, kwargs)
+        self._pending[frame] = (qualname, impl_class, args, kwargs, call_site)
 
     def _record_return(self, frame: Any, return_val: Any) -> None:
         pending = self._pending.pop(frame, None)
         if pending is None:
             return
 
-        qualname, impl_class, args, kwargs = pending
+        qualname, impl_class, args, kwargs, call_site = pending
         self.records.append(
             OracleRecord(
                 qualname=qualname,
@@ -106,6 +136,7 @@ class Tracer:
                 args=args,
                 kwargs=kwargs,
                 return_val=return_val,
+                call_site=call_site,
             )
         )
 
