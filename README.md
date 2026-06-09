@@ -1,30 +1,44 @@
 # flatten
 
-런타임 추적(sys.monitoring) + CST 변환(LibCST)으로 Python 다형 호출을 단일 실행 경로로 펼친다.
+Flatten explores Python polymorphic dispatch with runtime tracing and LibCST
+rewrites. It records observed implementations, checks whether the observed
+hierarchy is closed, builds direct or `isinstance` dispatch expressions, applies
+planned CST replacements, and verifies behavior equivalence.
 
-## 빠른 시작
+## Install
+
+```powershell
+cd C:\Users\Com\Documents\Claude\Projects\flatten
+python -m pip install -e ".[dev]"
+```
+
+## Quick Example
 
 ```python
-from flatten import Tracer, ClosureChecker, assert_equivalent
+from flatten import ClosureChecker, Tracer, assert_equivalent, trace_calls
 
-# 1. 런타임 추적
-tracer = Tracer()
-with tracer:
-    obj.process(42)
+with trace_calls(Base.process) as tracer:
+    for obj in objects:
+        obj.process(42)
 
-# 2. 닫힌/열린 계층 판정
-checker = ClosureChecker()
-verdict = checker.check("MyBase.process", [ImplA, ImplB])
-print(verdict.is_closed, verdict.open_signals)
+impls = sorted({record.impl_class for record in tracer.records}, key=lambda cls: cls.__name__)
+verdict = ClosureChecker().check("Base.process", impls)
 
-# 3. 동등성 검증
 assert_equivalent(original_func, flattened_func, [((42,), {})])
 ```
 
-## 설치
+## Test
 
-```bash
-pip install -e ".[dev]"
+```powershell
+python -m pytest tests/ -x -v
 ```
 
-Python 3.12+ 필수 (`sys.monitoring` API 사용).
+## Implemented Modules
+
+- `contracts.py`: frozen `OracleRecord`, `ClosureVerdict`, and `TransformPlan`.
+- `tracer.py`: Python 3.12+ `sys.monitoring` setup with shared record creation
+  through runtime tracing, plus `sys.settrace` fallback for Python 3.8-3.11.
+- `closure.py`: OS1-OS5 open-signal checks and recursive subclass discovery.
+- `collapse.py`: LibCST batch replacement using `TransformPlan`.
+- `dispatch.py`: direct-call and `isinstance` chain LibCST builders.
+- `harness.py`: behavior hashing and detailed equivalence assertions.

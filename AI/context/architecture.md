@@ -1,30 +1,34 @@
-# {{PROJECT_NAME}} — 아키텍처 개요
-> 최종 갱신: YYYY-MM-DD
+# flatten Architecture
 
-## 모듈 구조
+Last updated: 2026-06-10
 
+## Module Flow
+
+```text
+runtime calls
+  -> tracer.py       records OracleRecord values
+  -> closure.py      checks whether observed impls are closed
+  -> dispatch.py     builds replacement expressions
+  -> collapse.py     applies TransformPlan replacements with LibCST
+  -> harness.py      compares original and transformed behavior
 ```
-<프로젝트 루트>/
-├── (주요 모듈 목록)
-```
 
-## 데이터 흐름
+## Contracts
 
-```
-[입력] → [처리] → [출력]
-```
+All shared records live in `src/flatten/contracts.py` to avoid circular imports:
 
-## 핵심 설계 결정
+- `OracleRecord`
+- `ClosureVerdict`
+- `TransformPlan`
 
-→ 상세 내용은 `AI/decisions/decision_log.md` 참조
+## Dependency Boundaries
 
-## 크리티컬 경계 (스레드/프로세스)
+- `contracts.py` depends only on stdlib dataclasses/typing and LibCST types.
+- `tracer.py`, `closure.py`, `collapse.py`, `dispatch.py`, and `harness.py` are
+  independently importable.
+- All code transformation is done with LibCST. `ast.unparse` is not used.
 
-| 컨텍스트 | 허용 | 금지 |
-|----------|------|------|
-| 메인 스레드 | | |
-| 백그라운드 | | |
+## Test Coverage
 
-## 확장 포인트
-
-(새 기능 추가 시 어느 모듈을 건드려야 하는지)
+- Unit tests cover tracer, closure, collapse, dispatch, and harness.
+- `tests/test_integration.py` covers A1-A6 and the end-to-end flow.

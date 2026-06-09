@@ -1,22 +1,33 @@
 # Decision Log
-> {{PROJECT_NAME}} 설계 결정 기록 | 담당: Claude Agent
 
-## 결정 템플릿
+## DEC-001 | 2026-06-10 | Freeze Shared Contracts
 
-```
-### DEC-NNN | [날짜] | [결정 제목]
-**결정 사항:** [무엇을 결정했는가]
-**선택 이유:** [왜 이 방향을 선택했는가]
-**대안:** [고려했던 다른 선택지]
-**영향 범위:** [어떤 파일/모듈/기능에 영향을 주는가]
-**재검토 조건:** [언제 이 결정을 재고해야 하는가]
-```
+Decision: Move `OracleRecord`, `ClosureVerdict`, and `TransformPlan` into
+`src/flatten/contracts.py` as frozen dataclasses.
 
-## 결정 이력
+Reason: The package needs stable signatures before implementation work and a
+single low-level contract module avoids circular imports.
 
-### DEC-001 | {{DATE}} | 초기 기술 스택 선택
-**결정 사항:** [채운 후 삭제]
-**선택 이유:** 
-**대안:** 
-**영향 범위:** 전체 프로젝트
-**재검토 조건:** 
+Impact: `tracer.py`, `closure.py`, `collapse.py`, and `dispatch.py` import shared
+contracts from `contracts.py`.
+
+## DEC-002 | 2026-06-10 | LibCST-Only Rewrites
+
+Decision: Keep all generated replacement logic in LibCST expressions and
+transformers.
+
+Reason: The hard rule forbids `ast.unparse`, and LibCST preserves formatting and
+statement structure such as `if`/`else` and `for` blocks.
+
+Impact: `collapse.py` and `dispatch.py` expose LibCST-first APIs.
+
+## DEC-003 | 2026-06-10 | One Record Shape Across Trace Paths
+
+Decision: Use the required Python version branch (`sys.version_info >= (3, 12)`)
+while sharing the OracleRecord creation path.
+
+Reason: Python 3.12+ enables `sys.monitoring`; Python 3.8-3.11 needs fallback
+tracing. Both paths must produce the same record fields.
+
+Impact: `tracer.py` installs monitoring callbacks on 3.12+ and uses the shared
+runtime trace handler to collect args, implementation class, and return value.
