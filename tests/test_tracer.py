@@ -169,3 +169,22 @@ def test_selfless_function_is_not_dispatch_target():
     record = next(r for r in tracer.records if r.qualname.endswith("plain"))
     assert record.impl_class is None
     assert record.is_dispatch_target is False
+
+
+def test_trace_calls_does_not_record_unrelated_method_with_same_name():
+    class C:
+        def process(self):
+            return "c"
+
+    class D:
+        def process(self):
+            return "d"
+
+    c = C()
+    d = D()
+    with trace_calls(C.process) as tracer:
+        c.process()
+        d.process()
+
+    recorded = [record.impl_class for record in tracer.records]
+    assert recorded == [C]

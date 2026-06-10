@@ -125,7 +125,7 @@ class Tracer:
     def _should_record(self, code: Any) -> bool:
         if self._target_code is None:
             return True
-        return code is self._target_code or code.co_name == self._target_name
+        return code is self._target_code
 
     def _find_frame_for_code(self, code: Any) -> FrameType | None:
         frame: FrameType | None = sys._getframe()
