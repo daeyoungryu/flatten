@@ -48,3 +48,44 @@ def test_assert_equivalent_reports_side_effect_divergence_detail():
 
     with pytest.raises(AssertionError, match="stdout.*left.*right"):
         assert_equivalent(original, transformed, [((), {})])
+
+
+def test_behavior_hash_uses_value_comparison_not_repr_address():
+    class AddressRepr:
+        def __repr__(self):
+            return f"<AddressRepr at {id(self):x}>"
+
+        def __eq__(self, other):
+            return isinstance(other, AddressRepr)
+
+    def make_value():
+        return AddressRepr()
+
+    assert compute_behavior_hash(make_value, [((), {})]) == compute_behavior_hash(
+        make_value, [((), {})]
+    )
+
+
+def test_assert_equivalent_compares_exceptions_by_type_and_message():
+    def original():
+        raise ValueError("same")
+
+    def transformed():
+        raise ValueError("same")
+
+    assert_equivalent(original, transformed, [((), {})])
+
+
+def test_assert_equivalent_accepts_custom_equivalence_function():
+    def original():
+        return {"items": [1, 2]}
+
+    def transformed():
+        return {"items": (1, 2)}
+
+    assert_equivalent(
+        original,
+        transformed,
+        [((), {})],
+        equivalent=lambda left, right: list(left["items"]) == list(right["items"]),
+    )

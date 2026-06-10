@@ -17,7 +17,7 @@ class DispatchTransformer(cst.CSTTransformer):
     def __init__(self, plans: Iterable[TransformPlan]) -> None:
         self._plans = list(plans)
 
-    def leave_Call(self, original: cst.Call, updated: cst.Call) -> cst.CSTNode:
+    def leave_Call(self, original: cst.Call, updated: cst.Call) -> cst.BaseExpression:
         for plan in self._plans:
             if original is plan.target_node or original.deep_equals(plan.target_node):
                 if not plan.verdict.is_closed:
@@ -53,7 +53,11 @@ def build_isinstance_chain(
     impl_map: dict[type, cst.BaseExpression],
     verdict: ClosureVerdict,
 ) -> cst.BaseExpression:
-    items = list(impl_map.items())
+    items = sorted(
+        impl_map.items(),
+        key=lambda item: len(item[0].__mro__),
+        reverse=True,
+    )
     if not items:
         raise ValueError("impl_map is empty")
     if len(items) == 1:

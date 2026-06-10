@@ -57,7 +57,10 @@ def _check_os2(methods: list[FunctionType]) -> str | None:
 def _check_os3(methods: list[FunctionType]) -> str | None:
     for method in methods:
         if any(instruction.opname == "STORE_DEREF" for instruction in dis.get_instructions(method)):
-            return f"OS3: nonlocal write in {method.__qualname__}"
+            return (
+                f"OS3: nonlocal write in {method.__qualname__}; "
+                "captured state can change dispatch behavior"
+            )
     return None
 
 
@@ -71,7 +74,10 @@ def _check_os4(methods: list[FunctionType]) -> str | None:
                 and previous.argval == "self"
                 and instruction.opname in {"LOAD_ATTR", "STORE_ATTR", "DELETE_ATTR"}
             ):
-                return f"OS4: instance attribute access in {method.__qualname__}"
+                return (
+                    f"OS4: instance attribute access in {method.__qualname__}; "
+                    "receiver state influences behavior"
+                )
             previous = instruction
     return None
 
@@ -87,7 +93,14 @@ def _check_os5(base_cls: type, observed_impls: list[type]) -> str | None:
 class ClosureChecker:
     def check(self, method_qualname: str, observed_impls: list[type]) -> ClosureVerdict:
         if not observed_impls:
-            return ClosureVerdict(method_qualname, False, [], ["no observed impls"], "OPEN")
+            return ClosureVerdict(
+                method_qualname,
+                False,
+                [],
+                ["no observed impls"],
+                "OPEN",
+                "cannot prove closed without observed implementations",
+            )
 
         method_name = method_qualname.rsplit(".", 1)[-1]
         base_cls = observed_impls[0]
@@ -108,8 +121,16 @@ class ClosureChecker:
             )
             if signal is not None
         ]
-        signal = signals[0].split(":", 1)[0] if signals else "CLOSED"
+        signals.append(
+            "OPEN: finite runtime observation cannot prove closed; "
+            "__subclasses__ misses unimported and future dynamic classes"
+        )
+        signal = signals[0].split(":", 1)[0] if signals else "OPEN"
         return ClosureVerdict(
             method_qualname=method_qualname,
-            is_closed=not signals,
-            
+            is_closed=False,
+            known_impls=list(observed_impls),
+            open_signals=signals,
+            signal=signal,
+            rationale="cannot prove closed from finite runtime observation",
+        )

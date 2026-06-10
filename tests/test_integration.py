@@ -1,12 +1,13 @@
 import libcst as cst
 import pytest
+from libcst.metadata import MetadataWrapper, PositionProvider
 
 from flatten.closure import ClosureChecker
 from flatten.collapse import collapse_source
 from flatten.contracts import ClosureVerdict, TransformPlan
 from flatten.dispatch import build_direct_call, build_isinstance_chain
 from flatten.harness import assert_equivalent
-from flatten.tracer import Tracer, trace_calls
+from flatten.tracer import trace_calls
 from tests.fixtures.diamond import A, B, C, D, E, make_all
 
 
@@ -19,6 +20,28 @@ def _first_call(module: cst.Module, method_name: str) -> cst.Call:
                 calls.append(node)
 
     module.visit(Finder())
+    return calls[0]
+
+
+def _first_call_with_range(source: str, method_name: str) -> tuple[cst.Call, str]:
+    wrapper = MetadataWrapper(cst.parse_module(source))
+    calls: list[tuple[cst.Call, str]] = []
+
+    class Finder(cst.CSTVisitor):
+        METADATA_DEPENDENCIES = (PositionProvider,)
+
+        def visit_Call(self, node: cst.Call) -> None:
+            if isinstance(node.func, cst.Attribute) and node.func.attr.value == method_name:
+                position = self.get_metadata(PositionProvider, node)
+                calls.append(
+                    (
+                        node,
+                        f"{position.start.line}:{position.start.column}-"
+                        f"{position.end.line}:{position.end.column}",
+                    )
+                )
+
+    wrapper.visit(Finder())
     return calls[0]
 
 
@@ -43,6 +66,7 @@ def test_a1_tracer_paths_create_same_oracle_record_shape():
         "kwargs",
         "return_val",
         "call_site",
+        "is_dispatch_target",
     }
     assert record.impl_class is Worker
     assert record.return_val == 3
@@ -103,11 +127,12 @@ def test_a3_preserves_if_else_and_for_during_transform():
         "        else:\n"
         "            item.skip()\n"
     )
-    module = cst.parse_module(source)
+    target, target_range = _first_call_with_range(source, "run")
     plan = TransformPlan(
-        _first_call(module, "run"),
+        target,
         build_direct_call("item", B, "process", [cst.Integer("1")]),
         ClosureVerdict("A.process", True, [B]),
+        target_range=target_range,
     )
     result = collapse_source(source, [plan])
     assert "for item in items:" in result
@@ -145,8 +170,7 @@ def test_a6_end_to_end_polymorphic_pipeline():
     observed = {record.impl_class for record in tracer.records}
     verdict = ClosureChecker().check("A.process", [A, B, C, D, E])
     source = "def flattened(obj):\n    return obj.process(9)\n"
-    module = cst.parse_module(source)
-    target = _first_call(module, "process")
+    target, target_range = _first_call_with_range(source, "process")
     replacement = build_isinstance_chain(
         "obj",
         {
@@ -158,9 +182,12 @@ def test_a6_end_to_end_polymorphic_pipeline():
         },
         verdict,
     )
-    result = collapse_source(source, [TransformPlan(target, replacement, verdict)])
+    result = collapse_source(
+        source, [TransformPlan(target, replacement, verdict, target_range=target_range)]
+    )
 
     assert observed == {A, B, C, D, E}
-    assert verdict.is_closed
-    assert "isinstance(obj, A)" in result
+    assert not verdict.is_closed
+    assert "finite runtime observation" in verdict.open_signals[-1]
+    assert result.index("isinstance(obj, E)") < result.index("isinstance(obj, D)")
     assert "E.process(obj, 9)" in result
