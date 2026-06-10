@@ -53,3 +53,24 @@ def test_multiple_impl_chain_uses_isinstance_pattern():
     assert "isinstance(obj, First)" in code
     assert "'first' if" in code
     assert "else 'second'" in code
+
+
+def test_isinstance_chain_orders_most_derived_first():
+    class Base:
+        pass
+
+    class Derived(Base):
+        pass
+
+    verdict = ClosureVerdict("Base.run", True, [Base, Derived])
+    expr = build_isinstance_chain(
+        "obj",
+        {
+            Base: cst.SimpleString("'base'"),
+            Derived: cst.SimpleString("'derived'"),
+        },
+        verdict,
+    )
+    code = _code(expr)
+
+    assert code == "'derived' if isinstance(obj, Derived) else 'base'"

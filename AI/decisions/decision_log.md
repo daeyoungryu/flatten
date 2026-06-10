@@ -31,3 +31,24 @@ tracing. Both paths must produce the same record fields.
 
 Impact: `tracer.py` installs monitoring callbacks on 3.12+ and uses the shared
 runtime trace handler to collect args, implementation class, and return value.
+
+## DEC-004 | 2026-06-10 | Rewrite Is Opt-In
+
+Decision: Keep rewrite capability, but make it disabled by default.
+
+Reason: Finite runtime observation cannot prove that a polymorphic hierarchy is
+closed. Automatic rewrite would be unsound.
+
+Impact: `RewritePlanner` returns no plans unless `opt_in=True`, and rewritten
+source is prefixed with an observed-based warning comment.
+
+## DEC-005 | 2026-06-10 | Source Position Targets
+
+Decision: Identify rewrite targets by source range metadata instead of
+`deep_equals`.
+
+Reason: Two calls can be structurally identical but refer to different source
+locations. Structural equality can rewrite the wrong call site.
+
+Impact: `TransformPlan.target_range` carries the `line:column-line:column`
+identity used by `collapse_source`.

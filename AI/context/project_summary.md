@@ -23,6 +23,8 @@ Implemented:
   `isinstance` expressions.
 - Harness computes behavior hashes and reports detailed divergence.
 - Tests cover A1-A6 including an end-to-end polymorphic pipeline.
+- Hardening now includes opt-in rewrites, JSON/HTML reports, CLI, confidence
+  score, Hypothesis properties, ruff, mypy strict, and 90% coverage.
 
 ## Verification
 
@@ -30,4 +32,7 @@ Use:
 
 ```powershell
 python -m pytest tests/ -x -v
+python -m pytest --cov=flatten --cov-fail-under=90
+python -m ruff check src tests
+python -m mypy src
 ```
