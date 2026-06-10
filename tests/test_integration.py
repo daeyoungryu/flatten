@@ -7,7 +7,7 @@ from flatten.collapse import collapse_source
 from flatten.contracts import ClosureVerdict, TransformPlan
 from flatten.dispatch import build_direct_call, build_isinstance_chain
 from flatten.harness import assert_equivalent
-from flatten.tracer import trace_calls
+from flatten.tracer import Tracer, trace_calls
 from tests.fixtures.diamond import A, B, C, D, E, make_all
 
 
@@ -163,11 +163,15 @@ def test_a5_equivalence_passes_and_divergence_is_detailed():
 
 def test_a6_end_to_end_polymorphic_pipeline():
     objects = make_all()
-    with trace_calls(A.process) as tracer:
+    with Tracer() as tracer:
         for obj in objects:
             obj.process(9)
 
-    observed = {record.impl_class for record in tracer.records}
+    observed = {
+        record.impl_class
+        for record in tracer.records
+        if record.qualname.endswith(".process")
+    }
     verdict = ClosureChecker().check("A.process", [A, B, C, D, E])
     source = "def flattened(obj):\n    return obj.process(9)\n"
     target, target_range = _first_call_with_range(source, "process")

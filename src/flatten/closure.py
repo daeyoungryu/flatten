@@ -90,6 +90,18 @@ def _check_os5(base_cls: type, observed_impls: list[type]) -> str | None:
     return None
 
 
+def _declared_owner(method_qualname: str, observed_impls: list[type], method_name: str) -> type:
+    owner_name = method_qualname.rsplit(".", 1)[0].split(".")[-1]
+    for observed in observed_impls:
+        for cls in observed.__mro__:
+            if cls.__name__ == owner_name or cls.__qualname__.split(".")[-1] == owner_name:
+                return cls
+    for cls in observed_impls[0].__mro__:
+        if method_name in cls.__dict__:
+            return cls
+    return observed_impls[0]
+
+
 class ClosureChecker:
     def check(self, method_qualname: str, observed_impls: list[type]) -> ClosureVerdict:
         if not observed_impls:
@@ -103,11 +115,7 @@ class ClosureChecker:
             )
 
         method_name = method_qualname.rsplit(".", 1)[-1]
-        base_cls = observed_impls[0]
-        for cls in observed_impls[0].__mro__:
-            if method_name in cls.__dict__:
-                base_cls = cls
-                break
+        base_cls = _declared_owner(method_qualname, observed_impls, method_name)
 
         methods = _observed_methods(method_name, observed_impls)
         signals = [

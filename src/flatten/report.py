@@ -10,15 +10,32 @@ from typing import Any
 from flatten.contracts import ClosureVerdict
 
 
+def _type_name(cls: type) -> str:
+    return f"{cls.__module__}.{cls.__qualname__}"
+
+
+def _verdict_to_dict(verdict: ClosureVerdict) -> dict[str, Any]:
+    data = asdict(verdict)
+    data["known_impls"] = [
+        _type_name(impl) if isinstance(impl, type) else str(impl)
+        for impl in verdict.known_impls
+    ]
+    return data
+
+
 @dataclass(frozen=True)
 class AnalysisReport:
     verdicts: list[ClosureVerdict]
     confidence: float
+    metadata: dict[str, Any] | None = None
+    errors: list[str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "confidence": self.confidence,
-            "verdicts": [asdict(verdict) for verdict in self.verdicts],
+            "verdicts": [_verdict_to_dict(verdict) for verdict in self.verdicts],
+            "metadata": self.metadata or {},
+            "errors": self.errors or [],
         }
 
     def to_json(self) -> str:
