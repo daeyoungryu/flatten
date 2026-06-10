@@ -103,13 +103,25 @@ def test_record_call_reconstructs_qualname_without_co_qualname():
 
 
 def test_tracer_uses_one_tracing_backend(monkeypatch):
+    import sys
+    import types
+
     calls = []
+    mock_monitoring = types.SimpleNamespace(
+        register_callback=lambda *args: None,
+        set_events=lambda *args: None,
+        free_tool_id=lambda *args: None,
+        events=types.SimpleNamespace(
+            PY_START=1,
+            PY_RETURN=2,
+            NO_EVENTS=0,
+        ),
+    )
     monkeypatch.setattr("flatten.tracer._USE_MONITORING", True)
     monkeypatch.setattr("flatten.tracer._allocate_tool_id", lambda: 5)
-    monkeypatch.setattr("flatten.tracer.sys.monitoring.register_callback", lambda *args: None)
-    monkeypatch.setattr("flatten.tracer.sys.monitoring.set_events", lambda *args: None)
-    monkeypatch.setattr("flatten.tracer.sys.monitoring.free_tool_id", lambda *args: None)
-    monkeypatch.setattr("flatten.tracer.sys.settrace", lambda handler: calls.append(handler))
+    monkeypatch.setattr(sys, "monitoring", mock_monitoring, raising=False)
+    monkeypatch.setattr("flatten.tracer.sys", sys)
+    monkeypatch.setattr(sys, "settrace", lambda handler: calls.append(handler))
 
     tracer = Tracer()
     tracer.start()
