@@ -1,4 +1,6 @@
 from flatten.contracts import ClosureStatus, RewriteDecision
+from flatten.contracts import ClosureVerdict
+from flatten.planner import RewritePlanner
 from flatten.proofs import ProofStatus, classify_rewrite_decision
 
 
@@ -41,3 +43,17 @@ def test_unsafe_decision_is_unsafe():
     proof = classify_rewrite_decision(decision)
 
     assert proof.status is ProofStatus.UNSAFE
+
+
+def test_planner_decisions_include_proof_status():
+    verdict = ClosureVerdict(
+        method_qualname="A.run",
+        status=ClosureStatus.CLOSED,
+        reasons=("typing.final class or method",),
+        evidence=("checked static package subclasses",),
+    )
+
+    decisions = RewritePlanner(opt_in=True).decide([verdict])
+
+    assert decisions[0].proof_status == "safe"
+    assert decisions[0].proof_evidence == ("checked static package subclasses",)
