@@ -45,3 +45,6 @@ survived_report.txt
 cosmic-ray.toml
 _parse.py
 _report.py
+
+# Claude local settings
+.claude/settings.local.json
