@@ -98,6 +98,9 @@ class RewriteDecision:
     closure_verdict: str = ""
     required_imports: tuple[str, ...] = ()
     safety_notes: tuple[str, ...] = ()
+    proof_status: str = ""
+    proof_reasons: tuple[str, ...] = ()
+    proof_evidence: tuple[str, ...] = ()
 
     @classmethod
     def from_verdict(cls, verdict: ClosureVerdict) -> RewriteDecision:
@@ -141,6 +144,9 @@ class RewriteDecision:
             "closure_verdict": self.closure_verdict or self.status.value,
             "required_imports": list(self.required_imports),
             "safety_notes": list(self.safety_notes),
+            "proof_status": self.proof_status,
+            "proof_reasons": list(self.proof_reasons),
+            "proof_evidence": list(self.proof_evidence),
         }
 
 
