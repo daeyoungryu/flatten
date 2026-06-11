@@ -191,7 +191,8 @@ def test_replacement_for_site_uses_guard_for_two_receiver_types():
     replacement = _replacement_for_site(source, site, ["pkg.mod.Base", "pkg.mod.Child"])
 
     assert cst.Module([]).code_for_node(replacement) == (
-        "Base.run(obj) if isinstance(obj, Base) else Child.run(obj)"
+        "Base.run(obj) if isinstance(obj, Base) else "
+        "Child.run(obj) if isinstance(obj, Child) else obj.run()"
     )
 
 
@@ -207,7 +208,8 @@ def test_replacement_for_site_uses_nested_guards_for_three_receiver_types():
 
     assert cst.Module([]).code_for_node(replacement) == (
         "Base.run(obj) if isinstance(obj, Base) else "
-        "Child.run(obj) if isinstance(obj, Child) else Leaf.run(obj)"
+        "Child.run(obj) if isinstance(obj, Child) else "
+        "Leaf.run(obj) if isinstance(obj, Leaf) else obj.run()"
     )
 
 
@@ -233,5 +235,6 @@ def test_replacement_for_site_uses_receiver_override_in_call_and_guard():
     )
 
     assert cst.Module([]).code_for_node(replacement) == (
-        "Base.run(_receiver) if isinstance(_receiver, Base) else Child.run(_receiver)"
+        "Base.run(_receiver) if isinstance(_receiver, Base) else "
+        "Child.run(_receiver) if isinstance(_receiver, Child) else _receiver.run()"
     )

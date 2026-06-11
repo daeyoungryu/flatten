@@ -179,6 +179,19 @@ def _verdicts_from_observations(
             filename=str(source_path).replace("\\", "/"),
             module_name=observed_impls[0].__module__,
         )
+        if "class-attribute-assignment" in static_analysis.risk_flags:
+            return [
+                ClosureVerdict(
+                    method_qualname=method_qualname,
+                    known_impls=observed_impls,
+                    open_signals=["UNSAFE: possible monkey patch via class attribute assignment"],
+                    signal="UNSAFE",
+                    rationale="cannot prove closed when source mutates class attributes",
+                    status=ClosureStatus.UNSAFE,
+                    blockers=("UNSAFE: possible monkey patch via class attribute assignment",),
+                    evidence=("checked static class attribute assignments",),
+                )
+            ]
         checker = ClosureChecker(
             ClosureConfig(
                 closed_world=closed_world,
@@ -250,13 +263,15 @@ def cmd_trace(args: argparse.Namespace) -> int:
         _read(args.path),
         filename=str(args.path).replace("\\", "/"),
     )
-    with Tracer() as tracer:
+    with Tracer(capture_values=args.capture_values) as tracer:
         fn()
     records = [
         _observation_from_trace(record, call_sites, index)
         for index, record in enumerate(tracer.records, start=1)
         if record.is_dispatch_target and record.impl_class is not None
     ]
+    bound_count = sum(1 for record in records if record.call_site_id)
+    unbound_count = len(records) - bound_count
     payload = observations_to_json(records)
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -264,6 +279,13 @@ def cmd_trace(args: argparse.Namespace) -> int:
         print(f"wrote {args.out}")
     else:
         print(payload)
+    if unbound_count:
+        print(
+            f"flatten: warning: bound {bound_count} / unbound {unbound_count} observation(s)",
+            file=sys.stderr,
+        )
+        if args.strict:
+            return 2
     return 0
 
 
@@ -279,7 +301,11 @@ def _observation_from_trace(
     candidates = [
         site
         for site in call_sites
-        if site.filename == caller_filename and site.line == caller_lineno
+        if (
+            site.filename == caller_filename
+            and site.line == caller_lineno
+            and site.method_name == traced_method_name
+        )
     ]
     if len(candidates) > 1 and caller_column >= 0:
         column_matches = [
@@ -382,7 +408,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         if args.strict:
-            return 1
+            return 2
     return 0
 
 
@@ -421,7 +447,14 @@ def cmd_rewrite(args: argparse.Namespace) -> int:
         original = _entry_func(args.path, args.entry, "_original")
         rewritten_entry = _entry_func(args.out, args.entry, "_rewritten")
         assert_equivalent(original, rewritten_entry, [((), {})])
-    _json_print({"summary": f"wrote {args.out}", "rewrite_plans": len(plans)})
+    summary = (
+        f"wrote {args.out}; applied 0 rewrite plan(s)"
+        if not plans
+        else f"wrote {args.out}"
+    )
+    _json_print({"summary": summary, "rewrite_plans": len(plans)})
+    if not plans and args.strict:
+        return 2
     return 0
 
 
@@ -571,6 +604,7 @@ def build_parser() -> argparse.ArgumentParser:
     trace.add_argument("--out", type=Path)
     trace.add_argument("--json", action="store_true")
     trace.add_argument("--strict", action="store_true")
+    trace.add_argument("--capture-values", action="store_true")
     trace.set_defaults(func=cmd_trace)
 
     plan = subparsers.add_parser("plan")

@@ -50,10 +50,13 @@ Last updated: 2026-06-11
   markers, guarded module entry points, CI matrix/jobs, wheel content check,
   and five executable examples. Evidence is stored in `AI/logs/phase3/` and
   summarized in `AI/reviews/phase3_report.md`.
+- v0.1.1 defect fix pass: fixed P0 release blockers, P1 soundness defects, and
+  P2 quality defects with RED/GREEN logs in `AI/logs/` and summary in
+  `AI/reviews/v0.1.1_defect_fix_report.md`.
 
 ## Remaining
 
-- No requested upgrade phase remains after Phase 3.
+- No requested v0.1.1 defect item remains.
 - Blocked external validation: hosted GitHub Actions needs GitHub Actions
   access or an installed/authenticated `gh` CLI.
 - Blocked external validation: mutation testing needs Linux/WSL because native

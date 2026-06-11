@@ -161,3 +161,12 @@ flatten --help`, and `check-wheel-contents` pass.
 External blockers: hosted GitHub Actions requires access to GitHub Actions or
 an installed/authenticated `gh` CLI; mutation testing requires Linux/WSL because
 native Windows is unsupported by `mutmut`.
+
+## v0.1.1 Defect Fix
+
+v0.1.1 fixes release blockers and soundness regressions identified after the
+Phase 3 pass. The built-wheel release gate now lives in
+`scripts/release_gate.ps1` and CI job `release-gate`. Local hierarchy
+completeness now yields `PROBABLY_CLOSED` unless positive CLOSED evidence
+exists, and guarded dispatch rewrites fall back to the original dynamic method
+call for unmatched receiver types.

@@ -179,6 +179,7 @@ def test_guarded_dispatch_uses_temp_for_receiver_expression_with_side_effects():
     assert "_flatten_receiver_1 = make()" in rewritten
     assert "isinstance(_flatten_receiver_1, B)" in rewritten
     assert "A.run(_flatten_receiver_1)" in rewritten
+    assert "_flatten_receiver_1.run()" in rewritten
     assert "make().run()" not in rewritten
 
 
@@ -327,7 +328,7 @@ def test_cli_plan_uses_static_subclass_graph_for_local_hierarchy_evidence(tmp_pa
     assert main(["plan", source.as_posix(), "--observations", obs.as_posix()]) == 0
 
     payload = json.loads(capsys.readouterr().out)
-    assert payload["verdicts"][0]["status"] == "open"
+    assert payload["verdicts"][0]["status"] == "probably_closed"
     assert payload["rewrite_plans"] == []
     assert "checked static package subclasses" in payload["verdicts"][0]["evidence"]
     assert "checked runtime subclasses" not in payload["verdicts"][0]["evidence"]

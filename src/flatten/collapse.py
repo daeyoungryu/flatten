@@ -18,13 +18,10 @@ class CollapseTransformer(cst.CSTTransformer):
     def __init__(self, plans: Iterable[TransformPlan] | set[str]) -> None:
         if isinstance(plans, set):
             raise ValueError("unsafe inline path is not supported")
-        self._plans = list(plans) if not isinstance(plans, set) else []
+        self._plans = list(plans)
         self._plans_by_range = {
             plan.target_range: plan for plan in self._plans if plan.target_range
         }
-
-    def visit_Assign(self, node: cst.Assign) -> bool:
-        return True
 
     def leave_Call(self, original: cst.Call, updated: cst.Call) -> cst.BaseExpression:
         for plan in self._plans:
@@ -42,9 +39,6 @@ class CollapseTransformer(cst.CSTTransformer):
             matched_plan = self._plans_by_range.get(key)
             if matched_plan is not None:
                 return matched_plan.replacement
-        return updated
-
-    def leave_Name(self, original: cst.Name, updated: cst.Name) -> cst.BaseExpression:
         return updated
 
 

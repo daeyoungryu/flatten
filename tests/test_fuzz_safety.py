@@ -44,6 +44,7 @@ def test_fuzz_safety_rejects_or_closes_without_crashing(method_name, hidden_coun
     assert verdict.status in {
         ClosureStatus.CLOSED,
         ClosureStatus.OPEN,
+        ClosureStatus.PROBABLY_CLOSED,
         ClosureStatus.UNSAFE,
         ClosureStatus.UNKNOWN,
     }

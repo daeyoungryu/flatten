@@ -132,3 +132,14 @@ All shared records live in `src/flatten/contracts.py` to avoid circular imports:
 - `tests/test_phase3_release_contracts.py` covers Phase 3 docs, schema,
   packaging metadata, typed markers, guarded entry points, CI, and examples.
 - Required Phase 3 local verification passes with 174 tests.
+
+## v0.1.1 Architecture Update
+
+- `ClosureChecker` can return `PROBABLY_CLOSED`; `RewriteDecision` treats it as
+  a refusal with `OPEN_CLOSURE_INCOMPLETE`.
+- Guarded rewrite expressions preserve behavior for unexpected receiver types
+  by ending in the original dynamic dispatch expression.
+- CLI tracing defaults to metadata-only capture; deep value capture is opt-in
+  with `--capture-values`.
+- `scripts/release_gate.ps1` verifies the built wheel in a clean venv, including
+  installed-package compileall, module help, strict mypy, and a minimal e2e.

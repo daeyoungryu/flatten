@@ -1,6 +1,6 @@
 """flatten — polymorphic dispatch flattener via runtime tracing + LibCST."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from flatten.closure import ClosureChecker
 from flatten.collapse import CollapseTransformer

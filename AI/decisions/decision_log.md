@@ -309,3 +309,36 @@ validated transformer.
 Impact: `py.typed` markers, guarded `__main__` modules, metadata classifiers,
 CI jobs, report schema, release docs, and executable examples are now part of
 the testable release contract.
+
+## DEC-026 | 2026-06-11 | Local Completeness Is Only Probably Closed
+
+Decision: A complete local runtime/static hierarchy without positive final,
+sealed, or closed-world evidence returns `PROBABLY_CLOSED` and cannot rewrite.
+
+Reason: Single-file and finite runtime evidence can miss external or future
+subclasses. This must not be promoted to CLOSED.
+
+Impact: `RewriteDecision.from_verdict()` refuses `PROBABLY_CLOSED` with
+`OPEN_CLOSURE_INCOMPLETE`.
+
+## DEC-027 | 2026-06-11 | Guarded Rewrites Keep Dynamic Fallback
+
+Decision: Multiple-receiver guarded dispatch chains end with the original
+dynamic method call.
+
+Reason: If closure evidence is wrong or incomplete, falling into an arbitrary
+observed implementation can silently corrupt behavior. Dynamic fallback
+preserves original dispatch semantics for unmatched receiver types.
+
+Impact: `_replacement_for_site()` emits `... else receiver.method(...)`; temp
+receiver rewrites fallback to `_flatten_receiver_N.method(...)`.
+
+## DEC-028 | 2026-06-11 | Release Gate Tests the Installed Wheel
+
+Decision: Add `scripts/release_gate.ps1` and CI `release-gate` to validate the
+built wheel in a clean venv.
+
+Reason: Source-tree tests did not catch wheel-only syntax/type failures.
+
+Impact: The gate builds, installs the wheel, compiles installed packages, runs
+both module helps, strict mypy, and a minimal analyze-to-verify e2e.

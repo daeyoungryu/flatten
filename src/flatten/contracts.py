@@ -197,7 +197,11 @@ def _reason_code_for(
             "UNSAFE_ARGUMENT_SIDE_EFFECTS",
             "Argument or receiver side effects may be reordered by rewrite.",
         )
-    if "unobserved" in text or "static class graph" in text or status is ClosureStatus.OPEN:
+    if (
+        "unobserved" in text
+        or "static class graph" in text
+        or status in {ClosureStatus.OPEN, ClosureStatus.PROBABLY_CLOSED}
+    ):
         return (
             "OPEN_CLOSURE_INCOMPLETE",
             "Closure is incomplete; unobserved implementations may exist.",

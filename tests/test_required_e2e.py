@@ -190,7 +190,10 @@ def test_planner_and_transformer_rewrite_exact_site_with_guarded_dispatch():
     assert len(plans) == 1
     assert plans[0].target_call_site.call_site_id == target.call_site_id
     assert "x = a.run(1)" in rewritten
-    assert "B.run(a, 1) if isinstance(a, B) else A.run(a, 1)" in rewritten
+    assert (
+        "A.run(a, 1) if isinstance(a, A) else "
+        "B.run(a, 1) if isinstance(a, B) else a.run(1)"
+    ) in rewritten
     assert "return x, y, b.run(1)" in rewritten
 
 
@@ -272,6 +275,8 @@ def test_cli_analyze_plan_rewrite_verify_integration(tmp_path):
             "--out",
             str(rewritten),
             "--apply",
+            "--entry",
+            "simple:main",
         ],
         check=False,
         capture_output=True,

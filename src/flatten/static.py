@@ -47,7 +47,11 @@ def analyze_class_hierarchy(
             risk_flags.add("setattr")
         if isinstance(walk_node, ast.Assign):
             for target in walk_node.targets:
-                if isinstance(target, ast.Attribute):
+                if (
+                    isinstance(target, ast.Attribute)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id in local_names
+                ):
                     risk_flags.add("class-attribute-assignment")
 
     for node in tree.body:
