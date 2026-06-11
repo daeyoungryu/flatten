@@ -342,3 +342,16 @@ Reason: Source-tree tests did not catch wheel-only syntax/type failures.
 
 Impact: The gate builds, installs the wheel, compiles installed packages, runs
 both module helps, strict mypy, and a minimal analyze-to-verify e2e.
+
+## DEC-029 | 2026-06-11 | Evidence Platform Is a First-Class Layer
+
+Decision: Add explicit evaluation, behavior comparator, and proof
+classification modules before expanding rewrite capability.
+
+Reason: Principal Engineer review requires reproducible evidence and a clear
+SAFE/UNSAFE/UNKNOWN proof chain. Runtime observation plus heuristic rewrite is
+not enough to justify behavior-preserving transformation.
+
+Impact: `flatten evaluate` emits metrics JSON, `RewriteDecision` carries proof
+metadata, planner output is gated by SAFE proof status, and HTML reporting can
+show evaluation metrics for human review.

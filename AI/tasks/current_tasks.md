@@ -53,6 +53,9 @@ Last updated: 2026-06-11
 - v0.1.1 defect fix pass: fixed P0 release blockers, P1 soundness defects, and
   P2 quality defects with RED/GREEN logs in `AI/logs/` and summary in
   `AI/reviews/v0.1.1_defect_fix_report.md`.
+- Evidence Platform First slice: added evaluation metrics, behavior comparator,
+  proof classification, SAFE-gated planner metadata, `flatten evaluate`, HTML
+  evaluation report rendering, and evidence architecture docs.
 
 ## Remaining
 
@@ -61,3 +64,6 @@ Last updated: 2026-06-11
   access or an installed/authenticated `gh` CLI.
 - Blocked external validation: mutation testing needs Linux/WSL because native
   Windows is unsupported by `mutmut`; this machine has no WSL distribution.
+- Remaining evidence-platform expansion: repository-scale mode, real-world
+  benchmark corpus, mutation score automation, observability metrics, and
+  deeper type-flow/alias analysis.

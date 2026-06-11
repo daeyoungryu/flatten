@@ -32,8 +32,15 @@ Implemented:
   plan.
 - Harness compares return values, exception type/message, stdout, stderr, and
   optional collected effects.
+- Behavior comparison is exposed through `BehaviorComparator` for reusable
+  return/stdout/stderr/exception/effect mismatch reporting.
+- Evaluation metrics record total, candidate, rewritten, rejected, unsafe, and
+  unknown call-site counts plus precision/recall/FPR/FNR when labeled outcomes
+  are available.
+- Rewrite decisions carry proof metadata derived from SAFE, UNSAFE, or UNKNOWN
+  classification. Only SAFE decisions can feed rewrite planning.
 - Tests cover A1-A6 including an end-to-end polymorphic pipeline.
-- CLI now supports analyze, trace, plan, rewrite, verify, and report commands,
+- CLI now supports analyze, trace, plan, rewrite, verify, report, and evaluate commands,
   including plan-file based rewrite.
 
 Phase 0 hardening verified:
@@ -161,6 +168,15 @@ flatten --help`, and `check-wheel-contents` pass.
 External blockers: hosted GitHub Actions requires access to GitHub Actions or
 an installed/authenticated `gh` CLI; mutation testing requires Linux/WSL because
 native Windows is unsupported by `mutmut`.
+
+## Evidence Platform First
+
+The first evidence-platform slice adds `flatten.evaluation`,
+`flatten.comparator`, and `flatten.proofs`. The CLI can now emit reproducible
+evaluation JSON through `flatten evaluate`, and reports can render evaluation
+metrics as HTML. `docs/ARCHITECTURE.md` now documents public APIs, safety
+limits, false positive/negative risks, unsupported Python features, and the
+evidence platform data flow.
 
 ## v0.1.1 Defect Fix
 

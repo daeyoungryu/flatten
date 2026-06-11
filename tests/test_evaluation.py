@@ -1,8 +1,11 @@
-from flatten.evaluation import EvaluationCounts, LabeledOutcome, compute_metrics
-
 from flatten.contracts import ClosureStatus, RewriteDecision
 from flatten.discovery import discover_call_sites
-from flatten.evaluation import evaluate_artifacts
+from flatten.evaluation import (
+    EvaluationCounts,
+    LabeledOutcome,
+    compute_metrics,
+    evaluate_artifacts,
+)
 
 
 def test_evaluation_counts_derive_rates_from_labeled_outcomes():

@@ -10,9 +10,11 @@ source code
   -> observations.py   loads runtime/oracle records linked to call-site ids
   -> static.py         extracts class hierarchy and dynamic risk evidence
   -> closure.py        classifies CLOSED, OPEN, and UNSAFE dispatches
+  -> proofs.py         classifies rewrite authorization as SAFE/UNSAFE/UNKNOWN
   -> planner.py        emits opt-in rewrite plans for CLOSED verdicts only
   -> transformer.py    applies exact PositionProvider-based LibCST rewrites
-  -> harness.py        compares original and transformed behavior
+  -> comparator.py     compares original and transformed behavior
+  -> evaluation.py     records reproducible rewrite metrics
 ```
 
 Phase 0 safety hardening: ✅ COMPLETED
@@ -91,6 +93,18 @@ External Phase 3 release pass: COMPLETED
   unsupported cases, testing strategy, CLI, examples, roadmap, and report schema.
 - Examples are runnable scripts for allowed and rejected policy outcomes.
 
+Evidence Platform First: COMPLETED
+
+- `evaluation.py` records call-site counts and precision/recall/FPR/FNR
+  metrics, using `None` when no labeled corpus is available.
+- `comparator.py` exposes `BehaviorComparator` for return, stdout, stderr,
+  exception, and effect mismatch reporting.
+- `proofs.py` maps rewrite decisions to SAFE, UNSAFE, or UNKNOWN evidence.
+- `planner.py` attaches proof metadata and emits plans only for SAFE decisions.
+- `cli.py` exposes `evaluate` for metrics JSON from source and optional plan
+  artifacts.
+- `report.py` can render evaluation metrics as a small HTML evidence report.
+
 ## Contracts
 
 All shared records live in `src/flatten/contracts.py` to avoid circular imports:
@@ -99,7 +113,11 @@ All shared records live in `src/flatten/contracts.py` to avoid circular imports:
 - `CallSite`
 - `ObservationRecord` plus `TypeRef` and `FunctionRef` in `observations.py`
 - `ClosureVerdict`
+- `RewriteDecision`
 - `TransformPlan`
+- `EvaluationCounts` and `EvaluationMetrics` in `evaluation.py`
+- `ProofEvidence` in `proofs.py`
+- `BehaviorComparisonResult` in `comparator.py`
 
 ## Dependency Boundaries
 
@@ -131,7 +149,10 @@ All shared records live in `src/flatten/contracts.py` to avoid circular imports:
   mutation-like branch protection, fuzz rejection, and 20 differential cases.
 - `tests/test_phase3_release_contracts.py` covers Phase 3 docs, schema,
   packaging metadata, typed markers, guarded entry points, CI, and examples.
-- Required Phase 3 local verification passes with 174 tests.
+- `tests/test_evaluation.py`, `tests/test_comparator.py`,
+  `tests/test_proofs.py`, and `tests/test_evidence_cli.py` cover the evidence
+  platform slice.
+- Current full local verification passes with 198 tests.
 
 ## v0.1.1 Architecture Update
 
