@@ -48,3 +48,6 @@ _report.py
 
 # Claude local settings
 .claude/settings.local.json
+
+# Local agent worktrees
+.worktrees/
