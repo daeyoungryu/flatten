@@ -19,6 +19,8 @@ class DispatchTransformer(cst.CSTTransformer):
 
     def leave_Call(self, original: cst.Call, updated: cst.Call) -> cst.BaseExpression:
         for plan in self._plans:
+            if plan.target_node is None:
+                continue
             if original is plan.target_node or original.deep_equals(plan.target_node):
                 if not plan.verdict.is_closed:
                     return updated

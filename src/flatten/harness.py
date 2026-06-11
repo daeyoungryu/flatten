@@ -57,16 +57,19 @@ def capture_behavior(
     **kwargs: Any,
 ) -> BehaviorObservation:
     stdout_buf = StringIO()
+    stderr_buf = StringIO()
     effects: dict[str, Any] = {}
     try:
-        with patch("sys.stdout", stdout_buf):
+        with patch("sys.stdout", stdout_buf), patch("sys.stderr", stderr_buf):
             result = func(*args, **kwargs)
         effects["stdout"] = stdout_buf.getvalue()
+        effects["stderr"] = stderr_buf.getvalue()
         for name, collector in (effect_collectors or {}).items():
             effects[name] = collector()
         return BehaviorObservation("return", value=result, effects=effects)
     except Exception as exc:
         effects["stdout"] = stdout_buf.getvalue()
+        effects["stderr"] = stderr_buf.getvalue()
         for name, collector in (effect_collectors or {}).items():
             effects[name] = collector()
         return BehaviorObservation(

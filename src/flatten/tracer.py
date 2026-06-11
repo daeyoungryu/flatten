@@ -9,6 +9,7 @@ marked `is_dispatch_target=False`.
 from __future__ import annotations
 
 import copy
+import dis
 import sys
 import weakref
 from collections.abc import Iterator
@@ -62,7 +63,18 @@ class Tracer:
         self._active = False
         self._pending: dict[
             int,
-            tuple[str, type | None, tuple[Any, ...], dict[str, Any], str, bool],
+            tuple[
+                str,
+                type | None,
+                tuple[Any, ...],
+                dict[str, Any],
+                str,
+                bool,
+                str,
+                int,
+                int,
+                int,
+            ],
         ] = {}
         self._monitoring_frames: dict[int, Any] = {}
         self._tool_id: int | None = None
@@ -162,6 +174,9 @@ class Tracer:
         )
         is_dispatch_target = receiver is not None
         impl_class = type(receiver) if receiver is not None else None
+        caller = getattr(frame, "f_back", None)
+        caller_filename = str(caller.f_code.co_filename) if caller is not None else ""
+        caller_lineno, caller_column, caller_end_column = _caller_position(caller)
 
         args = tuple(
             _snapshot_value(
@@ -183,6 +198,10 @@ class Tracer:
             kwargs,
             f"{code.co_filename}:{code.co_firstlineno}",
             is_dispatch_target,
+            caller_filename,
+            caller_lineno,
+            caller_column,
+            caller_end_column,
         )
 
     def _record_return(self, frame: Any, return_val: Any) -> None:
@@ -190,7 +209,18 @@ class Tracer:
         if pending is None:
             return
 
-        qualname, impl_class, args, kwargs, call_site, is_dispatch_target = pending
+        (
+            qualname,
+            impl_class,
+            args,
+            kwargs,
+            call_site,
+            is_dispatch_target,
+            caller_filename,
+            caller_lineno,
+            caller_column,
+            caller_end_column,
+        ) = pending
         self.records.append(
             OracleRecord(
                 qualname=qualname,
@@ -200,6 +230,10 @@ class Tracer:
                 return_val=_snapshot_value(return_val),
                 call_site=call_site,
                 is_dispatch_target=is_dispatch_target,
+                caller_filename=caller_filename,
+                caller_lineno=caller_lineno,
+                caller_column=caller_column,
+                caller_end_column=caller_end_column,
             )
         )
 
@@ -223,6 +257,30 @@ def unwrap(func: Any) -> Any:
     while hasattr(func, "__wrapped__"):
         func = func.__wrapped__
     return func
+
+
+def _caller_position(frame: Any | None) -> tuple[int, int, int]:
+    if frame is None:
+        return 0, -1, -1
+    lineno = int(getattr(frame, "f_lineno", 0))
+    lasti = getattr(frame, "f_lasti", None)
+    if lasti is None:
+        return lineno, -1, -1
+    get_instructions: Any = dis.get_instructions
+    if sys.version_info >= (3, 11):
+        instructions = list(get_instructions(frame.f_code, show_caches=True))
+    else:
+        instructions = list(get_instructions(frame.f_code))
+    candidate = next((item for item in instructions if item.offset == lasti), None)
+    if candidate is None:
+        previous = [item for item in instructions if item.offset <= lasti]
+        candidate = previous[-1] if previous else None
+    positions = getattr(candidate, "positions", None)
+    if candidate is None or positions is None:
+        return lineno, -1, -1
+    column = -1 if positions.col_offset is None else int(positions.col_offset)
+    end_column = -1 if positions.end_col_offset is None else int(positions.end_col_offset)
+    return lineno, column, end_column
 
 
 @contextmanager

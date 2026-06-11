@@ -1,58 +1,174 @@
 # flatten-polymorph
 
-`flatten-polymorph` analyzes observed Python polymorphic dispatch with runtime
-tracing and LibCST. It does not claim that finite runtime observation proves a
-hierarchy is closed. Source rewrites are disabled by default and must be opted
-into explicitly; generated rewrites include a warning that unobserved
-implementations may exist.
+`flatten-polymorph` is an experimental Python 3.10+ library for turning proven-safe polymorphic method calls into explicit direct calls or guarded dispatch expressions.
 
-## Install
+The package is intentionally conservative. Runtime observation is evidence, not proof. A rewrite is emitted only when the call site, observed implementation set, and closure verdict agree that the target is closed.
 
-```powershell
-cd C:\Users\Com\Documents\Claude\Projects\flatten
-python -m pip install -e ".[dev]"
+## Problem
+
+Python code often hides dispatch behind `obj.method(...)`. That flexibility is valuable, but it makes profiling, specialization, static review, and mechanical refactoring harder. This project provides an end-to-end pipeline:
+
+```text
+source code
+-> call-site discovery
+-> runtime observations or oracle JSON
+-> closure/safety verdict
+-> rewrite plan
+-> LibCST source transform
+-> behavior verification
+-> JSON/human-readable report
 ```
 
-The distribution name is `flatten-polymorph`; the import package remains
-`flatten`.
+## When Rewrite Is Allowed
 
-## Quick Example
+The planner only emits a rewrite when:
+
+- The static call site is identified by file, line, and column.
+- Observation records link that exact call site to concrete receiver types and resolved functions.
+- `ClosureChecker` returns `CLOSED`.
+- `RewriteDecision` records an allowed decision with no blockers.
+- `rewrite` is called with explicit `--apply`.
+
+Current CLOSED evidence includes:
+
+- `typing.final` class or method.
+- Explicit sealed root/class allowlist from observations.
+- Closed-world mode over the analyzed package.
+- Complete local hierarchy where all runtime subclasses are known and no risk signal is present.
+
+## OPEN and UNSAFE Cases
+
+The checker leaves a call site unrevised when it cannot prove closure.
+
+OPEN examples:
+
+- Unobserved subclasses exist.
+- External module boundary allows future subclasses.
+- Static subclass set and observed type set disagree.
+- Runtime-only evidence is finite and incomplete.
+
+UNSAFE examples:
+
+- Monkey-patched methods.
+- `__getattribute__` or `__getattr__` overrides.
+- `__setattr__`, `__delattr__`, or `__init_subclass__` hooks.
+- Descriptor or `property` dispatch.
+- Custom metaclass behavior.
+- Dynamic code execution or dynamic imports inside observed methods.
+- Multiple inheritance with complex MRO.
+- Side-effectful targets unless the user explicitly treats the target as pure for verification.
+
+## CLI
+
+```powershell
+flatten analyze examples/simple_closed_single.py --json
+flatten trace examples/simple_closed_single.py --entry examples.simple_closed_single:main --out /tmp/fp_obs.json
+flatten plan examples/simple_closed_single.py --observations /tmp/fp_obs.json --out /tmp/fp_plan.json
+flatten rewrite examples/simple_closed_single.py --plan /tmp/fp_plan.json --out /tmp/fp_rewritten.py
+flatten verify examples/simple_closed_single.py /tmp/fp_rewritten.py --entry examples.simple_closed_single:main
+flatten report /tmp/fp_plan.json
+```
+
+All commands print JSON with a short summary. `analyze` also supports `--format html`.
+
+## Observation Schema
+
+Observation JSON is a list of records:
+
+```json
+[
+  {
+    "call_site_id": "examples/simple.py:12:11-12:26",
+    "receiver_type": {
+      "module": "examples.simple_closed_single",
+      "qualname": "Worker",
+      "file": "examples/simple_closed_single.py",
+      "is_builtin": false
+    },
+    "resolved_function": {
+      "module": "examples.simple_closed_single",
+      "qualname": "Worker.run",
+      "file": "examples/simple_closed_single.py",
+      "firstlineno": 5
+    },
+    "method_name": "run",
+    "frame_module": "examples.simple_closed_single",
+    "order": 1,
+    "input_hash": "call-1"
+  }
+]
+```
+
+The key field is `call_site_id`; it binds runtime evidence to one exact CST position.
+
+## Before and After
+
+Before:
 
 ```python
-from flatten import ClosureChecker, RewritePlanner, assert_equivalent, trace_calls
+from typing import final
 
-with trace_calls(Base.process) as tracer:
-    for obj in objects:
-        obj.process(42)
+@final
+class Worker:
+    def run(self, value):
+        return value + 1
 
-impls = sorted({record.impl_class for record in tracer.records}, key=lambda cls: cls.__name__)
-verdict = ClosureChecker().check("Base.process", impls)
-planner = RewritePlanner(opt_in=False)
-
-assert_equivalent(original_func, flattened_func, [((42,), {})])
+def main():
+    return Worker().run(2)
 ```
 
-## Test
+After:
 
-```powershell
-python -m pytest tests/ -x -v
-python -m pytest --cov=flatten --cov-fail-under=90
-python -m ruff check src tests
-python -m mypy src
+```python
+from typing import final
+
+@final
+class Worker:
+    def run(self, value):
+        return value + 1
+
+def main():
+    return Worker.run(Worker(), 2)
 ```
 
-## Implemented Modules
+For multiple closed implementations, the transformer emits an expression such as:
 
-- `contracts.py`: frozen `OracleRecord`, `ClosureVerdict`, and `TransformPlan`.
-- `tracer.py`: Python 3.12+ `sys.monitoring` or Python 3.10-3.11 `sys.settrace`.
-- `closure.py`: OS1-OS5 open-signal checks and documented runtime-observation limits.
-- `collapse.py`: LibCST batch replacement using `TransformPlan`.
-- `dispatch.py`: direct-call and `isinstance` chain LibCST builders.
-- `harness.py`: behavior hashing and detailed equivalence assertions.
-- `planner.py`: opt-in rewrite planner.
-- `report.py`: JSON and HTML analysis reports.
-- `cli.py`: `flatten analyze` command.
+```python
+B.run(obj, 1) if isinstance(obj, B) else A.run(obj, 1)
+```
 
-## License
+For a non-name receiver in a supported return statement, guarded dispatch first
+stores the receiver in a temporary so the receiver is evaluated once:
 
-MIT. See `LICENSE`.
+```python
+_flatten_receiver_1 = make()
+return B.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, B) else A.run(_flatten_receiver_1)
+```
+
+## Design Notes
+
+- LibCST preserves formatting and applies replacements by `PositionProvider` ranges.
+- `deep_equals` is not used for production rewrite targeting.
+- Reports are dataclass-backed JSON structures.
+- CLI planning uses static class graph evidence for local hierarchy closure.
+- `flatten_polymorph` is provided as an import alias for the distribution name; `flatten` remains the implementation package and CLI module.
+- Verification compares return values, raised exception type/message, stdout, stderr, and optional collected effects across deterministic input cases.
+
+## Examples
+
+- `examples/simple_closed_single.py`: final class, direct-call rewrite.
+- `examples/closed_guarded.py`: closed hierarchy shape for guarded dispatch planning.
+- `examples/open_unobserved_subclass.py`: unobserved subclass should remain OPEN.
+- `examples/unsafe_monkey_patch.py`: monkey patching should remain UNSAFE.
+- `examples/unsafe_getattribute.py`: dynamic attribute resolution should remain UNSAFE.
+- `examples/unsafe_phase2_dynamic.py`: dynamic hooks, eval, and imports should remain UNSAFE.
+- `examples/same_shape_callsites.py`: repeated `worker.run()` shapes get distinct positions.
+- `examples/verify_exception_equivalence.py`: verifier compares exception type and message.
+
+## Non-Goals
+
+- Proving arbitrary Python dynamic dispatch sound.
+- Rewriting open-world framework extension points.
+- Optimizing code whose behavior depends on hidden mutable receiver state.
+- Handling every descriptor, metaclass, import hook, or monkey-patching pattern beyond the documented blocker corpus.
+- Applying rewrites without explicit user opt-in.

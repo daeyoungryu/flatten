@@ -20,6 +20,8 @@ def _verdict_to_dict(verdict: ClosureVerdict) -> dict[str, Any]:
         _type_name(impl) if isinstance(impl, type) else str(impl)
         for impl in verdict.known_impls
     ]
+    if verdict.status is not None:
+        data["status"] = verdict.status.value
     return data
 
 

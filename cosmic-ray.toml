@@ -1,0 +1,9 @@
+[cosmic-ray]
+module-path = "src/flatten"
+python-version = ""
+timeout = 30.0
+excluded-modules = []
+test-command = "C:/Users/Com/AppData/Local/Programs/Python/Python312/python.exe -m pytest tests/ -x -q --tb=no"
+
+[cosmic-ray.distributor]
+name = "local"
