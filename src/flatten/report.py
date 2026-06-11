@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from flatten.contracts import ClosureVerdict
+from flatten.evaluation import EvaluationMetrics
 
 
 def _type_name(cls: type) -> str:
@@ -60,3 +61,18 @@ class AnalysisReport:
             f"<tbody>{rows}</tbody></table>"
             "</body></html>"
         )
+
+
+def evaluation_metrics_to_html(metrics: EvaluationMetrics) -> str:
+    rows = []
+    payload = metrics.to_json()
+    for key, value in payload["counts"].items():
+        rows.append(f"<tr><th>{html.escape(key)}</th><td>{html.escape(str(value))}</td></tr>")
+    for key in ("precision", "recall", "false_positive_rate", "false_negative_rate"):
+        rows.append(f"<tr><th>{html.escape(key)}</th><td>{html.escape(str(payload[key]))}</td></tr>")
+    return (
+        "<html><body><h1>flatten evidence report</h1>"
+        "<table>"
+        + "".join(rows)
+        + "</table></body></html>"
+    )
