@@ -110,12 +110,53 @@ def test_rewrite_with_apply_writes_output(tmp_path):
                 "--out",
                 out.as_posix(),
                 "--apply",
+                "--skip-verify",
             ]
         )
         == 0
     )
 
     assert out.exists()
+
+
+def test_rewrite_apply_requires_verify_unless_explicitly_skipped(tmp_path, capsys):
+    path = _write_case(
+        tmp_path,
+        """
+        from typing import final
+        @final
+        class Dog:
+            def speak(self): return "woof"
+        def main():
+            d = Dog()
+            return d.speak()
+        """,
+    )
+    obs = tmp_path / "obs.json"
+    out = tmp_path / "rewritten.py"
+
+    assert (
+        main(["trace", path.as_posix(), "--entry", "case_mod:main", "--out", obs.as_posix()])
+        == 0
+    )
+
+    assert (
+        main(
+            [
+                "rewrite",
+                path.as_posix(),
+                "--observations",
+                obs.as_posix(),
+                "--out",
+                out.as_posix(),
+                "--apply",
+            ]
+        )
+        == 1
+    )
+
+    assert not out.exists()
+    assert "--entry" in capsys.readouterr().err
 
 
 def test_trace_binds_callsites_by_runtime_line_not_method_order(tmp_path):
@@ -252,6 +293,60 @@ def test_untrusted_plan_file_is_refused_without_verdict_and_source_hash(tmp_path
     )
     assert not out.exists()
     assert "untrusted plan" in capsys.readouterr().err.lower()
+
+
+def test_plan_file_rewrite_refuses_class_name_missing_from_source_scope(tmp_path, capsys):
+    path = _write_case(
+        tmp_path,
+        """
+        def main(obj):
+            return obj.run()
+        """,
+    )
+    plan = tmp_path / "plan.json"
+    out = tmp_path / "rewritten.py"
+    source = path.read_text(encoding="utf-8")
+    import hashlib
+
+    plan.write_text(
+        json.dumps(
+            {
+                "source_hash": hashlib.sha256(source.encode("utf-8")).hexdigest(),
+                "rewrite_plans": [
+                    {
+                        "replacement": "External.run(obj)",
+                        "target_range": "3:11-3:20",
+                        "confidence": 1.0,
+                        "verdict": {
+                            "status": "closed",
+                            "signal": "CLOSED",
+                            "evidence": ["test closed fixture"],
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert (
+        main(
+            [
+                "rewrite",
+                path.as_posix(),
+                "--plan",
+                plan.as_posix(),
+                "--out",
+                out.as_posix(),
+                "--apply",
+                "--skip-verify",
+            ]
+        )
+        == 1
+    )
+
+    assert not out.exists()
+    assert "not in source scope" in capsys.readouterr().err.lower()
 
 
 def test_verify_uses_cases_file_and_reports_minimal_coverage(tmp_path, capsys):
