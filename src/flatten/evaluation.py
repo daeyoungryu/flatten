@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from typing import Any
+
+from flatten.contracts import ClosureStatus, RewriteDecision
 
 
 @dataclass(frozen=True)
@@ -64,3 +67,27 @@ def compute_metrics(
         false_positive_rate=_rate(false_positive, false_positive + true_negative),
         false_negative_rate=_rate(false_negative, false_negative + true_positive),
     )
+
+
+def evaluate_artifacts(
+    call_sites: Sequence[object],
+    rewrite_decisions: Sequence[RewriteDecision],
+    outcomes: list[LabeledOutcome] | None = None,
+) -> EvaluationMetrics:
+    rewritten = sum(1 for decision in rewrite_decisions if decision.allowed)
+    rejected = sum(1 for decision in rewrite_decisions if not decision.allowed)
+    unsafe = sum(
+        1 for decision in rewrite_decisions if decision.status is ClosureStatus.UNSAFE
+    )
+    unknown = sum(
+        1 for decision in rewrite_decisions if decision.status is ClosureStatus.UNKNOWN
+    )
+    counts = EvaluationCounts(
+        total_call_sites=len(call_sites),
+        candidate_call_sites=len(rewrite_decisions),
+        rewritten_call_sites=rewritten,
+        rejected_call_sites=rejected,
+        unsafe_call_sites=unsafe,
+        unknown_call_sites=unknown,
+    )
+    return compute_metrics(counts, outcomes or [])
