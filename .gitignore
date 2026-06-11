@@ -36,3 +36,12 @@ MANIFEST
 # Misc
 .DS_Store
 Thumbs.db
+
+# cosmic-ray artifacts
+session.sqlite
+dump_out.txt
+dump_interim.txt
+survived_report.txt
+cosmic-ray.toml
+_parse.py
+_report.py
