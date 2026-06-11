@@ -13,6 +13,8 @@ Each file is intentionally small so a failed verdict can be inspected by hand.
 | `examples/unsafe_phase2_dynamic.py` | UNSAFE | Dynamic attribute mutation hooks, subclass hooks, eval, and imports block rewrite. |
 | `examples/same_shape_callsites.py` | POSITIONAL | Identical call shapes keep distinct call-site ids. |
 | `examples/verify_exception_equivalence.py` | VERIFY | Verification compares exception type and message. |
+| `tests/golden/safe/final_with_attr_read.py` | CLOSED / 1 rewrite | Executable golden safe case for `@final` plus instance attribute read. |
+| `tests/golden/unsafe/monkey_patch.py` | UNSAFE / 0 rewrites | Executable golden unsafe case for monkey-patched dispatch. |
 
 The required release gate is:
 

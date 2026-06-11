@@ -13,25 +13,27 @@
     "INV-1",
     "INV-2",
     "INV-3",
+    "INV-4",
     "INV-5",
-    "INV-6"
+    "INV-6",
+    "INV-7"
   ],
   "claim_test_map_complete": true,
   "commands": [
     {
-      "cmd": "python -c \"import flatten\"",
+      "cmd": "python -c \"import flatten; print(flatten.__file__)\"",
       "exit_code": 0,
-      "summary": "imported editable package from C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten\\src\\flatten\\__init__.py"
+      "summary": "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten\\src\\flatten\\__init__.py"
     },
     {
-      "cmd": "python -m pytest -q",
+      "cmd": "pytest -q",
       "exit_code": 0,
-      "summary": "99 passed in 6.81s"
+      "summary": "121 passed in 8.34s"
     },
     {
-      "cmd": "python -m pytest --cov=flatten --cov-report=term-missing --cov-fail-under=90",
+      "cmd": "pytest --cov=flatten --cov-report=term-missing --cov-fail-under=90",
       "exit_code": 0,
-      "summary": "99 passed; required coverage reached at 90.55%"
+      "summary": "121 passed; required coverage reached at 91.40%"
     },
     {
       "cmd": "ruff check .",
@@ -57,158 +59,25 @@
     }
   ],
   "files_changed": [
-    "src/flatten/contracts.py",
-    "src/flatten/planner.py",
-    "src/flatten/static.py",
-    "src/flatten/closure.py",
-    "src/flatten/transformer.py",
-    "src/flatten/cli.py",
-    "src/flatten/__init__.py",
-    "tests/adversarial/test_phase0_defects.py",
-    "tests/adversarial/test_phase2_blockers.py",
-    "tests/test_staff_contracts.py",
-    "tests/test_static_hierarchy.py",
-    "tests/test_release_quality.py",
-    "tests/test_integration.py",
-    "tests/test_tracer.py",
-    "tests/test_planner_report_cli.py",
-    ".github/workflows/ci.yml",
-    "README.md",
-    "docs/golden_corpus.md",
+    "AI/context/architecture.md",
+    "AI/context/project_summary.md",
+    "AI/decisions/decision_log.md",
+    "AI/reviews/flatten_upgrade_report.json",
+    "AI/tasks/current_tasks.md",
     "docs/claim_test_map.md",
-    "examples/unsafe_phase2_dynamic.py",
+    "docs/golden_corpus.md",
     "pyproject.toml",
-    "AI/reviews/flatten_upgrade_report.json"
+    "src/flatten/cli.py",
+    "src/flatten/closure.py",
+    "src/flatten/contracts.py",
+    "tests/adversarial/test_phase0_defects.py",
+    "tests/golden/safe/final_with_attr_read.expected.json",
+    "tests/golden/safe/final_with_attr_read.py",
+    "tests/golden/unsafe/monkey_patch.expected.json",
+    "tests/golden/unsafe/monkey_patch.py",
+    "tests/test_golden_corpus.py",
+    "tests/test_required_e2e.py",
+    "tests/test_staff_contracts.py"
   ],
-  "tests_added": 25,
-  "phase_1": {
-    "summary": "RewriteDecision added as the explicit rewrite authorization contract. Planner and CLI now expose rewrite_decisions, and stale sys.modules type restoration is avoided when a fallback source path is available.",
-    "commands": [
-      {
-        "cmd": "python -m pytest -q",
-        "exit_code": 0,
-        "summary": "89 passed in 7.40s"
-      },
-      {
-        "cmd": "python -m pytest --cov=flatten --cov-report=term-missing --cov-fail-under=90",
-        "exit_code": 0,
-        "summary": "89 passed; required coverage reached at 90.92%"
-      },
-      {
-        "cmd": "python -m ruff check .",
-        "exit_code": 0,
-        "summary": "All checks passed"
-      },
-      {
-        "cmd": "python -m mypy .",
-        "exit_code": 0,
-        "summary": "Success: no issues found in 18 source files"
-      }
-    ]
-  },
-  "phase_2": {
-    "summary": "Adversarial blocker expansion added UNSAFE detection for __setattr__, __delattr__, __init_subclass__, dynamic code execution, and dynamic imports. Static hierarchy reporting now flags the same dynamic blockers.",
-    "commands": [
-      {
-        "cmd": "python -m pytest -q",
-        "exit_code": 0,
-        "summary": "94 passed in 6.79s"
-      },
-      {
-        "cmd": "python -m pytest --cov=flatten --cov-report=term-missing --cov-fail-under=90",
-        "exit_code": 0,
-        "summary": "94 passed; required coverage reached at 91.02%"
-      },
-      {
-        "cmd": "python -m ruff check .",
-        "exit_code": 0,
-        "summary": "All checks passed"
-      },
-      {
-        "cmd": "python -m mypy .",
-        "exit_code": 0,
-        "summary": "Success: no issues found in 18 source files"
-      }
-    ]
-  },
-  "phase_3": {
-    "summary": "Golden corpus documentation, claim-test map, README safety claims, CI quality gates, and release-quality tests are complete.",
-    "commands": [
-      {
-        "cmd": "python -c \"import flatten\"",
-        "exit_code": 0,
-        "summary": "imported editable package from C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten\\src\\flatten\\__init__.py"
-      },
-      {
-        "cmd": "python -m pytest -q",
-        "exit_code": 0,
-        "summary": "96 passed in 6.84s"
-      },
-      {
-        "cmd": "python -m pytest --cov=flatten --cov-report=term-missing --cov-fail-under=90",
-        "exit_code": 0,
-        "summary": "96 passed; required coverage reached at 91.02%"
-      },
-      {
-        "cmd": "python -m ruff check .",
-        "exit_code": 0,
-        "summary": "All checks passed"
-      },
-      {
-        "cmd": "python -m mypy .",
-        "exit_code": 0,
-        "summary": "Success: no issues found in 18 source files"
-      }
-    ]
-  },
-  "post_phase": {
-    "summary": "Resolved the remaining same-line call-site binding limitation by recording caller bytecode source columns and using them when multiple call sites share a line.",
-    "commands": [
-      {
-        "cmd": "python -m pytest -q",
-        "exit_code": 0,
-        "summary": "97 passed in 7.08s"
-      },
-      {
-        "cmd": "python -m pytest --cov=flatten --cov-report=term-missing --cov-fail-under=90",
-        "exit_code": 0,
-        "summary": "98 passed; required coverage reached at 90.83%"
-      },
-      {
-        "cmd": "python -m ruff check .",
-        "exit_code": 0,
-        "summary": "All checks passed"
-      },
-      {
-        "cmd": "python -m mypy .",
-        "exit_code": 0,
-        "summary": "Success: no issues found in 18 source files"
-      }
-    ]
-  },
-  "remaining_implementation": {
-    "summary": "Implemented statement-level temp-variable guarded rewrite for non-name receivers and replaced planner-path runtime subclass closure evidence with static class graph evidence.",
-    "commands": [
-      {
-        "cmd": "python -m pytest -q",
-        "exit_code": 0,
-        "summary": "99 passed in 6.81s"
-      },
-      {
-        "cmd": "python -m pytest --cov=flatten --cov-report=term-missing --cov-fail-under=90",
-        "exit_code": 0,
-        "summary": "99 passed; required coverage reached at 90.55%"
-      },
-      {
-        "cmd": "python -m ruff check .",
-        "exit_code": 0,
-        "summary": "All checks passed"
-      },
-      {
-        "cmd": "python -m mypy .",
-        "exit_code": 0,
-        "summary": "Success: no issues found in 18 source files"
-      }
-    ]
-  }
+  "tests_added": 4
 }
