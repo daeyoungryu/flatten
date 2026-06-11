@@ -22,4 +22,8 @@ unless it has an executable test or a documented external limitation.
 | Guarded dispatch for non-name receivers uses a temp receiver. | `tests/test_staff_contracts.py::test_guarded_dispatch_uses_temp_for_receiver_expression_with_side_effects` |
 | CLI planner path uses static class graph evidence for local hierarchy closure. | `tests/test_staff_contracts.py::test_cli_plan_uses_static_subclass_graph_for_local_hierarchy_evidence` |
 | Golden safe/unsafe corpus cases are executable and checked against expected rewrite counts. | `tests/test_golden_corpus.py` |
+| Evaluation metrics report call-site counts and precision/recall fields. | `tests/test_evaluation.py` |
+| Behavior comparison reports return, stream, exception, and effect mismatches. | `tests/test_comparator.py` |
+| Proof classification maps rewrite decisions to SAFE, UNSAFE, or UNKNOWN. | `tests/test_proofs.py` |
+| Evidence CLI emits reproducible JSON metrics. | `tests/test_evidence_cli.py` |
 | Release gates include import smoke, pytest, coverage, ruff, and mypy. | `tests/test_release_quality.py::test_ci_runs_required_quality_gates` |
