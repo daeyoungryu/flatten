@@ -15,6 +15,7 @@ import libcst as cst
 from flatten.closure import ClosureChecker, ClosureConfig
 from flatten.contracts import ClosureStatus, ClosureVerdict, RewriteDecision, TransformPlan
 from flatten.discovery import discover_call_sites
+from flatten.evaluation import evaluate_artifacts
 from flatten.harness import assert_equivalent
 from flatten.observations import (
     FunctionRef,
@@ -581,6 +582,35 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def _decision_from_json(raw: dict[str, Any]) -> RewriteDecision:
+    status = ClosureStatus(str(raw.get("status", "unknown")))
+    return RewriteDecision(
+        method_qualname=str(raw.get("method_qualname", "")),
+        allowed=bool(raw.get("allowed", False)),
+        status=status,
+        blockers=tuple(str(item) for item in raw.get("blockers", [])),
+        reasons=tuple(str(item) for item in raw.get("reasons", [])),
+        evidence=tuple(str(item) for item in raw.get("evidence", [])),
+        reason_code=str(raw.get("reason_code", "")),
+    )
+
+
+def cmd_evaluate(args: argparse.Namespace) -> int:
+    args.path = args.path.resolve()
+    source = _read(args.path)
+    call_sites = discover_call_sites(source, filename=str(args.path).replace("\\", "/"))
+    decisions: list[RewriteDecision] = []
+    if args.plan is not None:
+        payload = json.loads(_read(args.plan.resolve()))
+        decisions = [
+            _decision_from_json(item)
+            for item in payload.get("rewrite_decisions", [])
+            if isinstance(item, dict)
+        ]
+    _json_print(evaluate_artifacts(call_sites, decisions).to_json())
+    return 0
+
+
 def _normalize_filename(filename: str) -> str:
     if not filename or filename.startswith("<"):
         return filename
@@ -644,6 +674,12 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--json", action="store_true")
     report.add_argument("--strict", action="store_true")
     report.set_defaults(func=cmd_report)
+
+    evaluate = subparsers.add_parser("evaluate")
+    evaluate.add_argument("path", type=Path)
+    evaluate.add_argument("--plan", type=Path)
+    evaluate.add_argument("--json", action="store_true")
+    evaluate.set_defaults(func=cmd_evaluate)
     return parser
 
 
