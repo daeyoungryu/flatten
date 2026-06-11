@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "flatten-polymorph RewriteReport",
+  "type": "object",
+  "required": [
+    "project_version",
+    "timestamp",
+    "input_file_hash",
+    "output_file_hash",
+    "callsites_discovered",
+    "callsites_planned",
+    "callsites_rewritten",
+    "callsites_rejected",
+    "reason_codes",
+    "closure_verdicts",
+    "verification_result",
+    "warnings",
+    "open_issues"
+  ],
+  "properties": {
+    "project_version": {"type": "string"},
+    "timestamp": {"type": "string"},
+    "input_file_hash": {"type": "string"},
+    "output_file_hash": {"type": ["string", "null"]},
+    "callsites_discovered": {"type": "integer"},
+    "callsites_planned": {"type": "integer"},
+    "callsites_rewritten": {"type": "integer"},
+    "callsites_rejected": {"type": "integer"},
+    "reason_codes": {"type": "array", "items": {"type": "string"}},
+    "closure_verdicts": {"type": "array"},
+    "verification_result": {"type": ["object", "null"]},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "open_issues": {"type": "array", "items": {"type": "string"}}
+  }
+}

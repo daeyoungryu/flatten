@@ -1,0 +1,30 @@
+Command:
+python -m pytest tests\test_soundness_unobserved_sibling.py tests\test_confidence_contract.py tests\test_relative_path_binding.py tests\test_planner_field_preservation.py -q
+
+Exit code: 1
+
+Output excerpt:
+F...FFF                                                                  [100%]
+================================== FAILURES ===================================
+_____ test_unobserved_sibling_keeps_closure_open_and_blocks_rewrite_plan ______
+>       assert verdict.method_qualname.endswith("Shape.area")
+E       AssertionError: assert False
+E        +  where 'Circle.area' = ClosureVerdict(... is_closed=True ...).method_qualname
+
+__________ test_relative_path_trace_plan_rewrite_binds_observations ___________
+>       assert payload["unbound_observations"] == 0
+E       assert 1 == 0
+
+__ test_plan_warns_on_zero_plans_with_unbound_observations_and_strict_fails ___
+>       assert "unbound" in plan.stderr.lower()
+E       assert 'unbound' in ''
+
+________ test_rewrite_planner_plan_preserves_all_transform_plan_fields ________
+>       assert planned == [original]
+E       AssertionError: assert [TransformPla...iver_expr='')] == [TransformPla...='factory()')]
+
+FAILED tests/test_soundness_unobserved_sibling.py::test_unobserved_sibling_keeps_closure_open_and_blocks_rewrite_plan
+FAILED tests/test_relative_path_binding.py::test_relative_path_trace_plan_rewrite_binds_observations
+FAILED tests/test_relative_path_binding.py::test_plan_warns_on_zero_plans_with_unbound_observations_and_strict_fails
+FAILED tests/test_planner_field_preservation.py::test_rewrite_planner_plan_preserves_all_transform_plan_fields
+4 failed, 3 passed in 2.42s

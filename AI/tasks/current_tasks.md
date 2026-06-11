@@ -33,9 +33,27 @@ Last updated: 2026-06-11
 - Remaining implementation pass: guarded dispatch for non-name receivers now
   uses statement-level temp receivers, and CLI planner closure uses static class
   graph evidence instead of runtime `__subclasses__` evidence.
+- Follow-up safety pass: `rewrite --apply` now verifies by default unless
+  `--skip-verify` is explicit, plan-file class names are checked against source
+  scope, and executable golden safe/unsafe fixtures are covered by
+  `tests/test_golden_corpus.py`.
+- External Phase 1 defect pass: fixed D1 closure soundness, D2 confidence
+  contract coverage, D3 relative-path binding and strict unbound warnings, and
+  D4 `TransformPlan` field preservation. Evidence is stored in
+  `AI/logs/phase1/` and summarized in `AI/reviews/phase1_report.md`.
+- External Phase 2 safety pass: added structured `RewriteDecision` reason
+  codes, rewrite policy docs, safety model docs, subprocess harness isolation,
+  20 differential fixtures, mutation-like negative tests, and Hypothesis fuzz
+  safety tests. Evidence is stored in `AI/logs/phase2/` and summarized in
+  `AI/reviews/phase2_report.md`.
+- External Phase 3 release pass: added release docs, report schema, typed
+  markers, guarded module entry points, CI matrix/jobs, wheel content check,
+  and five executable examples. Evidence is stored in `AI/logs/phase3/` and
+  summarized in `AI/reviews/phase3_report.md`.
 
 ## Remaining
 
+- No requested upgrade phase remains after Phase 3.
 - Blocked external validation: hosted GitHub Actions needs GitHub Actions
   access or an installed/authenticated `gh` CLI.
 - Blocked external validation: mutation testing needs Linux/WSL because native

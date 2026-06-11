@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import libcst as cst
 from libcst.metadata import MetadataWrapper, PositionProvider
 
@@ -48,6 +50,8 @@ class _CallSiteVisitor(cst.CSTVisitor):
 
 def discover_call_sites(source: str, *, filename: str = "<memory>") -> list[CallSite]:
     """Return position-identified ``obj.method(...)`` call candidates."""
+    if filename != "<memory>":
+        filename = str(Path(filename).resolve()).replace("\\", "/")
     module = cst.parse_module(source)
     wrapper = MetadataWrapper(module)
     visitor = _CallSiteVisitor(filename, module)

@@ -216,3 +216,96 @@ should use static class graph evidence for local hierarchy closure.
 Impact: CLI verdict evidence reports `checked static package subclasses`, while
 direct library use can still opt into the runtime fallback through
 `ClosureConfig`.
+
+## DEC-019 | 2026-06-11 | Applied Rewrites Must Verify or Be Explicitly Skipped
+
+Decision: `flatten rewrite --apply` now runs harness verification before
+writing the output file. The command requires `--entry` unless the user passes
+`--skip-verify`, and external plan-file replacements are rejected when their
+generated class names are not present in the source module scope.
+
+Reason: A rewrite that reaches disk without behavior evidence violates the
+safety contract. Plan files are external input, so source hash and CLOSED
+evidence are not enough if the generated code would raise `NameError`.
+
+Impact: DEFECT-6 is enforced in the rewrite pipeline itself, INV-7 has a
+regression test, and golden safe/unsafe fixtures are executable through the
+trace -> plan path.
+
+## DEC-020 | 2026-06-11 | CLOSED Needs Positive Closure Evidence
+
+Decision: Remove the local-complete CLOSED promotion path. Closure verdicts may
+be CLOSED only when final evidence, an explicit sealed root allowlist, or a
+closed-world scan is present and no blockers are found.
+
+Reason: The absence of open signals is not proof. Static or runtime local
+completeness can miss unimported, future, or wrongly scoped subclasses and can
+turn an unobserved sibling override into a silent wrong rewrite.
+
+Impact: `ClosureChecker` reports OPEN for locally complete hierarchies without
+positive closure evidence, and tests now assert that unobserved siblings block
+plans.
+
+## DEC-021 | 2026-06-11 | Closure Owner Is the Declaration Owner
+
+Decision: Compute the closure base from the relevant MRO declaration owner
+rather than from the observed concrete implementation qualname.
+
+Reason: Traces report implementations such as `Circle.area`, but dispatch
+soundness depends on the declaring class whose descendants can still override
+the method.
+
+Impact: Verdict `method_qualname` now records the declaration owner, and OS5
+subclass completeness checks run against that owner.
+
+## DEC-022 | 2026-06-11 | Path Binding Is Canonical at CLI Boundaries
+
+Decision: Resolve CLI file paths and trace caller filenames before discovery,
+observation binding, planning, and rewrite.
+
+Reason: Relative source paths and absolute runtime `co_filename` values caused
+observations to become unbound silently.
+
+Impact: Relative `trace -> plan -> rewrite` succeeds when evidence is bindable;
+zero plans plus unbound observations warns on stderr, and `--strict` exits
+non-zero.
+
+## DEC-023 | 2026-06-11 | Rewrite Refusal Uses Stable Reason Codes
+
+Decision: Extend `RewriteDecision` with structured reason codes and explanatory
+metadata for both allowed and refused rewrites.
+
+Reason: Safety review needs machine-readable refusal causes. A boolean allowed
+flag and free-text blockers are not enough for policy tests, report generation,
+or downstream automation.
+
+Impact: Planner/CLI decision JSON now includes reason code, message, closure
+verdict, observed receiver types, dispatch order, required imports, and safety
+notes.
+
+## DEC-024 | 2026-06-11 | Verification Runs in Subprocess Isolation
+
+Decision: Add a subprocess-based module equivalence harness using
+`subprocess.run(timeout=...)`.
+
+Reason: In-process verification shares interpreter state and cannot provide
+clean stdout/stderr/effects isolation. Windows compatibility rules also forbid
+POSIX-only timeout mechanisms.
+
+Impact: The harness compares return values, exception type/message, stdout,
+stderr, and configured side effects under a timeout while documenting that this
+only verifies observed inputs.
+
+## DEC-025 | 2026-06-11 | Release Gate Is Executable and Typed
+
+Decision: Treat Phase 3 release readiness as executable gates: compileall,
+import, CLI help, pytest, ruff, mypy, build, wheel install smoke, and
+check-wheel-contents.
+
+Reason: Packaging quality is part of safety. A rewrite tool that cannot be
+installed, typed, imported, or audited reliably should not be treated as a
+validated transformer.
+
+Impact: `py.typed` markers, guarded `__main__` modules, metadata classifiers,
+CI jobs, report schema, release docs, and executable examples are now part of
+the testable release contract.

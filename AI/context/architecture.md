@@ -15,7 +15,7 @@ source code
   -> harness.py        compares original and transformed behavior
 ```
 
-Phase 0 safety hardening:
+Phase 0 safety hardening: ✅ COMPLETED
 
 - `tracer.py` records caller file/line for dispatch observations.
 - `cli.py` binds observations by recorded caller location, not method
@@ -26,38 +26,70 @@ Phase 0 safety hardening:
 - `cli.py` treats external plan files as untrusted unless source hash and
   serialized CLOSED evidence are present.
 
-Phase 1 rewrite authorization:
+Phase 1 rewrite authorization: ✅ COMPLETED
 
 - `contracts.py` defines `RewriteDecision` as the explicit allow/refuse record
   for rewrite authorization.
 - `planner.py` computes decisions from closure verdicts before emitting plans.
 - `cli.py` serializes `rewrite_decisions` in plan and dry-run rewrite output.
 
-Phase 2 adversarial blocker expansion:
+Phase 2 adversarial blocker expansion: ✅ COMPLETED
 
 - `closure.py` treats dynamic attribute mutation hooks, subclass hooks, dynamic
   code execution, and dynamic imports as UNSAFE rewrite blockers.
 - `static.py` reports the same blocker family in class `risk_flags`.
 
-Phase 3 release artifacts:
+Phase 3 release artifacts: ✅ COMPLETED
 
 - `docs/golden_corpus.md` records expected verdicts for representative examples.
 - `docs/claim_test_map.md` links safety claims to test names.
 - `.github/workflows/ci.yml` mirrors the local mandatory verification gate.
 
-Post-phase call-site binding:
+Post-phase call-site binding: ✅ COMPLETED
 
 - `tracer.py` records caller bytecode column evidence when CPython exposes
   instruction positions.
 - `cli.py` uses caller columns to bind same-line call sites instead of leaving
   them unbound.
 
-Remaining implementation pass:
+Remaining implementation pass: ✅ COMPLETED
 
 - `transformer.py` supports `guarded_temp` plans by inserting a temporary
   receiver assignment before a return statement.
 - `closure.py` can consume a static class graph through `ClosureConfig`, and
   `cli.py` passes the analyzed graph in the planner path.
+
+External Phase 1 defect pass: COMPLETED
+
+- `closure.py` uses the method declaration owner, not the observed concrete
+  implementation owner, as the closure basis. CLOSED now requires positive
+  final, sealed allowlist, or closed-world evidence.
+- `discovery.py`, `tracer.py`, `observations.py`, and `cli.py` normalize path
+  boundaries so relative CLI invocations bind observations to call sites.
+- `planner.py` preserves every `TransformPlan` field when authorizing plans.
+- CLI plan output warns on unbound observations that produce zero plans, and
+  `--strict` turns that warning into a non-zero exit.
+
+External Phase 2 safety pass: COMPLETED
+
+- `contracts.py` expands `RewriteDecision` into the structured safety decision
+  record used for allowed and refused rewrites.
+- `planner.py` can construct per-callsite decision metadata for planned
+  rewrites.
+- `harness.py` adds subprocess-isolated module verification with stdout,
+  stderr, return/exception, side-effect, seed, and timeout handling.
+- `docs/REWRITE_POLICY.md` and `docs/SAFETY_MODEL.md` document reason codes,
+  conservative refusal, and the epistemic limit of observed-input verification.
+
+External Phase 3 release pass: COMPLETED
+
+- Packaging includes typed markers, metadata classifiers, console script, and a
+  compatibility shim for `flatten_polymorph`.
+- CI is split into lint, typecheck, test, build, wheel-install-smoke, and
+  cli-smoke jobs over Windows/Ubuntu and Python 3.10/3.12.
+- Documentation now includes architecture, safety model, rewrite policy,
+  unsupported cases, testing strategy, CLI, examples, roadmap, and report schema.
+- Examples are runnable scripts for allowed and rejected policy outcomes.
 
 ## Contracts
 
@@ -89,4 +121,14 @@ All shared records live in `src/flatten/contracts.py` to avoid circular imports:
 - `tests/test_staff_contracts.py` covers structured observations, plan-file
   rewrite, and guarded receiver single-evaluation refusal.
 - `tests/test_static_hierarchy.py` covers class graph extraction.
-- Required local verification passes with 99 tests and 90.55% coverage.
+- `tests/test_soundness_unobserved_sibling.py`,
+  `tests/test_confidence_contract.py`, `tests/test_relative_path_binding.py`,
+  and `tests/test_planner_field_preservation.py` cover Phase 1 D1-D4.
+- `tests/test_phase2_rewrite_decisions.py`,
+  `tests/test_phase2_harness_subprocess.py`,
+  `tests/test_phase2_negative_mutations.py`, `tests/test_fuzz_safety.py`, and
+  `tests/differential/` cover Phase 2 safety decisions, harness isolation,
+  mutation-like branch protection, fuzz rejection, and 20 differential cases.
+- `tests/test_phase3_release_contracts.py` covers Phase 3 docs, schema,
+  packaging metadata, typed markers, guarded entry points, CI, and examples.
+- Required Phase 3 local verification passes with 174 tests.
