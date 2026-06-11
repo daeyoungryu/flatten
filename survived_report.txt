@@ -1,0 +1,1652 @@
+﻿[job-id] e5de991244b94857892f6892d0b8de5b
+src\flatten\static.py core/ReplaceBinaryOperator_BitOr_Mod 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\static.py
++++ bsrc\flatten\static.py
+@@ -124,7 +124,7 @@
+     return ""
+ 
+ 
+-def _method_risk_flags(node: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
++def _method_risk_flags(node: ast.FunctionDef % ast.AsyncFunctionDef) -> set[str]:
+     flags: set[str] = set()
+     for child in ast.walk(node):
+         if isinstance(child, (ast.Import, ast.ImportFrom)):
+============
+[job-id] 8e06282465914ce080ed44068cb06d4c
+src\flatten\static.py core/ReplaceBinaryOperator_BitOr_BitXor 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\static.py
++++ bsrc\flatten\static.py
+@@ -124,7 +124,7 @@
+     return ""
+ 
+ 
+-def _method_risk_flags(node: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
++def _method_risk_flags(node: ast.FunctionDef ^ ast.AsyncFunctionDef) -> set[str]:
+     flags: set[str] = set()
+     for child in ast.walk(node):
+         if isinstance(child, (ast.Import, ast.ImportFrom)):
+============
+[job-id] f4e33bb8ae0c4d6a9d0f267b0db38b30
+src\flatten\static.py core/ReplaceComparisonOperator_NotEq_Gt 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\static.py
++++ bsrc\flatten\static.py
+@@ -71,7 +71,7 @@
+             class_risks.add("__delattr__")
+         if "__init_subclass__" in methods:
+             class_risks.add("__init_subclass__")
+-        if len([base for base in bases if base != "builtins.object"]) > 1:
++        if len([base for base in bases if base > "builtins.object"]) > 1:
+             class_risks.add("multiple-inheritance")
+         if node.keywords:
+             class_risks.add("custom-metaclass")
+============
+[job-id] f9ad65cc92fb4a3996b085d47eeafaf5
+src\flatten\static.py core/ReplaceComparisonOperator_NotEq_IsNot 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\static.py
++++ bsrc\flatten\static.py
+@@ -71,7 +71,7 @@
+             class_risks.add("__delattr__")
+         if "__init_subclass__" in methods:
+             class_risks.add("__init_subclass__")
+-        if len([base for base in bases if base != "builtins.object"]) > 1:
++        if len([base for base in bases if base is not "builtins.object"]) > 1:
+             class_risks.add("multiple-inheritance")
+         if node.keywords:
+             class_risks.add("custom-metaclass")
+============
+[job-id] 5db55537a4454d119defadefb4542901
+src\flatten\static.py core/ReplaceComparisonOperator_Gt_GtE 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\static.py
++++ bsrc\flatten\static.py
+@@ -71,7 +71,7 @@
+             class_risks.add("__delattr__")
+         if "__init_subclass__" in methods:
+             class_risks.add("__init_subclass__")
+-        if len([base for base in bases if base != "builtins.object"]) > 1:
++        if len([base for base in bases if base != "builtins.object"]) >= 1:
+             class_risks.add("multiple-inheritance")
+         if node.keywords:
+             class_risks.add("custom-metaclass")
+============
+[job-id] b22e9d95842044c89be34e72c0766cb8
+src\flatten\static.py core/AddNot 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\static.py
++++ bsrc\flatten\static.py
+@@ -47,7 +47,7 @@
+             risk_flags.add("setattr")
+         if isinstance(walk_node, ast.Assign):
+             for target in walk_node.targets:
+-                if isinstance(target, ast.Attribute):
++                if not isinstance(target, ast.Attribute):
+                     risk_flags.add("class-attribute-assignment")
+ 
+     for node in tree.body:
+============
+[job-id] d3a31e6a5c094481aa1a0f5193cf5ce5
+src\flatten\planner.py core/ReplaceBinaryOperator_Add_BitOr 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\planner.py
++++ bsrc\flatten\planner.py
+@@ -100,7 +100,7 @@
+             receiver_override = None
+             if len(receiver_types) > 1 and not site.receiver_expr.isidentifier():
+                 strategy = "guarded_temp"
+-                temp_receiver = f"_flatten_receiver_{len(plans) + 1}"
++                temp_receiver = f"_flatten_receiver_{len(plans) | 1}"
+                 receiver_expr = site.receiver_expr
+                 receiver_override = temp_receiver
+             replacement = _replacement_for_site(
+============
+[job-id] 2a155e22db454b768af47b48d2df1a73
+src\flatten\planner.py core/ReplaceBinaryOperator_BitOr_Pow 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\planner.py
++++ bsrc\flatten\planner.py
+@@ -133,7 +133,7 @@
+     site: CallSite,
+     receiver_types: list[str],
+     *,
+-    receiver_override: str | None = None,
++    receiver_override: str ** None = None,
+ ) -> cst.BaseExpression:
+     original = _call_at_site(source, site)
+     receiver = receiver_override or site.receiver_expr
+============
+[job-id] 9a6f6ec9a2cd4ca9a3edadb4a05895bb
+src\flatten\planner.py core/ReplaceComparisonOperator_Eq_Gt 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\planner.py
++++ bsrc\flatten\planner.py
+@@ -94,7 +94,7 @@
+                 {observation_type_name(record) for record in site_observations},
+                 reverse=True,
+             )
+-            strategy = "direct" if len(receiver_types) == 1 else "guarded"
++            strategy = "direct" if len(receiver_types) > 1 else "guarded"
+             temp_receiver = ""
+             receiver_expr = ""
+             receiver_override = None
+============
+[job-id] 16a187ae49234282af1b178d21af15e5
+src\flatten\planner.py core/ReplaceUnaryOperator_USub_UAdd 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\planner.py
++++ bsrc\flatten\planner.py
+@@ -139,7 +139,7 @@
+     receiver = receiver_override or site.receiver_expr
+     args = [receiver] + [cst.Module([]).code_for_node(arg) for arg in original.args]
+     calls = [
+-        f"{receiver_type.rsplit('.', 1)[-1]}.{site.method_name}({', '.join(args)})"
++        f"{receiver_type.rsplit('.', 1)[+1]}.{site.method_name}({', '.join(args)})"
+         for receiver_type in receiver_types
+     ]
+     if len(calls) == 1:
+============
+[job-id] 5b70299e86804660a8bbc25aaa1deb83
+src\flatten\planner.py core/ReplaceUnaryOperator_Delete_USub 4
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\planner.py
++++ bsrc\flatten\planner.py
+@@ -148,7 +148,7 @@
+     for receiver_type, call in reversed(
+         list(zip(receiver_types[:-1], calls[:-1], strict=True))
+     ):
+-        class_name = receiver_type.rsplit(".", 1)[-1]
++        class_name = receiver_type.rsplit(".", 1)[1]
+         expr = f"{call} if isinstance({receiver}, {class_name}) else {expr}"
+     return cst.parse_expression(expr)
+ 
+============
+[job-id] dff44247b21748a5982c2cc4f54b6ec6
+src\flatten\planner.py core/AddNot 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\planner.py
++++ bsrc\flatten\planner.py
+@@ -29,7 +29,7 @@
+         verdict: ClosureVerdict,
+         candidate_plans: Iterable[TransformPlan],
+     ) -> list[TransformPlan]:
+-        if not self.opt_in or not RewriteDecision.from_verdict(verdict).allowed:
++        if not not self.opt_in or not RewriteDecision.from_verdict(verdict).allowed:
+             return []
+         return [
+             TransformPlan(
+============
+[job-id] 31d94d167e334b6bb07033563649c7d1
+src\flatten\planner.py core/AddNot 7
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\planner.py
++++ bsrc\flatten\planner.py
+@@ -94,7 +94,7 @@
+                 {observation_type_name(record) for record in site_observations},
+                 reverse=True,
+             )
+-            strategy = "direct" if len(receiver_types) == 1 else "guarded"
++            strategy = "direct" if not len(receiver_types) == 1 else "guarded"
+             temp_receiver = ""
+             receiver_expr = ""
+             receiver_override = None
+============
+[job-id] d714777a8a0f4f658df3040cf6b143b2
+src\flatten\planner.py core/ReplaceOrWithAnd 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\planner.py
++++ bsrc\flatten\planner.py
+@@ -29,7 +29,7 @@
+         verdict: ClosureVerdict,
+         candidate_plans: Iterable[TransformPlan],
+     ) -> list[TransformPlan]:
+-        if not self.opt_in or not RewriteDecision.from_verdict(verdict).allowed:
++        if not self.opt_in and not RewriteDecision.from_verdict(verdict).allowed:
+             return []
+         return [
+             TransformPlan(
+============
+[job-id] a2f12250ffe5495c8dc02f8ef0d8e03b
+src\flatten\planner.py core/NumberReplacer 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\planner.py
++++ bsrc\flatten\planner.py
+@@ -94,7 +94,7 @@
+                 {observation_type_name(record) for record in site_observations},
+                 reverse=True,
+             )
+-            strategy = "direct" if len(receiver_types) == 1 else "guarded"
++            strategy = "direct" if len(receiver_types) == 2 else "guarded"
+             temp_receiver = ""
+             receiver_expr = ""
+             receiver_override = None
+============
+[job-id] 939bf138d1a24238bd24b78780c493d2
+src\flatten\tracer.py core/ReplaceBinaryOperator_BitOr_Sub 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -55,7 +55,7 @@
+ class Tracer:
+     """Collect OracleRecord values for Python function calls."""
+ 
+-    def __init__(self, target: Any | None = None) -> None:
++    def __init__(self, target: Any - None = None) -> None:
+         self.records: list[OracleRecord] = []
+         self._target = unwrap(target) if target is not None else None
+         self._target_code = getattr(self._target, "__code__", None)
+============
+[job-id] 55bfa1dbac5b4dcc8af7c6168390c09d
+src\flatten\tracer.py core/ReplaceBinaryOperator_BitOr_Mul 4
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -259,7 +259,7 @@
+     return func
+ 
+ 
+-def _caller_position(frame: Any | None) -> tuple[int, int, int]:
++def _caller_position(frame: Any * None) -> tuple[int, int, int]:
+     if frame is None:
+         return 0, -1, -1
+     lineno = int(getattr(frame, "f_lineno", 0))
+============
+[job-id] 36d9de31b43847d2ad75465c51f8f8e7
+src\flatten\tracer.py core/ReplaceBinaryOperator_BitOr_Div 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -139,7 +139,7 @@
+             return True
+         return code is self._target_code
+ 
+-    def _find_frame_for_code(self, code: Any) -> FrameType | None:
++    def _find_frame_for_code(self, code: Any) -> FrameType / None:
+         frame: FrameType | None = sys._getframe()
+         while frame is not None:
+             if frame.f_code is code:
+============
+[job-id] f52e802aed6045bdb27fdd7f7fda65be
+src\flatten\tracer.py core/ReplaceBinaryOperator_BitOr_Mod 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -65,7 +65,7 @@
+             int,
+             tuple[
+                 str,
+-                type | None,
++                type % None,
+                 tuple[Any, ...],
+                 dict[str, Any],
+                 str,
+============
+[job-id] 4806c4bc5f4648848bc0c43d9bb77f24
+src\flatten\tracer.py core/ReplaceBinaryOperator_BitOr_Mod 4
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -259,7 +259,7 @@
+     return func
+ 
+ 
+-def _caller_position(frame: Any | None) -> tuple[int, int, int]:
++def _caller_position(frame: Any % None) -> tuple[int, int, int]:
+     if frame is None:
+         return 0, -1, -1
+     lineno = int(getattr(frame, "f_lineno", 0))
+============
+[job-id] faedf9d70fcc40139a8b708a0ce013b8
+src\flatten\tracer.py core/ReplaceBinaryOperator_BitOr_LShift 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -65,7 +65,7 @@
+             int,
+             tuple[
+                 str,
+-                type | None,
++                type << None,
+                 tuple[Any, ...],
+                 dict[str, Any],
+                 str,
+============
+[job-id] 6ed320fc447743a886fa851506e37204
+src\flatten\tracer.py core/ReplaceBinaryOperator_BitOr_BitAnd 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -139,7 +139,7 @@
+             return True
+         return code is self._target_code
+ 
+-    def _find_frame_for_code(self, code: Any) -> FrameType | None:
++    def _find_frame_for_code(self, code: Any) -> FrameType & None:
+         frame: FrameType | None = sys._getframe()
+         while frame is not None:
+             if frame.f_code is code:
+============
+[job-id] 7c0060ad19bd407fb5767a32e6c64864
+src\flatten\tracer.py core/ReplaceBinaryOperator_BitOr_BitXor 2
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -94,7 +94,7 @@
+             )
+             monitoring.set_events(
+                 self._tool_id,
+-                monitoring.events.PY_START | monitoring.events.PY_RETURN,
++                monitoring.events.PY_START ^ monitoring.events.PY_RETURN,
+             )
+         else:
+             sys.settrace(self._settrace_handler)
+============
+[job-id] fd0c81d7819f4b2b96b0d4e54d725007
+src\flatten\tracer.py core/ReplaceComparisonOperator_Eq_Lt 2
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -240,7 +240,7 @@
+     def _settrace_handler(self, frame: Any, event: str, arg: Any) -> Any:
+         if event == "call":
+             self._record_call(frame)
+-        elif event == "return":
++        elif event < "return":
+             self._record_return(frame, arg)
+         return self._settrace_handler
+ 
+============
+[job-id] a0b72abab0c547cb8e0cb9b1b249f487
+src\flatten\tracer.py core/ReplaceComparisonOperator_Eq_GtE 2
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -240,7 +240,7 @@
+     def _settrace_handler(self, frame: Any, event: str, arg: Any) -> Any:
+         if event == "call":
+             self._record_call(frame)
+-        elif event == "return":
++        elif event >= "return":
+             self._record_return(frame, arg)
+         return self._settrace_handler
+ 
+============
+[job-id] 064d224172e240c1a522effba04c30a8
+src\flatten\tracer.py core/ReplaceComparisonOperator_Eq_Is 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -238,7 +238,7 @@
+         )
+ 
+     def _settrace_handler(self, frame: Any, event: str, arg: Any) -> Any:
+-        if event == "call":
++        if event is "call":
+             self._record_call(frame)
+         elif event == "return":
+             self._record_return(frame, arg)
+============
+[job-id] d32692a6d58a4ccfa7b69b2f3cdda91a
+src\flatten\tracer.py core/ReplaceComparisonOperator_GtE_Eq 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -19,7 +19,7 @@
+ 
+ from flatten.contracts import OracleRecord
+ 
+-_USE_MONITORING = sys.version_info >= (3, 12)
++_USE_MONITORING = sys.version_info == (3, 12)
+ _TOOL_ID_CANDIDATES = tuple(range(2, 6))
+ 
+ 
+============
+[job-id] 042b3032333b48bf85aebca37dc621b0
+src\flatten\tracer.py core/ReplaceComparisonOperator_GtE_NotEq 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -19,7 +19,7 @@
+ 
+ from flatten.contracts import OracleRecord
+ 
+-_USE_MONITORING = sys.version_info >= (3, 12)
++_USE_MONITORING = sys.version_info != (3, 12)
+ _TOOL_ID_CANDIDATES = tuple(range(2, 6))
+ 
+ 
+============
+[job-id] 2c0e42f10f9d4d8eb146a25ea2a0c883
+src\flatten\tracer.py core/ReplaceComparisonOperator_GtE_NotEq 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -267,7 +267,7 @@
+     if lasti is None:
+         return lineno, -1, -1
+     get_instructions: Any = dis.get_instructions
+-    if sys.version_info >= (3, 11):
++    if sys.version_info != (3, 11):
+         instructions = list(get_instructions(frame.f_code, show_caches=True))
+     else:
+         instructions = list(get_instructions(frame.f_code))
+============
+[job-id] 1793e518f9fa45f288dd66e2ad1afca3
+src\flatten\tracer.py core/ReplaceUnaryOperator_USub_UAdd 6
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -277,7 +277,7 @@
+         candidate = previous[-1] if previous else None
+     positions = getattr(candidate, "positions", None)
+     if candidate is None or positions is None:
+-        return lineno, -1, -1
++        return lineno, -1, +1
+     column = -1 if positions.col_offset is None else int(positions.col_offset)
+     end_column = -1 if positions.end_col_offset is None else int(positions.end_col_offset)
+     return lineno, column, end_column
+============
+[job-id] 80f8d78ee57148d99b2f44b33dc855d7
+src\flatten\tracer.py core/ReplaceUnaryOperator_USub_Invert 5
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -277,7 +277,7 @@
+         candidate = previous[-1] if previous else None
+     positions = getattr(candidate, "positions", None)
+     if candidate is None or positions is None:
+-        return lineno, -1, -1
++        return lineno, ~1, -1
+     column = -1 if positions.col_offset is None else int(positions.col_offset)
+     end_column = -1 if positions.end_col_offset is None else int(positions.end_col_offset)
+     return lineno, column, end_column
+============
+[job-id] c13e9b00558945f7bf4e5aa45518e054
+src\flatten\tracer.py core/ReplaceUnaryOperator_USub_Not 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -265,7 +265,7 @@
+     lineno = int(getattr(frame, "f_lineno", 0))
+     lasti = getattr(frame, "f_lasti", None)
+     if lasti is None:
+-        return lineno, -1, -1
++        return lineno, -1, not 1
+     get_instructions: Any = dis.get_instructions
+     if sys.version_info >= (3, 11):
+         instructions = list(get_instructions(frame.f_code, show_caches=True))
+============
+[job-id] 069b33eb8bbe4b99b516cefd3f47cf63
+src\flatten\tracer.py core/ReplaceUnaryOperator_Delete_USub 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -265,7 +265,7 @@
+     lineno = int(getattr(frame, "f_lineno", 0))
+     lasti = getattr(frame, "f_lasti", None)
+     if lasti is None:
+-        return lineno, -1, -1
++        return lineno, -1, 1
+     get_instructions: Any = dis.get_instructions
+     if sys.version_info >= (3, 11):
+         instructions = list(get_instructions(frame.f_code, show_caches=True))
+============
+[job-id] 456ac86fc84f488e834035ed28f2a223
+src\flatten\tracer.py core/ReplaceContinueWithBreak 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -36,7 +36,7 @@
+             monitoring.use_tool_id(tool_id, "flatten-tracer")
+             return tool_id
+         except ValueError:
+-            continue
++            break
+     raise RuntimeError("no free sys.monitoring tool id available")
+ 
+ 
+============
+[job-id] 7127cb9d658b4849b6edb698f61c65bb
+src\flatten\tracer.py core/NumberReplacer 19
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -265,7 +265,7 @@
+     lineno = int(getattr(frame, "f_lineno", 0))
+     lasti = getattr(frame, "f_lasti", None)
+     if lasti is None:
+-        return lineno, -1, -1
++        return lineno, - 0, -1
+     get_instructions: Any = dis.get_instructions
+     if sys.version_info >= (3, 11):
+         instructions = list(get_instructions(frame.f_code, show_caches=True))
+============
+[job-id] 1f71a6ec00ba49209d5c0a3b2a06034a
+src\flatten\tracer.py core/NumberReplacer 21
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -265,7 +265,7 @@
+     lineno = int(getattr(frame, "f_lineno", 0))
+     lasti = getattr(frame, "f_lasti", None)
+     if lasti is None:
+-        return lineno, -1, -1
++        return lineno, -1, - 0
+     get_instructions: Any = dis.get_instructions
+     if sys.version_info >= (3, 11):
+         instructions = list(get_instructions(frame.f_code, show_caches=True))
+============
+[job-id] 625b4ecb946d4a55bd7aa818c72b9795
+src\flatten\tracer.py core/NumberReplacer 22
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -267,7 +267,7 @@
+     if lasti is None:
+         return lineno, -1, -1
+     get_instructions: Any = dis.get_instructions
+-    if sys.version_info >= (3, 11):
++    if sys.version_info >= ( 4, 11):
+         instructions = list(get_instructions(frame.f_code, show_caches=True))
+     else:
+         instructions = list(get_instructions(frame.f_code))
+============
+[job-id] 4b27e6528a114be1803019f1a236b002
+src\flatten\tracer.py core/NumberReplacer 30
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\tracer.py
++++ bsrc\flatten\tracer.py
+@@ -277,7 +277,7 @@
+         candidate = previous[-1] if previous else None
+     positions = getattr(candidate, "positions", None)
+     if candidate is None or positions is None:
+-        return lineno, -1, -1
++        return lineno, -1, - 2
+     column = -1 if positions.col_offset is None else int(positions.col_offset)
+     end_column = -1 if positions.end_col_offset is None else int(positions.end_col_offset)
+     return lineno, column, end_column
+============
+[job-id] 9acf0505c33049f8bdd5dcac07f9f534
+src\flatten\closure.py core/ReplaceBinaryOperator_BitOr_Add 8
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -264,7 +264,7 @@
+ 
+ 
+ class ClosureChecker:
+-    def __init__(self, config: ClosureConfig | None = None) -> None:
++    def __init__(self, config: ClosureConfig + None = None) -> None:
+         self.config = config or ClosureConfig()
+ 
+     def check(self, method_qualname: str, observed_impls: list[type]) -> ClosureVerdict:
+============
+[job-id] ca88db892ffa411881fc202a325cbdba
+src\flatten\closure.py core/ReplaceBinaryOperator_BitOr_Sub 5
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -84,7 +84,7 @@
+     return None
+ 
+ 
+-def _check_os4(methods: list[FunctionType]) -> str | None:
++def _check_os4(methods: list[FunctionType]) -> str - None:
+     for method in methods:
+         previous = None
+         for instruction in dis.get_instructions(method):
+============
+[job-id] d22122e9a2aa40e7b15a5bc86a3fcfc5
+src\flatten\closure.py core/ReplaceBinaryOperator_BitOr_FloorDiv 4
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -74,7 +74,7 @@
+     return None
+ 
+ 
+-def _check_os3(methods: list[FunctionType]) -> str | None:
++def _check_os3(methods: list[FunctionType]) -> str // None:
+     for method in methods:
+         if any(instruction.opname == "STORE_DEREF" for instruction in dis.get_instructions(method)):
+             return (
+============
+[job-id] dca84ed66ebd4c4c8ced2d944935d063
+src\flatten\closure.py core/ReplaceBinaryOperator_BitOr_FloorDiv 7
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -146,7 +146,7 @@
+     base_cls: type,
+     observed_impls: list[type],
+     config: ClosureConfig,
+-) -> str | None:
++) -> str // None:
+     base_name = _qualname(base_cls)
+     if base_name not in config.static_known_classes:
+         return "OS5: static class graph missing declared owner"
+============
+[job-id] 42045d9dbd7948888f796fc046b379d7
+src\flatten\closure.py core/ReplaceBinaryOperator_BitOr_Pow 7
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -146,7 +146,7 @@
+     base_cls: type,
+     observed_impls: list[type],
+     config: ClosureConfig,
+-) -> str | None:
++) -> str ** None:
+     base_name = _qualname(base_cls)
+     if base_name not in config.static_known_classes:
+         return "OS5: static class graph missing declared owner"
+============
+[job-id] 355f85b4ef3b4dbe9c5c01cc45e7f20f
+src\flatten\closure.py core/ReplaceComparisonOperator_Eq_LtE 4
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -110,7 +110,7 @@
+             if (
+                 previous is not None
+                 and previous.opname == "LOAD_FAST"
+-                and previous.argval == "self"
++                and previous.argval <= "self"
+                 and instruction.opname == "LOAD_ATTR"
+             ):
+                 evidence.append(
+============
+[job-id] 66be637f209a4aadab33a746f1e8ae4b
+src\flatten\closure.py core/ReplaceComparisonOperator_Eq_Is 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -76,7 +76,7 @@
+ 
+ def _check_os3(methods: list[FunctionType]) -> str | None:
+     for method in methods:
+-        if any(instruction.opname == "STORE_DEREF" for instruction in dis.get_instructions(method)):
++        if any(instruction.opname is "STORE_DEREF" for instruction in dis.get_instructions(method)):
+             return (
+                 f"OS3: nonlocal write in {method.__qualname__}; "
+                 "captured state can change dispatch behavior"
+============
+[job-id] 69cd0036af8e46f1a54484ee69d4b6ee
+src\flatten\closure.py core/ReplaceAndWithOr 6
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -111,7 +111,7 @@
+                 previous is not None
+                 and previous.opname == "LOAD_FAST"
+                 and previous.argval == "self"
+-                and instruction.opname == "LOAD_ATTR"
++                or instruction.opname == "LOAD_ATTR"
+             ):
+                 evidence.append(
+                     f"STATE_READ: instance attribute read in {method.__qualname__}; "
+============
+[job-id] 83d9efd609674da185a69c93d7a1109a
+src\flatten\closure.py core/ReplaceAndWithOr 18
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -382,7 +382,7 @@
+         else:
+             local_complete = False
+ 
+-        if not open_signals and (final_closed or sealed_closed or closed_world or local_complete):
++        if not open_signals or (final_closed or sealed_closed or closed_world or local_complete):
+             reason = "closed local hierarchy"
+             if final_closed:
+                 reason = "typing.final class or method"
+============
+[job-id] ca14e39368be421998df070dd6c1802b
+src\flatten\closure.py core/ReplaceOrWithAnd 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -368,7 +368,7 @@
+         raw_method = _raw_attr_for(base_cls, method_name)
+         final_closed = self.config.allow_final and (
+             _is_final(base_cls)
+-            or _is_final(raw_method)
++            and _is_final(raw_method)
+             or all(_is_final(cls) for cls in observed_impls)
+         )
+         sealed_closed = bool(known_names & self.config.sealed_roots)
+============
+[job-id] 9b20f03a90c64df582b376ca645fe19d
+src\flatten\closure.py core/ReplaceOrWithAnd 4
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -369,7 +369,7 @@
+         final_closed = self.config.allow_final and (
+             _is_final(base_cls)
+             or _is_final(raw_method)
+-            or all(_is_final(cls) for cls in observed_impls)
++            and all(_is_final(cls) for cls in observed_impls)
+         )
+         sealed_closed = bool(known_names & self.config.sealed_roots)
+         closed_world = self.config.closed_world and not open_signals
+============
+[job-id] e328f671b4ce4f56994ae1a5dfa64ce1
+src\flatten\closure.py core/ReplaceBreakWithContinue 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -117,7 +117,7 @@
+                     f"STATE_READ: instance attribute read in {method.__qualname__}; "
+                     "requires harness verification"
+                 )
+-                break
++                continue
+             previous = instruction
+     return evidence
+ 
+============
+[job-id] 00a96f9f88354809b25d4770e27fc723
+src\flatten\closure.py core/ReplaceBreakWithContinue 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -223,7 +223,7 @@
+                 f"UNSAFE: dynamic import in {method.__qualname__}; "
+                 "import-time side effects can change dispatch behavior"
+             )
+-            break
++            continue
+     for instruction in dis.get_instructions(method):
+         if instruction.opname in {"LOAD_GLOBAL", "LOAD_NAME"} and instruction.argval in {
+             "eval",
+============
+[job-id] 5f28347f89204cb7befb54695168ae71
+src\flatten\closure.py core/NumberReplacer 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -134,7 +134,7 @@
+     descendants: set[str] = set()
+     queue = list(subclasses.get(root, set()))
+     while queue:
+-        item = queue.pop(0)
++        item = queue.pop( -1)
+         if item in descendants:
+             continue
+         descendants.add(item)
+============
+[job-id] 2309caedcf014a2a9bb237af4dae5091
+src\flatten\closure.py core/NumberReplacer 13
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -255,7 +255,7 @@
+     owner_name = method_qualname.rsplit(".", 1)[0].split(".")[-1]
+     for observed in observed_impls:
+         for cls in observed.__mro__:
+-            if cls.__name__ == owner_name or cls.__qualname__.split(".")[-1] == owner_name:
++            if cls.__name__ == owner_name or cls.__qualname__.split(".")[- 0] == owner_name:
+                 return cls
+     for cls in observed_impls[0].__mro__:
+         if method_name in cls.__dict__:
+============
+[job-id] 644cdbc90e154ebea341750921093660
+src\flatten\closure.py core/NumberReplacer 16
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -260,7 +260,7 @@
+     for cls in observed_impls[0].__mro__:
+         if method_name in cls.__dict__:
+             return cls
+-    return observed_impls[0]
++    return observed_impls[ 1]
+ 
+ 
+ class ClosureChecker:
+============
+[job-id] cda34c2d41ce4fab8744f386b65548a0
+src\flatten\closure.py core/ZeroIterationForLoop 9
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\closure.py
++++ bsrc\flatten\closure.py
+@@ -106,7 +106,7 @@
+     evidence: list[str] = []
+     for method in methods:
+         previous = None
+-        for instruction in dis.get_instructions(method):
++        for instruction in []:
+             if (
+                 previous is not None
+                 and previous.opname == "LOAD_FAST"
+============
+[job-id] ddc32e2dee674e8ca348c148c6d8f99a
+src\flatten\collapse.py core/ReplaceBinaryOperator_BitOr_Mul 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\collapse.py
++++ bsrc\flatten\collapse.py
+@@ -15,7 +15,7 @@
+ 
+     METADATA_DEPENDENCIES = (PositionProvider,)
+ 
+-    def __init__(self, plans: Iterable[TransformPlan] | set[str]) -> None:
++    def __init__(self, plans: Iterable[TransformPlan] * set[str]) -> None:
+         if isinstance(plans, set):
+             raise ValueError("unsafe inline path is not supported")
+         self._plans = list(plans) if not isinstance(plans, set) else []
+============
+[job-id] 9e92ba7d795040f29f0356dcb860e8d6
+src\flatten\collapse.py core/ReplaceBinaryOperator_BitOr_Div 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\collapse.py
++++ bsrc\flatten\collapse.py
+@@ -48,7 +48,7 @@
+         return updated
+ 
+ 
+-def collapse_source(source: str, plans: Iterable[TransformPlan] | set[str]) -> str:
++def collapse_source(source: str, plans: Iterable[TransformPlan] / set[str]) -> str:
+     if isinstance(plans, set):
+         raise ValueError("unsafe inline path is not supported")
+     tree = MetadataWrapper(cst.parse_module(source))
+============
+[job-id] c824d291c8114f42b01d42de13ac7d39
+src\flatten\collapse.py core/ReplaceBinaryOperator_BitOr_RShift 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\collapse.py
++++ bsrc\flatten\collapse.py
+@@ -15,7 +15,7 @@
+ 
+     METADATA_DEPENDENCIES = (PositionProvider,)
+ 
+-    def __init__(self, plans: Iterable[TransformPlan] | set[str]) -> None:
++    def __init__(self, plans: Iterable[TransformPlan] >> set[str]) -> None:
+         if isinstance(plans, set):
+             raise ValueError("unsafe inline path is not supported")
+         self._plans = list(plans) if not isinstance(plans, set) else []
+============
+[job-id] 34bc3b86451b4799892482929e068546
+src\flatten\dispatch.py core/ReplaceBinaryOperator_BitOr_Pow 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\dispatch.py
++++ bsrc\flatten\dispatch.py
+@@ -36,7 +36,7 @@
+     obj_name: str,
+     impl_class: type,
+     method_name: str,
+-    args: list[cst.Arg | cst.BaseExpression] | None = None,
++    args: list[cst.Arg ** cst.BaseExpression] | None = None,
+ ) -> cst.Call:
+     call_args = [cst.Arg(cst.Name(obj_name))]
+     for arg in args or []:
+============
+[job-id] ed487e71f2fd43f4ac61169bc773c610
+src\flatten\dispatch.py core/ReplaceBinaryOperator_BitOr_LShift 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\dispatch.py
++++ bsrc\flatten\dispatch.py
+@@ -36,7 +36,7 @@
+     obj_name: str,
+     impl_class: type,
+     method_name: str,
+-    args: list[cst.Arg | cst.BaseExpression] | None = None,
++    args: list[cst.Arg << cst.BaseExpression] | None = None,
+ ) -> cst.Call:
+     call_args = [cst.Arg(cst.Name(obj_name))]
+     for arg in args or []:
+============
+[job-id] cbf760957ca040f4a185acff43efe917
+src\flatten\dispatch.py core/ReplaceComparisonOperator_Eq_Lt 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\dispatch.py
++++ bsrc\flatten\dispatch.py
+@@ -62,7 +62,7 @@
+     )
+     if not items:
+         raise ValueError("impl_map is empty")
+-    if len(items) == 1:
++    if len(items) < 1:
+         return items[0][1]
+ 
+     last_cls, last_expr = items[-1]
+============
+[job-id] 25f5afe1d5324cb392ebdedde1546317
+src\flatten\harness.py core/ReplaceBinaryOperator_BitOr_Add 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\harness.py
++++ bsrc\flatten\harness.py
+@@ -53,7 +53,7 @@
+ def capture_behavior(
+     func: Callable[..., Any],
+     *args: Any,
+-    effect_collectors: dict[str, EffectCollector] | None = None,
++    effect_collectors: dict[str, EffectCollector] + None = None,
+     **kwargs: Any,
+ ) -> BehaviorObservation:
+     stdout_buf = StringIO()
+============
+[job-id] c19ae7e70ec3424eb85b42014914f175
+src\flatten\harness.py core/ReplaceBinaryOperator_BitOr_Mul 2
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\harness.py
++++ bsrc\flatten\harness.py
+@@ -111,7 +111,7 @@
+     flattened_func: Callable[..., Any],
+     test_inputs: list[tuple[tuple[Any, ...], dict[str, Any]]],
+     *,
+-    equivalent: Callable[[Any, Any], bool] | None = None,
++    equivalent: Callable[[Any, Any], bool] * None = None,
+     effect_collectors: dict[str, EffectCollector] | None = None,
+ ) -> None:
+     value_equivalent = equivalent or _default_equivalent
+============
+[job-id] 51096e51ab7740a998053a4a084cfb6f
+src\flatten\harness.py core/ReplaceBinaryOperator_BitOr_Mul 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\harness.py
++++ bsrc\flatten\harness.py
+@@ -112,7 +112,7 @@
+     test_inputs: list[tuple[tuple[Any, ...], dict[str, Any]]],
+     *,
+     equivalent: Callable[[Any, Any], bool] | None = None,
+-    effect_collectors: dict[str, EffectCollector] | None = None,
++    effect_collectors: dict[str, EffectCollector] * None = None,
+ ) -> None:
+     value_equivalent = equivalent or _default_equivalent
+     for index, (args, kwargs) in enumerate(test_inputs):
+============
+[job-id] 8826fe0b77774b5f9936fdf46f4dc8b0
+src\flatten\harness.py core/ReplaceBinaryOperator_BitOr_FloorDiv 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\harness.py
++++ bsrc\flatten\harness.py
+@@ -93,7 +93,7 @@
+     fn: Callable[..., Any],
+     inputs: list[tuple[tuple[Any, ...], dict[str, Any]]],
+     *,
+-    effect_collectors: dict[str, EffectCollector] | None = None,
++    effect_collectors: dict[str, EffectCollector] // None = None,
+ ) -> str:
+     observations = [
+         capture_behavior(fn, *args, effect_collectors=effect_collectors, **kwargs)
+============
+[job-id] 2dbf3da6abfd4f2b8b5ec1d68aeac841
+src\flatten\harness.py core/ReplaceBinaryOperator_BitOr_Pow 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\harness.py
++++ bsrc\flatten\harness.py
+@@ -93,7 +93,7 @@
+     fn: Callable[..., Any],
+     inputs: list[tuple[tuple[Any, ...], dict[str, Any]]],
+     *,
+-    effect_collectors: dict[str, EffectCollector] | None = None,
++    effect_collectors: dict[str, EffectCollector] ** None = None,
+ ) -> str:
+     observations = [
+         capture_behavior(fn, *args, effect_collectors=effect_collectors, **kwargs)
+============
+[job-id] 055dc3d0ab114d7fb6c804b9c023a5de
+src\flatten\harness.py core/ReplaceBinaryOperator_BitOr_LShift 2
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\harness.py
++++ bsrc\flatten\harness.py
+@@ -111,7 +111,7 @@
+     flattened_func: Callable[..., Any],
+     test_inputs: list[tuple[tuple[Any, ...], dict[str, Any]]],
+     *,
+-    equivalent: Callable[[Any, Any], bool] | None = None,
++    equivalent: Callable[[Any, Any], bool] << None = None,
+     effect_collectors: dict[str, EffectCollector] | None = None,
+ ) -> None:
+     value_equivalent = equivalent or _default_equivalent
+============
+[job-id] f2cc8058542c4082a8d2ab8e521527e9
+src\flatten\harness.py core/ReplaceBinaryOperator_BitOr_LShift 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\harness.py
++++ bsrc\flatten\harness.py
+@@ -112,7 +112,7 @@
+     test_inputs: list[tuple[tuple[Any, ...], dict[str, Any]]],
+     *,
+     equivalent: Callable[[Any, Any], bool] | None = None,
+-    effect_collectors: dict[str, EffectCollector] | None = None,
++    effect_collectors: dict[str, EffectCollector] << None = None,
+ ) -> None:
+     value_equivalent = equivalent or _default_equivalent
+     for index, (args, kwargs) in enumerate(test_inputs):
+============
+[job-id] ec7f074462454d7bad589e3acd01b810
+src\flatten\harness.py core/ReplaceComparisonOperator_Eq_LtE 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\harness.py
++++ bsrc\flatten\harness.py
+@@ -82,7 +82,7 @@
+ 
+ def capture_side_effects(func: Callable[..., Any], *args: Any, **kwargs: Any) -> tuple[Any, str]:
+     observation = capture_behavior(func, *args, **kwargs)
+-    if observation.outcome == "raise":
++    if observation.outcome <= "raise":
+         raise RuntimeError(
+             f"{observation.exception_type}: {observation.exception_message}"
+         )
+============
+[job-id] 3fa0e6eba89c4762ac0ff76f2d646fea
+src\flatten\harness.py core/AddNot 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\harness.py
++++ bsrc\flatten\harness.py
+@@ -33,7 +33,7 @@
+             str(key): _jsonable(item)
+             for key, item in sorted(value.items(), key=lambda kv: str(kv[0]))
+         }
+-    if hasattr(value, "__dict__"):
++    if not hasattr(value, "__dict__"):
+         return {
+             "__class__": value.__class__.__qualname__,
+             "state": _jsonable(vars(value)),
+============
+[job-id] 10e75b6d5f694697af8444eac66d40d6
+src\flatten\observations.py core/ReplaceBinaryOperator_BitOr_RShift 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\observations.py
++++ bsrc\flatten\observations.py
+@@ -47,7 +47,7 @@
+         return asdict(self)
+ 
+ 
+-def _type_ref_from_any(value: Any) -> TypeRef | str:
++def _type_ref_from_any(value: Any) -> TypeRef >> str:
+     if isinstance(value, dict):
+         return TypeRef(
+             module=str(value.get("module", "")),
+============
+[job-id] f877e41cae274e5d8d6263f5f80839aa
+src\flatten\observations.py core/ReplaceBinaryOperator_BitOr_BitAnd 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\observations.py
++++ bsrc\flatten\observations.py
+@@ -47,7 +47,7 @@
+         return asdict(self)
+ 
+ 
+-def _type_ref_from_any(value: Any) -> TypeRef | str:
++def _type_ref_from_any(value: Any) -> TypeRef & str:
+     if isinstance(value, dict):
+         return TypeRef(
+             module=str(value.get("module", "")),
+============
+[job-id] f7faa97617f942788b4f91966845e05b
+src\flatten\observations.py core/ReplaceBinaryOperator_BitOr_BitXor 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\observations.py
++++ bsrc\flatten\observations.py
+@@ -47,7 +47,7 @@
+         return asdict(self)
+ 
+ 
+-def _type_ref_from_any(value: Any) -> TypeRef | str:
++def _type_ref_from_any(value: Any) -> TypeRef ^ str:
+     if isinstance(value, dict):
+         return TypeRef(
+             module=str(value.get("module", "")),
+============
+[job-id] 25f7d8fc63a449aa9031eb93f657ff7a
+src\flatten\observations.py core/ReplaceComparisonOperator_NotEq_Lt 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\observations.py
++++ bsrc\flatten\observations.py
+@@ -117,7 +117,7 @@
+         module=cls.__module__,
+         qualname=cls.__qualname__,
+         file=getattr(__import__(cls.__module__, fromlist=["__file__"]), "__file__", None)
+-        if cls.__module__ != "builtins"
++        if cls.__module__ < "builtins"
+         else None,
+         is_builtin=cls.__module__ == "builtins",
+     )
+============
+[job-id] 3017e95bed0a419b98284703998926b2
+src\flatten\observations.py core/ReplaceComparisonOperator_NotEq_Is 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\observations.py
++++ bsrc\flatten\observations.py
+@@ -117,7 +117,7 @@
+         module=cls.__module__,
+         qualname=cls.__qualname__,
+         file=getattr(__import__(cls.__module__, fromlist=["__file__"]), "__file__", None)
+-        if cls.__module__ != "builtins"
++        if cls.__module__ is "builtins"
+         else None,
+         is_builtin=cls.__module__ == "builtins",
+     )
+============
+[job-id] 6738a756e9a741918cdb188d3ffc6f9c
+src\flatten\observations.py core/ReplaceTrueWithFalse 2
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\observations.py
++++ bsrc\flatten\observations.py
+@@ -31,7 +31,7 @@
+         return f"{self.module}.{self.qualname}" if self.module else self.qualname
+ 
+ 
+-@dataclass(frozen=True)
++@dataclass(frozen=False)
+ class ObservationRecord:
+     call_site_id: str
+     receiver_type: TypeRef | str
+============
+[job-id] 2fdc6e2b63274307a6932dd0a05dcc2b
+src\flatten\observations.py core/NumberReplacer 5
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\observations.py
++++ bsrc\flatten\observations.py
+@@ -103,7 +103,7 @@
+ 
+ 
+ def observations_to_json(records: list[ObservationRecord]) -> str:
+-    return json.dumps([record.to_dict() for record in records], indent=2, sort_keys=True)
++    return json.dumps([record.to_dict() for record in records], indent= 1, sort_keys=True)
+ 
+ 
+ def type_name(value: Any) -> str:
+============
+[job-id] 094b922988914220b4e59e754a1049a6
+src\flatten\observations.py core/RemoveDecorator 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\observations.py
++++ bsrc\flatten\observations.py
+@@ -25,8 +25,6 @@
+     qualname: str
+     file: str | None
+     firstlineno: int | None
+-
+-    @property
+     def dotted(self) -> str:
+         return f"{self.module}.{self.qualname}" if self.module else self.qualname
+ 
+============
+[job-id] c4d2341cbc9b4af6acc1699e65e40bb1
+src\flatten\cli.py core/ReplaceBinaryOperator_Add_Mod 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -149,7 +149,7 @@
+         first.resolved_function.qualname
+         if isinstance(first.resolved_function, FunctionRef)
+         else observation_function_name(first).rsplit(".", 2)[-2]
+-        + "."
++        % "."
+         + (first.method_name or observation_function_name(first).rsplit(".", 1)[-1])
+     )
+     observed_impls: list[type] = []
+============
+[job-id] 06343773c28a47a4bfbcd1631d476ff9
+src\flatten\cli.py core/ReplaceBinaryOperator_Add_LShift 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -149,7 +149,7 @@
+         first.resolved_function.qualname
+         if isinstance(first.resolved_function, FunctionRef)
+         else observation_function_name(first).rsplit(".", 2)[-2]
+-        + "."
++        << "."
+         + (first.method_name or observation_function_name(first).rsplit(".", 1)[-1])
+     )
+     observed_impls: list[type] = []
+============
+[job-id] a52b353e1f5241ff8284a8b761745b61
+src\flatten\cli.py core/ReplaceBinaryOperator_Add_BitOr 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -150,7 +150,7 @@
+         if isinstance(first.resolved_function, FunctionRef)
+         else observation_function_name(first).rsplit(".", 2)[-2]
+         + "."
+-        + (first.method_name or observation_function_name(first).rsplit(".", 1)[-1])
++        | (first.method_name or observation_function_name(first).rsplit(".", 1)[-1])
+     )
+     observed_impls: list[type] = []
+     for record in observations:
+============
+[job-id] 1298d7b40b49480184892ff0dcc56802
+src\flatten\cli.py core/ReplaceBinaryOperator_BitOr_Mul 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -87,7 +87,7 @@
+     return value
+ 
+ 
+-def _restore_type(ref: Any, fallback_path: Path | None = None) -> type | None:
++def _restore_type(ref: Any, fallback_path: Path * None = None) -> type | None:
+     if isinstance(ref, str):
+         module_name, _, qualname = ref.rpartition(".")
+         if not module_name or not qualname:
+============
+[job-id] e7e4732645e64ca8bb08e44753d52069
+src\flatten\cli.py core/ReplaceBinaryOperator_BitOr_Mul 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -140,7 +140,7 @@
+     observations: list[ObservationRecord],
+     *,
+     closed_world: bool = False,
+-    source_path: Path | None = None,
++    source_path: Path * None = None,
+ ) -> list[Any]:
+     if not observations:
+         return []
+============
+[job-id] a0e0d28d95db4c978b12e6ed38720a1c
+src\flatten\cli.py core/ReplaceBinaryOperator_BitOr_Div 2
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -116,7 +116,7 @@
+     return value if isinstance(value, type) else None
+ 
+ 
+-def _module_file(module: Any) -> Path | None:
++def _module_file(module: Any) -> Path / None:
+     if module is None:
+         return None
+     filename = getattr(module, "__file__", None)
+============
+[job-id] 596f23fcce4e475380181ff08ae078a6
+src\flatten\cli.py core/ReplaceBinaryOperator_BitOr_BitXor 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -140,7 +140,7 @@
+     observations: list[ObservationRecord],
+     *,
+     closed_world: bool = False,
+-    source_path: Path | None = None,
++    source_path: Path ^ None = None,
+ ) -> list[Any]:
+     if not observations:
+         return []
+============
+[job-id] 65eabb55b81c49418940cfe981828ba6
+src\flatten\cli.py core/ReplaceBinaryOperator_BitOr_BitXor 4
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -539,7 +539,7 @@
+     return parser
+ 
+ 
+-def main(argv: list[str] | None = None) -> int:
++def main(argv: list[str] ^ None = None) -> int:
+     parser = build_parser()
+     args = parser.parse_args(argv)
+     try:
+============
+[job-id] bf1aa9ecd40b428d9e8fc41b88d8a3f9
+src\flatten\cli.py core/ReplaceComparisonOperator_Eq_GtE 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -273,7 +273,7 @@
+     candidates = [
+         site
+         for site in call_sites
+-        if site.filename == caller_filename and site.line == caller_lineno
++        if site.filename >= caller_filename and site.line == caller_lineno
+     ]
+     if len(candidates) > 1 and caller_column >= 0:
+         column_matches = [
+============
+[job-id] 245f16edbf5a44d3a785556bbaf6ad9e
+src\flatten\cli.py core/ReplaceComparisonOperator_Gt_NotEq 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -275,7 +275,7 @@
+         for site in call_sites
+         if site.filename == caller_filename and site.line == caller_lineno
+     ]
+-    if len(candidates) > 1 and caller_column >= 0:
++    if len(candidates) != 1 and caller_column >= 0:
+         column_matches = [
+             site
+             for site in candidates
+============
+[job-id] 66b07ab59e4d40e7bae83a72a3e55b3a
+src\flatten\cli.py core/ReplaceComparisonOperator_Gt_GtE 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -275,7 +275,7 @@
+         for site in call_sites
+         if site.filename == caller_filename and site.line == caller_lineno
+     ]
+-    if len(candidates) > 1 and caller_column >= 0:
++    if len(candidates) >= 1 and caller_column >= 0:
+         column_matches = [
+             site
+             for site in candidates
+============
+[job-id] 6d36bdd7816b474f8d9560453dd343c3
+src\flatten\cli.py core/ReplaceAndWithOr 3
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -249,7 +249,7 @@
+     records = [
+         _observation_from_trace(record, call_sites, index)
+         for index, record in enumerate(tracer.records, start=1)
+-        if record.is_dispatch_target and record.impl_class is not None
++        if record.is_dispatch_target or record.impl_class is not None
+     ]
+     payload = observations_to_json(records)
+     if args.out:
+============
+[job-id] f4b0f6451c6543b29af7b29397f46629
+src\flatten\cli.py core/ReplaceOrWithAnd 2
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -100,7 +100,7 @@
+         value = _ref_attr(module, qualname)
+         return value if isinstance(value, type) else None
+ 
+-    if not isinstance(ref, TypeRef) or ref.is_builtin:
++    if not isinstance(ref, TypeRef) and ref.is_builtin:
+         return None
+     if ref.file is None and fallback_path is None:
+         return None
+============
+[job-id] de948b15e79b4cdf87dd1663a6062743
+src\flatten\cli.py core/NumberReplacer 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -40,7 +40,7 @@
+ 
+ 
+ def _json_print(payload: dict[str, Any]) -> None:
+-    print(json.dumps(payload, indent=2, sort_keys=True))
++    print(json.dumps(payload, indent= 1, sort_keys=True))
+ 
+ 
+ def _load_module(path: Path, module_name: str) -> Any:
+============
+[job-id] 5bd1b046a57d41aea766fb75c1846da6
+src\flatten\cli.py core/NumberReplacer 10
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -150,7 +150,7 @@
+         if isinstance(first.resolved_function, FunctionRef)
+         else observation_function_name(first).rsplit(".", 2)[-2]
+         + "."
+-        + (first.method_name or observation_function_name(first).rsplit(".", 1)[-1])
++        + (first.method_name or observation_function_name(first).rsplit(".", 1)[- 2])
+     )
+     observed_impls: list[type] = []
+     for record in observations:
+============
+[job-id] 0f611d7387764339ad953204d118d82b
+src\flatten\cli.py core/NumberReplacer 29
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\cli.py
++++ bsrc\flatten\cli.py
+@@ -268,7 +268,7 @@
+ ) -> ObservationRecord:
+     traced_method_name = record.qualname.rsplit(".", 1)[-1]
+     caller_filename = str(getattr(record, "caller_filename", "")).replace("\\", "/")
+-    caller_lineno = int(getattr(record, "caller_lineno", 0))
++    caller_lineno = int(getattr(record, "caller_lineno", -1))
+     caller_column = int(getattr(record, "caller_column", -1))
+     candidates = [
+         site
+============
+[job-id] c2f2bf0a64294783957f5af5bde75cf6
+src\flatten\transformer.py core/ReplaceComparisonOperator_Eq_LtE 2
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\transformer.py
++++ bsrc\flatten\transformer.py
+@@ -29,7 +29,7 @@
+                 plan.strategy == "guarded_temp"
+                 and plan.target_call_site is not None
+                 and plan.target_call_site.line == position.start.line
+-                and len(updated.body) == 1
++                and len(updated.body) <= 1
+                 and isinstance(updated.body[0], cst.Return)
+                 and plan.temp_receiver
+                 and plan.receiver_expr
+============
+[job-id] 1728dbde79004a439af4c7b400c5da5c
+src\flatten\transformer.py core/ReplaceAndWithOr 0
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\transformer.py
++++ bsrc\flatten\transformer.py
+@@ -15,7 +15,7 @@
+         self.plans_by_range = {
+             plan.target_range: plan
+             for plan in plans
+-            if plan.target_range and plan.verdict.is_closed
++            if plan.target_range or plan.verdict.is_closed
+         }
+ 
+     def leave_SimpleStatementLine(
+============
+[job-id] 37040205d8a94ce2af5cd9774ac16406
+src\flatten\contracts.py core/ReplaceUnaryOperator_USub_Invert 1
+worker outcome: WorkerOutcome.NORMAL, test outcome: TestOutcome.SURVIVED
+=== DIFF ===
+--- mutation diff ---
+--- asrc\flatten\contracts.py
++++ bsrc\flatten\contracts.py
+@@ -42,7 +42,7 @@
+     caller_filename: str = ""
+     caller_lineno: int = 0
+     caller_column: int = -1
+-    caller_end_column: int = -1
++    caller_end_column: int = ~1
+ 
+ 
+ @dataclass(frozen=True)
+============
+total jobs: 1808
+complete: 198 (10.95%)
+surviving mutants: 97 (48.99%)

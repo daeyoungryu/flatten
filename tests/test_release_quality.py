@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import libcst as cst
 import pytest
 
@@ -87,3 +89,34 @@ def test_snapshot_value_repr_fallback():
             return "BadCopy()"
 
     assert _snapshot_value(BadCopy()) == "BadCopy()"
+
+
+def test_phase3_documentation_artifacts_exist_and_cover_claims():
+    golden = Path("docs/golden_corpus.md").read_text(encoding="utf-8")
+    claim_map = Path("docs/claim_test_map.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    for expected in [
+        "simple_closed_single.py",
+        "open_unobserved_subclass.py",
+        "unsafe_monkey_patch.py",
+        "unsafe_getattribute.py",
+        "unsafe_phase2_dynamic.py",
+    ]:
+        assert expected in golden
+    for claim in ["CLOSED", "OPEN", "UNSAFE", "RewriteDecision", "verify --cases"]:
+        assert claim in claim_map
+    assert "RewriteDecision" in readme
+    assert "__setattr__" in readme
+    assert "dynamic imports" in readme
+
+
+def test_ci_runs_required_quality_gates():
+    commands = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+
+    assert "python -c \"import flatten\"" in commands
+    assert "python -m pytest -q" in commands
+    assert "--cov=flatten" in commands
+    assert "--cov-fail-under=90" in commands
+    assert "python -m ruff check ." in commands
+    assert "python -m mypy ." in commands

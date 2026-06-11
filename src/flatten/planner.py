@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Iterable
 
+import libcst as cst
+
 from flatten.collapse import collapse_source
-from flatten.contracts import ClosureVerdict, TransformPlan
+from flatten.confidence import confidence_score
+from flatten.contracts import CallSite, ClosureVerdict, RewriteDecision, TransformPlan
+from flatten.observations import ObservationRecord, observation_type_name
+from flatten.transformer import rewrite_source_with_plan
 
 REWRITE_WARNING = (
     "# flatten: observed-based guess; unobserved implementations may exist"
@@ -23,7 +29,7 @@ class RewritePlanner:
         verdict: ClosureVerdict,
         candidate_plans: Iterable[TransformPlan],
     ) -> list[TransformPlan]:
-        if not self.opt_in:
+        if not self.opt_in or not RewriteDecision.from_verdict(verdict).allowed:
             return []
         return [
             TransformPlan(
@@ -37,10 +43,132 @@ class RewritePlanner:
             for plan in candidate_plans
         ]
 
+    def decide(self, verdicts: Iterable[ClosureVerdict]) -> list[RewriteDecision]:
+        return [RewriteDecision.from_verdict(verdict) for verdict in verdicts]
+
     def rewrite_source(self, source: str, plans: Iterable[TransformPlan]) -> str:
         if not self.opt_in:
             raise ValueError("rewrite is disabled by default; pass opt_in=True")
-        rewritten = collapse_source(source, list(plans))
+        plan_list = list(plans)
+        if any(plan.target_call_site is not None for plan in plan_list):
+            rewritten = rewrite_source_with_plan(source, plan_list)
+        else:
+            rewritten = collapse_source(source, plan_list)
         if rewritten.startswith(REWRITE_WARNING):
             return rewritten
         return f"{REWRITE_WARNING}\n{rewritten}"
+
+    def plan_from_observations(
+        self,
+        source: str,
+        call_sites: list[CallSite],
+        observations: list[ObservationRecord],
+        verdicts: list[ClosureVerdict],
+    ) -> list[TransformPlan]:
+        if not self.opt_in:
+            return []
+        decisions = {
+            decision.method_qualname: decision for decision in self.decide(verdicts)
+        }
+        verdict = next(
+            (
+                item
+                for item in verdicts
+                if decisions[item.method_qualname].allowed
+            ),
+            None,
+        )
+        if verdict is None:
+            return []
+
+        observations_by_site: dict[str, list[ObservationRecord]] = defaultdict(list)
+        for record in observations:
+            observations_by_site[record.call_site_id].append(record)
+
+        plans: list[TransformPlan] = []
+        for site in call_sites:
+            site_observations = observations_by_site.get(site.call_site_id, [])
+            if not site_observations:
+                continue
+            receiver_types = sorted(
+                {observation_type_name(record) for record in site_observations},
+                reverse=True,
+            )
+            strategy = "direct" if len(receiver_types) == 1 else "guarded"
+            temp_receiver = ""
+            receiver_expr = ""
+            receiver_override = None
+            if len(receiver_types) > 1 and not site.receiver_expr.isidentifier():
+                strategy = "guarded_temp"
+                temp_receiver = f"_flatten_receiver_{len(plans) + 1}"
+                receiver_expr = site.receiver_expr
+                receiver_override = temp_receiver
+            replacement = _replacement_for_site(
+                source,
+                site,
+                receiver_types,
+                receiver_override=receiver_override,
+            )
+            score = confidence_score(verdict)
+            plans.append(
+                TransformPlan(
+                    target_node=None,
+                    replacement=replacement,
+                    verdict=verdict,
+                    rationale=verdict.rationale,
+                    target_range=f"{site.line}:{site.column}-{site.end_line}:{site.end_column}",
+                    target_call_site=site,
+                    strategy=strategy,
+                    confidence=score,
+                    risk_flags=list(verdict.open_signals),
+                    temp_receiver=temp_receiver,
+                    receiver_expr=receiver_expr,
+                )
+            )
+        return plans
+
+
+def _replacement_for_site(
+    source: str,
+    site: CallSite,
+    receiver_types: list[str],
+    *,
+    receiver_override: str | None = None,
+) -> cst.BaseExpression:
+    original = _call_at_site(source, site)
+    receiver = receiver_override or site.receiver_expr
+    args = [receiver] + [cst.Module([]).code_for_node(arg) for arg in original.args]
+    calls = [
+        f"{receiver_type.rsplit('.', 1)[-1]}.{site.method_name}({', '.join(args)})"
+        for receiver_type in receiver_types
+    ]
+    if len(calls) == 1:
+        return cst.parse_expression(calls[0])
+    expr = calls[-1]
+    for receiver_type, call in reversed(
+        list(zip(receiver_types[:-1], calls[:-1], strict=True))
+    ):
+        class_name = receiver_type.rsplit(".", 1)[-1]
+        expr = f"{call} if isinstance({receiver}, {class_name}) else {expr}"
+    return cst.parse_expression(expr)
+
+
+def _call_at_site(source: str, site: CallSite) -> cst.Call:
+    from flatten.discovery import discover_call_sites
+
+    module = cst.parse_module(source)
+    found: list[cst.Call] = []
+
+    class Finder(cst.CSTVisitor):
+        METADATA_DEPENDENCIES = ()
+
+        def visit_Call(self, node: cst.Call) -> None:
+            if isinstance(node.func, cst.Attribute):
+                found.append(node)
+
+    module.visit(Finder())
+    sites = discover_call_sites(source, filename=site.filename)
+    for candidate, candidate_site in zip(found, sites, strict=True):
+        if candidate_site.call_site_id == site.call_site_id:
+            return candidate
+    raise ValueError(f"call site not found: {site.call_site_id}")

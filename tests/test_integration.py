@@ -67,6 +67,10 @@ def test_a1_tracer_paths_create_same_oracle_record_shape():
         "return_val",
         "call_site",
         "is_dispatch_target",
+        "caller_filename",
+        "caller_lineno",
+        "caller_column",
+        "caller_end_column",
     }
     assert record.impl_class is Worker
     assert record.return_val == 3
@@ -93,7 +97,8 @@ def test_a2_detects_os1_through_os5_individually():
 
     class InstanceAttr:
         def run(self, value):
-            return self.factor + value
+            self.factor = value
+            return value
 
     class Base:
         def run(self, value):

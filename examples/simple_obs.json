@@ -1,0 +1,9 @@
+[
+  {
+    "call_site_id": "examples/simple.py:12:11-12:26",
+    "receiver_type": "examples.simple.Worker",
+    "resolved_function": "examples.simple.Worker.run",
+    "module": "examples.simple",
+    "qualname": "Worker.run"
+  }
+]

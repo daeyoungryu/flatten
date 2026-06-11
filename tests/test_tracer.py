@@ -1,6 +1,11 @@
 """tracer.py 단위 테스트."""
 
-from flatten.tracer import Tracer, trace_calls, unwrap
+import types
+
+import pytest
+
+from flatten import tracer as tracer_module
+from flatten.tracer import Tracer, _allocate_tool_id, _caller_position, trace_calls, unwrap
 
 
 def test_tracer_records_calls():
@@ -188,3 +193,93 @@ def test_trace_calls_does_not_record_unrelated_method_with_same_name():
 
     recorded = [record.impl_class for record in tracer.records]
     assert recorded == [C]
+
+
+def test_caller_position_handles_missing_and_current_frames():
+    import sys
+
+    assert _caller_position(None) == (0, -1, -1)
+
+    line, column, end_column = _caller_position(sys._getframe())
+
+    assert line > 0
+    assert column >= -1
+    assert end_column >= -1
+
+
+def test_settrace_handler_dispatches_call_return_and_ignores_exception(monkeypatch):
+    tracer = Tracer()
+    calls = []
+    returns = []
+    monkeypatch.setattr(tracer, "_record_call", lambda frame: calls.append(frame))
+    monkeypatch.setattr(tracer, "_record_return", lambda frame, arg: returns.append((frame, arg)))
+
+    frame = object()
+
+    call_handler = tracer._settrace_handler(frame, "call", None)
+    return_handler = tracer._settrace_handler(frame, "return", "value")
+    exception_handler = tracer._settrace_handler(frame, "exception", RuntimeError("boom"))
+
+    assert call_handler.__self__ is tracer
+    assert return_handler.__self__ is tracer
+    assert exception_handler.__self__ is tracer
+    assert call_handler.__func__ is Tracer._settrace_handler
+    assert return_handler.__func__ is Tracer._settrace_handler
+    assert exception_handler.__func__ is Tracer._settrace_handler
+
+    assert calls == [frame]
+    assert returns == [(frame, "value")]
+
+
+def test_caller_position_returns_unknown_columns_when_lasti_is_missing():
+    frame = types.SimpleNamespace(
+        f_lineno=123,
+        f_lasti=None,
+        f_code=(lambda: None).__code__,
+    )
+
+    assert _caller_position(frame) == (123, -1, -1)
+
+
+def test_allocate_tool_id_falls_back_to_second_candidate(monkeypatch):
+    used = []
+
+    class Monitoring:
+        def use_tool_id(self, tool_id, name):
+            used.append((tool_id, name))
+            if tool_id == 2:
+                raise ValueError("occupied")
+
+    monkeypatch.setattr(tracer_module, "_USE_MONITORING", True)
+    monkeypatch.setattr(tracer_module, "_monitoring", lambda: Monitoring())
+
+    assert _allocate_tool_id() == 3
+    assert used == [(2, "flatten-tracer"), (3, "flatten-tracer")]
+
+
+@pytest.mark.parametrize(
+    ("version_info", "expected_kwargs"),
+    [
+        ((3, 10), {}),
+        ((3, 12), {"show_caches": True}),
+        ((3, 13), {"show_caches": True}),
+    ],
+)
+def test_caller_position_version_branches(monkeypatch, version_info, expected_kwargs):
+    code = (lambda: None).__code__
+    calls = []
+    instruction = types.SimpleNamespace(
+        offset=4,
+        positions=types.SimpleNamespace(col_offset=7, end_col_offset=15),
+    )
+
+    def fake_get_instructions(received_code, **kwargs):
+        calls.append((received_code, kwargs))
+        return [instruction]
+
+    monkeypatch.setattr(tracer_module.sys, "version_info", version_info)
+    monkeypatch.setattr(tracer_module.dis, "get_instructions", fake_get_instructions)
+    frame = types.SimpleNamespace(f_lineno=9, f_lasti=4, f_code=code)
+
+    assert _caller_position(frame) == (9, 7, 15)
+    assert calls == [(code, expected_kwargs)]
