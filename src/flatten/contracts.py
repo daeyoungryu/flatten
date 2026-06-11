@@ -88,6 +88,16 @@ class RewriteDecision:
     reasons: tuple[str, ...] = ()
     blockers: tuple[str, ...] = ()
     evidence: tuple[str, ...] = ()
+    reason_code: str = ""
+    message: str = ""
+    callsite_id: str = ""
+    original_expression: str = ""
+    planned_expression: str = ""
+    observed_receiver_types: tuple[str, ...] = ()
+    dispatch_order: tuple[str, ...] = ()
+    closure_verdict: str = ""
+    required_imports: tuple[str, ...] = ()
+    safety_notes: tuple[str, ...] = ()
 
     @classmethod
     def from_verdict(cls, verdict: ClosureVerdict) -> RewriteDecision:
@@ -97,6 +107,7 @@ class RewriteDecision:
         blockers = verdict.blockers
         if not allowed and not blockers:
             blockers = (f"closure status is {status.value}",)
+        reason_code, message = _reason_code_for(status, allowed, blockers)
         return cls(
             method_qualname=verdict.method_qualname,
             allowed=allowed,
@@ -105,6 +116,10 @@ class RewriteDecision:
             reasons=reasons,
             blockers=blockers,
             evidence=verdict.evidence,
+            reason_code=reason_code,
+            message=message,
+            closure_verdict=status.value,
+            safety_notes=tuple(verdict.evidence),
         )
 
     def to_json(self) -> dict[str, Any]:
@@ -116,7 +131,80 @@ class RewriteDecision:
             "reasons": list(self.reasons),
             "blockers": list(self.blockers),
             "evidence": list(self.evidence),
+            "reason_code": self.reason_code,
+            "message": self.message,
+            "callsite_id": self.callsite_id,
+            "original_expression": self.original_expression,
+            "planned_expression": self.planned_expression,
+            "observed_receiver_types": list(self.observed_receiver_types),
+            "dispatch_order": list(self.dispatch_order),
+            "closure_verdict": self.closure_verdict or self.status.value,
+            "required_imports": list(self.required_imports),
+            "safety_notes": list(self.safety_notes),
         }
+
+
+def _reason_code_for(
+    status: ClosureStatus,
+    allowed: bool,
+    blockers: tuple[str, ...],
+) -> tuple[str, str]:
+    if allowed:
+        return "ALLOWED_CLOSED", "Rewrite is allowed by positive closure evidence."
+    text = " ".join(blockers).lower()
+    if "no observed impl" in text or "no observed receiver" in text:
+        return (
+            "UNSAFE_NO_RECEIVER_TYPES",
+            "No observed receiver types are available for safe dispatch flattening.",
+        )
+    if "__getattr__" in text:
+        return (
+            "UNSAFE_DYNAMIC_GETATTR",
+            "Dynamic getattr call cannot be safely flattened.",
+        )
+    if "__getattribute__" in text:
+        return (
+            "UNSAFE_DYNAMIC_GETATTRIBUTE",
+            "__getattribute__ override can change method resolution.",
+        )
+    if "monkey patch" in text:
+        return "UNSAFE_MONKEY_PATCH", "Runtime method replacement was detected."
+    if "multiple inheritance" in text or "diamond" in text:
+        return (
+            "UNSAFE_MULTIPLE_INHERITANCE",
+            "Multiple or diamond inheritance makes dispatch order unsafe to rewrite.",
+        )
+    if (
+        "descriptor" in text
+        or "property" in text
+        or "staticmethod" in text
+        or "classmethod" in text
+    ):
+        return (
+            "UNSAFE_DESCRIPTOR_OR_BINDING",
+            "Descriptor or binding semantics cannot be flattened safely.",
+        )
+    if "custom metaclass" in text:
+        return "UNSAFE_CUSTOM_METACLASS", "Custom metaclass can alter dispatch semantics."
+    if "super" in text:
+        return "UNSAFE_SUPER_DEPENDENCY", "super() dependent method resolution is unsupported."
+    if "async" in text or "generator" in text:
+        return "UNSAFE_ASYNC_OR_GENERATOR", "Async or generator methods are unsupported."
+    if "exception" in text:
+        return "UNSAFE_EXCEPTION_BEHAVIOR", "Exception behavior may diverge after rewrite."
+    if "side effect" in text:
+        return (
+            "UNSAFE_ARGUMENT_SIDE_EFFECTS",
+            "Argument or receiver side effects may be reordered by rewrite.",
+        )
+    if "unobserved" in text or "static class graph" in text or status is ClosureStatus.OPEN:
+        return (
+            "OPEN_CLOSURE_INCOMPLETE",
+            "Closure is incomplete; unobserved implementations may exist.",
+        )
+    if status is ClosureStatus.UNKNOWN:
+        return "UNKNOWN_UNSUPPORTED", "Closure status is unknown or unsupported."
+    return "UNKNOWN_UNSUPPORTED", "Rewrite is unsupported by the current safety policy."
 
 
 @dataclass(frozen=True)

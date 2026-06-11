@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
+import sys
+import textwrap
 from collections.abc import Callable
 from dataclasses import dataclass
 from io import StringIO
+from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
@@ -150,3 +154,136 @@ def assert_equivalent(
                 f"input #{index} effects divergence: original={original.effects!r}; "
                 f"transformed={transformed.effects!r}"
             )
+
+
+def assert_modules_equivalent_subprocess(
+    original_path: Path,
+    rewritten_path: Path,
+    entry_name: str,
+    *,
+    cases: list[dict[str, Any]],
+    effect_expression: str | None = None,
+    timeout: float = 5.0,
+    seed: int | None = None,
+) -> dict[str, Any]:
+    """Compare module entry behavior in isolated subprocesses."""
+    original_results = [
+        _run_module_case_subprocess(
+            original_path,
+            entry_name,
+            case,
+            effect_expression=effect_expression,
+            timeout=timeout,
+            seed=seed,
+        )
+        for case in cases
+    ]
+    rewritten_results = [
+        _run_module_case_subprocess(
+            rewritten_path,
+            entry_name,
+            case,
+            effect_expression=effect_expression,
+            timeout=timeout,
+            seed=seed,
+        )
+        for case in cases
+    ]
+    for index, (original, rewritten) in enumerate(
+        zip(original_results, rewritten_results, strict=True)
+    ):
+        if original != rewritten:
+            if original.get("outcome") == "raise" or rewritten.get("outcome") == "raise":
+                raise AssertionError(
+                    f"input #{index} exception divergence: original={original!r}; "
+                    f"transformed={rewritten!r}"
+                )
+            raise AssertionError(
+                f"input #{index} behavior divergence: original={original!r}; "
+                f"transformed={rewritten!r}"
+            )
+    return {
+        "equivalent": True,
+        "cases": len(cases),
+        "seed": seed,
+        "verification_limit": "observed inputs only; not proof",
+    }
+
+
+def _run_module_case_subprocess(
+    module_path: Path,
+    entry_name: str,
+    case: dict[str, Any],
+    *,
+    effect_expression: str | None,
+    timeout: float,
+    seed: int | None,
+) -> dict[str, Any]:
+    script = textwrap.dedent(
+        """
+        import contextlib
+        import importlib.util
+        import io
+        import json
+        import random
+        import sys
+
+        module_path, entry_name, case_json, effect_expression, seed_json = sys.argv[1:6]
+        seed = json.loads(seed_json)
+        if seed is not None:
+            random.seed(seed)
+        spec = importlib.util.spec_from_file_location("_flatten_verify_target", module_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec is not None and spec.loader is not None
+        spec.loader.exec_module(module)
+        fn = getattr(module, entry_name)
+        case = json.loads(case_json)
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                value = fn(*case.get("args", []), **case.get("kwargs", {}))
+            payload = {
+                "outcome": "return",
+                "value": value,
+                "stdout": stdout.getvalue(),
+                "stderr": stderr.getvalue(),
+                "effects": eval(effect_expression, vars(module)) if effect_expression else None,
+            }
+        except Exception as exc:
+            payload = {
+                "outcome": "raise",
+                "exception_type": exc.__class__.__qualname__,
+                "exception_message": str(exc),
+                "stdout": stdout.getvalue(),
+                "stderr": stderr.getvalue(),
+                "effects": eval(effect_expression, vars(module)) if effect_expression else None,
+            }
+        print(json.dumps(payload, sort_keys=True))
+        """
+    )
+    try:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                script,
+                str(module_path.resolve()),
+                entry_name,
+                json.dumps(case),
+                effect_expression or "",
+                json.dumps(seed),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise TimeoutError(f"verification subprocess timed out after {timeout}s") from exc
+    if result.returncode != 0:
+        raise AssertionError(result.stderr or result.stdout)
+    payload = json.loads(result.stdout)
+    if not isinstance(payload, dict):
+        raise AssertionError("verification subprocess returned non-object JSON")
+    return payload

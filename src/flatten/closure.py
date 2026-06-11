@@ -251,12 +251,27 @@ def _external_boundary_signals(
     return signals
 
 
-def _declared_owner(method_qualname: str, observed_impls: list[type], method_name: str) -> type:
-    owner_name = method_qualname.rsplit(".", 1)[0].split(".")[-1]
-    for observed in observed_impls:
-        for cls in observed.__mro__:
-            if cls.__name__ == owner_name or cls.__qualname__.split(".")[-1] == owner_name:
+def _declared_owner(
+    method_qualname: str,
+    observed_impls: list[type],
+    method_name: str,
+) -> type:
+    """Return the common MRO class that declares ``method_name``."""
+    if len(observed_impls) == 1:
+        owner_name = method_qualname.rsplit(".", 1)[0].split(".")[-1]
+        for cls in observed_impls[0].__mro__:
+            if (
+                method_name in cls.__dict__
+                and (cls.__name__ == owner_name or cls.__qualname__.split(".")[-1] == owner_name)
+            ):
                 return cls
+    common_mro = list(observed_impls[0].__mro__)
+    for observed in observed_impls[1:]:
+        observed_mro = set(observed.__mro__)
+        common_mro = [cls for cls in common_mro if cls in observed_mro]
+    for cls in common_mro:
+        if method_name in cls.__dict__:
+            return cls
     for cls in observed_impls[0].__mro__:
         if method_name in cls.__dict__:
             return cls
@@ -295,6 +310,7 @@ class ClosureChecker:
 
         method_name = method_qualname.rsplit(".", 1)[-1]
         base_cls = _declared_owner(method_qualname, observed_impls, method_name)
+        declared_method_qualname = f"{base_cls.__qualname__}.{method_name}"
 
         methods = _observed_methods(method_name, observed_impls)
         external = _external_boundary_signals(
@@ -303,7 +319,7 @@ class ClosureChecker:
         )
         if external:
             return ClosureVerdict(
-                method_qualname=method_qualname,
+                method_qualname=declared_method_qualname,
                 is_closed=False,
                 known_impls=list(observed_impls),
                 open_signals=external,
@@ -321,7 +337,7 @@ class ClosureChecker:
                 "__subclasses__ misses unimported and future dynamic classes"
             )
             return ClosureVerdict(
-                method_qualname=method_qualname,
+                method_qualname=declared_method_qualname,
                 is_closed=False,
                 known_impls=list(observed_impls),
                 open_signals=unsafe,
@@ -373,25 +389,16 @@ class ClosureChecker:
         )
         sealed_closed = bool(known_names & self.config.sealed_roots)
         closed_world = self.config.closed_world and not open_signals
-        if self.config.static_known_classes:
-            local_complete = not open_signals
-        elif self.config.use_runtime_subclasses_for_closure:
-            local_complete = not open_signals and set(get_all_subclasses(base_cls)).issubset(
-                set(observed_impls)
-            )
-        else:
-            local_complete = False
 
-        if not open_signals and (final_closed or sealed_closed or closed_world or local_complete):
-            reason = "closed local hierarchy"
+        if not open_signals and (final_closed or sealed_closed or closed_world):
             if final_closed:
                 reason = "typing.final class or method"
             elif sealed_closed:
                 reason = "explicit sealed root allowlist"
-            elif closed_world:
+            else:
                 reason = "closed-world package scan"
             return ClosureVerdict(
-                method_qualname=method_qualname,
+                method_qualname=declared_method_qualname,
                 is_closed=True,
                 known_impls=list(observed_impls),
                 open_signals=[],
@@ -409,7 +416,7 @@ class ClosureChecker:
             )
         signal = "OPEN"
         return ClosureVerdict(
-            method_qualname=method_qualname,
+            method_qualname=declared_method_qualname,
             is_closed=False,
             known_impls=list(observed_impls),
             open_signals=open_signals,

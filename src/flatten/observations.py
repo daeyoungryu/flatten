@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any
 
 
@@ -49,10 +50,11 @@ class ObservationRecord:
 
 def _type_ref_from_any(value: Any) -> TypeRef | str:
     if isinstance(value, dict):
+        file_value = value.get("file")
         return TypeRef(
             module=str(value.get("module", "")),
             qualname=str(value.get("qualname", "")),
-            file=None if value.get("file") is None else str(value.get("file")),
+            file=_normalize_path(file_value),
             is_builtin=bool(value.get("is_builtin", False)),
         )
     return str(value)
@@ -61,10 +63,11 @@ def _type_ref_from_any(value: Any) -> TypeRef | str:
 def _function_ref_from_any(value: Any) -> FunctionRef | str:
     if isinstance(value, dict):
         firstlineno = value.get("firstlineno")
+        file_value = value.get("file")
         return FunctionRef(
             module=str(value.get("module", "")),
             qualname=str(value.get("qualname", "")),
-            file=None if value.get("file") is None else str(value.get("file")),
+            file=_normalize_path(file_value),
             firstlineno=None if firstlineno is None else int(firstlineno),
         )
     return str(value)
@@ -88,7 +91,7 @@ def observations_from_json(payload: str) -> list[ObservationRecord]:
         resolved = _function_ref_from_any(item["resolved_function"])
         records.append(
             ObservationRecord(
-                call_site_id=str(item["call_site_id"]).replace("\\", "/"),
+                call_site_id=_normalize_call_site_id(str(item["call_site_id"])),
                 receiver_type=_type_ref_from_any(item["receiver_type"]),
                 resolved_function=resolved,
                 method_name=str(item.get("method_name", "")),
@@ -116,9 +119,11 @@ def type_ref(value: Any) -> TypeRef:
     return TypeRef(
         module=cls.__module__,
         qualname=cls.__qualname__,
-        file=getattr(__import__(cls.__module__, fromlist=["__file__"]), "__file__", None)
-        if cls.__module__ != "builtins"
-        else None,
+        file=_normalize_path(
+            getattr(__import__(cls.__module__, fromlist=["__file__"]), "__file__", None)
+            if cls.__module__ != "builtins"
+            else None
+        ),
         is_builtin=cls.__module__ == "builtins",
     )
 
@@ -127,7 +132,7 @@ def function_ref(func: Any) -> FunctionRef:
     return FunctionRef(
         module=getattr(func, "__module__", ""),
         qualname=getattr(func, "__qualname__", getattr(func, "__name__", "")),
-        file=getattr(getattr(func, "__code__", None), "co_filename", None),
+        file=_normalize_path(getattr(getattr(func, "__code__", None), "co_filename", None)),
         firstlineno=getattr(getattr(func, "__code__", None), "co_firstlineno", None),
     )
 
@@ -142,3 +147,25 @@ def observation_function_name(record: ObservationRecord) -> str:
     if isinstance(record.resolved_function, FunctionRef):
         return record.resolved_function.dotted
     return record.resolved_function
+
+
+def _normalize_path(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value)
+    if not text or text.startswith("<"):
+        return text
+    path = Path(text)
+    if not path.is_absolute():
+        return text.replace("\\", "/")
+    return str(path.resolve()).replace("\\", "/")
+
+
+def _normalize_call_site_id(value: str) -> str:
+    if not value:
+        return value
+    parts = value.rsplit(":", 2)
+    if len(parts) != 3:
+        return value.replace("\\", "/")
+    filename, line, columns = parts
+    return f"{_normalize_path(filename)}:{line}:{columns}"

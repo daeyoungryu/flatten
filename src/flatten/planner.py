@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
+from dataclasses import replace
 
 import libcst as cst
 
@@ -32,19 +33,49 @@ class RewritePlanner:
         if not self.opt_in or not RewriteDecision.from_verdict(verdict).allowed:
             return []
         return [
-            TransformPlan(
-                plan.target_node,
-                plan.replacement,
-                plan.verdict,
-                plan.rationale
+            replace(
+                plan,
+                rationale=plan.rationale
                 or "observed-based guess; unobserved implementations may exist",
-                plan.target_range,
             )
             for plan in candidate_plans
         ]
 
     def decide(self, verdicts: Iterable[ClosureVerdict]) -> list[RewriteDecision]:
         return [RewriteDecision.from_verdict(verdict) for verdict in verdicts]
+
+    def decision_for_plan(
+        self,
+        verdict: ClosureVerdict,
+        call_site: CallSite,
+        *,
+        original_expression: str,
+        planned_expression: str,
+        observed_receiver_types: tuple[str, ...],
+        dispatch_order: tuple[str, ...],
+        required_imports: tuple[str, ...] = (),
+        safety_notes: tuple[str, ...] = (),
+    ) -> RewriteDecision:
+        base = RewriteDecision.from_verdict(verdict)
+        return RewriteDecision(
+            method_qualname=base.method_qualname,
+            allowed=base.allowed,
+            status=base.status,
+            confidence=base.confidence,
+            reasons=base.reasons,
+            blockers=base.blockers,
+            evidence=base.evidence,
+            reason_code=base.reason_code,
+            message=base.message,
+            callsite_id=call_site.call_site_id,
+            original_expression=original_expression,
+            planned_expression=planned_expression,
+            observed_receiver_types=observed_receiver_types,
+            dispatch_order=dispatch_order,
+            closure_verdict=base.status.value,
+            required_imports=required_imports,
+            safety_notes=safety_notes or base.safety_notes,
+        )
 
     def rewrite_source(self, source: str, plans: Iterable[TransformPlan]) -> str:
         if not self.opt_in:
@@ -169,6 +200,13 @@ def _call_at_site(source: str, site: CallSite) -> cst.Call:
     module.visit(Finder())
     sites = discover_call_sites(source, filename=site.filename)
     for candidate, candidate_site in zip(found, sites, strict=True):
-        if candidate_site.call_site_id == site.call_site_id:
+        same_id = candidate_site.call_site_id == site.call_site_id
+        same_position = (
+            candidate_site.line == site.line
+            and candidate_site.column == site.column
+            and candidate_site.end_line == site.end_line
+            and candidate_site.end_column == site.end_column
+        )
+        if same_id or same_position:
             return candidate
     raise ValueError(f"call site not found: {site.call_site_id}")

@@ -2,7 +2,7 @@
 
 `flatten-polymorph` is an experimental Python 3.10+ library for turning proven-safe polymorphic method calls into explicit direct calls or guarded dispatch expressions.
 
-The package is intentionally conservative. Runtime observation is evidence, not proof. A rewrite is emitted only when the call site, observed implementation set, and closure verdict agree that the target is closed.
+The package is intentionally conservative. Observation is evidence, not proof. A rewrite is emitted only when the call site, observed implementation set, and closure verdict agree that the target is closed. The default policy is safe reject: when closure is unclear, the tool refuses to rewrite.
 
 ## Problem
 
@@ -19,6 +19,21 @@ source code
 -> JSON/human-readable report
 ```
 
+## Quickstart
+
+```powershell
+pip install flatten-polymorph
+python -m flatten --help
+```
+
+Import names:
+
+- Distribution name: `flatten-polymorph`
+- Implementation import and CLI module: `flatten`
+- Compatibility shim: `flatten_polymorph`
+
+Supported Python versions: 3.10 minimum, 3.12 recommended.
+
 ## When Rewrite Is Allowed
 
 The planner only emits a rewrite when:
@@ -34,7 +49,7 @@ Current CLOSED evidence includes:
 - `typing.final` class or method.
 - Explicit sealed root/class allowlist from observations.
 - Closed-world mode over the analyzed package.
-- Complete local hierarchy where all runtime subclasses are known and no risk signal is present.
+Local hierarchy completeness without positive evidence is not enough.
 
 ## OPEN and UNSAFE Cases
 
@@ -70,6 +85,9 @@ flatten report /tmp/fp_plan.json
 ```
 
 All commands print JSON with a short summary. `analyze` also supports `--format html`.
+Use `--strict` to turn unsafe or unbound evidence into a non-zero exit where
+the command supports it. `rewrite` is dry-run by default; pass `--apply` to
+write output.
 
 ## Observation Schema
 
@@ -150,9 +168,10 @@ return B.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, B) else A.r
 - LibCST preserves formatting and applies replacements by `PositionProvider` ranges.
 - `deep_equals` is not used for production rewrite targeting.
 - Reports are dataclass-backed JSON structures.
-- CLI planning uses static class graph evidence for local hierarchy closure.
+- CLI planning uses static class graph evidence to find blockers; static graph completeness alone does not prove CLOSED.
 - `flatten_polymorph` is provided as an import alias for the distribution name; `flatten` remains the implementation package and CLI module.
 - Verification compares return values, raised exception type/message, stdout, stderr, and optional collected effects across deterministic input cases.
+  Passing verification only covers observed inputs and is not proof for unobserved receiver types.
 
 ## Examples
 
@@ -172,3 +191,15 @@ return B.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, B) else A.r
 - Optimizing code whose behavior depends on hidden mutable receiver state.
 - Handling every descriptor, metaclass, import hook, or monkey-patching pattern beyond the documented blocker corpus.
 - Applying rewrites without explicit user opt-in.
+
+## Validation
+
+```powershell
+python -m compileall src\flatten
+python -c "import flatten"
+python -m flatten --help
+python -m pytest -q
+python -m ruff check .
+python -m mypy src\flatten
+python -m build
+```

@@ -14,6 +14,7 @@ import sys
 import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 from types import FrameType
 from typing import Any
 
@@ -175,7 +176,9 @@ class Tracer:
         is_dispatch_target = receiver is not None
         impl_class = type(receiver) if receiver is not None else None
         caller = getattr(frame, "f_back", None)
-        caller_filename = str(caller.f_code.co_filename) if caller is not None else ""
+        caller_filename = _normalize_filename(
+            str(caller.f_code.co_filename) if caller is not None else ""
+        )
         caller_lineno, caller_column, caller_end_column = _caller_position(caller)
 
         args = tuple(
@@ -281,6 +284,12 @@ def _caller_position(frame: Any | None) -> tuple[int, int, int]:
     column = -1 if positions.col_offset is None else int(positions.col_offset)
     end_column = -1 if positions.end_col_offset is None else int(positions.end_col_offset)
     return lineno, column, end_column
+
+
+def _normalize_filename(filename: str) -> str:
+    if not filename or filename.startswith("<"):
+        return filename
+    return str(Path(filename).resolve()).replace("\\", "/")
 
 
 @contextmanager

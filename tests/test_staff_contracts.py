@@ -119,6 +119,8 @@ def test_cli_plan_writes_plan_file_and_rewrite_consumes_plan(tmp_path):
             "--out",
             str(rewritten),
             "--apply",
+            "--entry",
+            "case:main",
         ],
         check=False,
         capture_output=True,
@@ -325,6 +327,7 @@ def test_cli_plan_uses_static_subclass_graph_for_local_hierarchy_evidence(tmp_pa
     assert main(["plan", source.as_posix(), "--observations", obs.as_posix()]) == 0
 
     payload = json.loads(capsys.readouterr().out)
-    assert payload["verdicts"][0]["status"] == "closed"
+    assert payload["verdicts"][0]["status"] == "open"
+    assert payload["rewrite_plans"] == []
     assert "checked static package subclasses" in payload["verdicts"][0]["evidence"]
     assert "checked runtime subclasses" not in payload["verdicts"][0]["evidence"]

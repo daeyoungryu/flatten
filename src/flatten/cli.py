@@ -36,7 +36,7 @@ def _read(path: Path) -> str:
 
 
 def _load_observations(path: Path) -> list[ObservationRecord]:
-    return observations_from_json(_read(path))
+    return observations_from_json(_read(path.resolve()))
 
 
 def _json_print(payload: dict[str, Any]) -> None:
@@ -122,10 +122,11 @@ def _module_file(module: Any) -> Path | None:
     filename = getattr(module, "__file__", None)
     if filename is None:
         return None
-    return Path(filename)
+    return Path(filename).resolve()
 
 
 def _entry_func(path: Path, entry: str, suffix: str = "") -> Any:
+    path = path.resolve()
     module_name, _, function_name = entry.partition(":")
     if not module_name or not function_name:
         raise ValueError("--entry must use module:function")
@@ -140,7 +141,7 @@ def _verdicts_from_observations(
     observations: list[ObservationRecord],
     *,
     closed_world: bool = False,
-    source_path: Path ** None = None,
+    source_path: Path | None = None,
 ) -> list[Any]:
     if not observations:
         return []
@@ -190,6 +191,8 @@ def _verdicts_from_observations(
 
 
 def cmd_analyze(args: argparse.Namespace) -> int:
+    if args.path is not None:
+        args.path = args.path.resolve()
     if args.path is None:
         source = ""
         filename = "<memory>"
@@ -239,6 +242,9 @@ def cmd_analyze(args: argparse.Namespace) -> int:
 
 
 def cmd_trace(args: argparse.Namespace) -> int:
+    args.path = args.path.resolve()
+    if args.out is not None:
+        args.out = args.out.resolve()
     fn = _entry_func(args.path, args.entry)
     call_sites = discover_call_sites(
         _read(args.path),
@@ -267,7 +273,7 @@ def _observation_from_trace(
     index: int,
 ) -> ObservationRecord:
     traced_method_name = record.qualname.rsplit(".", 1)[-1]
-    caller_filename = str(getattr(record, "caller_filename", "")).replace("\\", "/")
+    caller_filename = _normalize_filename(str(getattr(record, "caller_filename", "")))
     caller_lineno = int(getattr(record, "caller_lineno", 0))
     caller_column = int(getattr(record, "caller_column", -1))
     candidates = [
@@ -311,6 +317,8 @@ def _observation_from_trace(
 def _make_plans(
     args: argparse.Namespace,
 ) -> tuple[list[Any], list[Any], list[Any], list[RewriteDecision], int]:
+    args.path = args.path.resolve()
+    args.observations = args.observations.resolve()
     source = _read(args.path)
     call_sites = discover_call_sites(source, filename=str(args.path).replace("\\", "/"))
     observations = _load_observations(args.observations)
@@ -361,15 +369,30 @@ def cmd_plan(args: argparse.Namespace) -> int:
         "unbound_observations": unbound_count,
     }
     if args.out:
+        args.out = args.out.resolve()
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
         print(f"wrote {args.out}")
     else:
         _json_print(payload)
+    if not plans and unbound_count:
+        print(
+            f"flatten: warning: {unbound_count} unbound observation(s); "
+            "no rewrite plans created",
+            file=sys.stderr,
+        )
+        if args.strict:
+            return 1
     return 0
 
 
 def cmd_rewrite(args: argparse.Namespace) -> int:
+    args.path = args.path.resolve()
+    args.out = args.out.resolve()
+    if args.observations is not None:
+        args.observations = args.observations.resolve()
+    if args.plan is not None:
+        args.plan = args.plan.resolve()
     if args.plan:
         plans = _plans_from_plan_file(args.plan, _read(args.path))
         verdicts: list[Any] = []
@@ -388,15 +411,23 @@ def cmd_rewrite(args: argparse.Namespace) -> int:
             }
         )
         return 0
+    if not args.skip_verify and not args.entry:
+        print("flatten: error: rewrite --apply requires --entry or --skip-verify", file=sys.stderr)
+        return 1
     rewritten = RewritePlanner(opt_in=True).rewrite_source(_read(args.path), plans)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(rewritten, encoding="utf-8")
+    if not args.skip_verify and args.entry:
+        original = _entry_func(args.path, args.entry, "_original")
+        rewritten_entry = _entry_func(args.out, args.entry, "_rewritten")
+        assert_equivalent(original, rewritten_entry, [((), {})])
     _json_print({"summary": f"wrote {args.out}", "rewrite_plans": len(plans)})
     return 0
 
 
 def _plans_from_plan_file(path: Path, source: str) -> list[Any]:
-    raw = json.loads(_read(path))
+    raw = json.loads(_read(path.resolve()))
+    source_class_names = _top_level_class_names(source)
     if raw.get("source_hash") != _source_hash(source):
         raise ValueError("untrusted plan: source hash missing or does not match")
     plans: list[Any] = []
@@ -408,6 +439,12 @@ def _plans_from_plan_file(path: Path, source: str) -> list[Any]:
         evidence = tuple(str(value) for value in verdict_raw.get("evidence", []))
         if status != ClosureStatus.CLOSED.value or not evidence:
             raise ValueError("untrusted plan: verdict is not revalidated CLOSED evidence")
+        replacement_text = str(item["replacement"])
+        for class_name in _class_names_referenced_by_replacement(replacement_text):
+            if class_name not in source_class_names:
+                raise ValueError(
+                    f"untrusted plan: class name not in source scope: {class_name}"
+                )
         replacement = cst.parse_expression(item["replacement"])
         verdict = ClosureVerdict(
             method_qualname="",
@@ -432,7 +469,35 @@ def _plans_from_plan_file(path: Path, source: str) -> list[Any]:
     return plans
 
 
+def _top_level_class_names(source: str) -> set[str]:
+    module = cst.parse_module(source)
+    return {
+        statement.name.value
+        for statement in module.body
+        if isinstance(statement, cst.ClassDef)
+    }
+
+
+def _class_names_referenced_by_replacement(replacement: str) -> set[str]:
+    expression = cst.parse_expression(replacement)
+    names: set[str] = set()
+
+    class Visitor(cst.CSTVisitor):
+        def visit_Attribute(self, node: cst.Attribute) -> None:
+            if isinstance(node.value, cst.Name):
+                name = node.value.value
+                if name[:1].isupper():
+                    names.add(name)
+
+    expression.visit(Visitor())
+    return names
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
+    args.original = args.original.resolve()
+    args.rewritten = args.rewritten.resolve()
+    if args.cases is not None:
+        args.cases = args.cases.resolve()
     original = _entry_func(args.original, args.entry, "_original")
     rewritten = _entry_func(args.rewritten, args.entry, "_rewritten")
     cases = _load_cases(args.cases) if args.cases else [((), {})]
@@ -470,6 +535,7 @@ def _load_cases(path: Path) -> list[tuple[tuple[Any, ...], dict[str, Any]]]:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
+    args.plan = args.plan.resolve()
     payload = json.loads(_read(args.plan))
     verdicts = payload.get("verdicts", [])
     plans = payload.get("rewrite_plans", [])
@@ -480,6 +546,12 @@ def cmd_report(args: argparse.Namespace) -> int:
         for signal in verdict.get("open_signals", []):
             print(f"- {signal}")
     return 0
+
+
+def _normalize_filename(filename: str) -> str:
+    if not filename or filename.startswith("<"):
+        return filename
+    return str(Path(filename).resolve()).replace("\\", "/")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -518,6 +590,8 @@ def build_parser() -> argparse.ArgumentParser:
     rewrite.add_argument("--apply", action="store_true")
     rewrite.add_argument("--dry-run", action="store_true")
     rewrite.add_argument("--closed-world", action="store_true")
+    rewrite.add_argument("--entry")
+    rewrite.add_argument("--skip-verify", action="store_true")
     rewrite.add_argument("--json", action="store_true")
     rewrite.add_argument("--strict", action="store_true")
     rewrite.set_defaults(func=cmd_rewrite)
