@@ -14,7 +14,7 @@ from flatten.tracer import Tracer, _snapshot_value
 def test_confidence_score_bounds():
     assert confidence_score(ClosureVerdict("x", False, [], ["OPEN"], "OPEN")) == 0.0
     score = confidence_score(ClosureVerdict("x", False, [object], ["OPEN"], "OPEN"))
-    assert 0.0 < score < 1.0
+    assert score == 0.0
 
 
 def test_dispatch_transformer_respects_open_verdict_and_closed_replacement():

@@ -29,7 +29,7 @@ def test_confidence_closed_open_and_no_known_impls_are_numeric():
 
     assert all(isinstance(score, float) for score in scores)
     assert scores[0] == 0.95
-    assert scores[1] == 0.60
+    assert scores[1] == 0.0
     assert scores[2] == 0.0
     assert all(0.0 <= score <= 1.0 for score in scores)
 

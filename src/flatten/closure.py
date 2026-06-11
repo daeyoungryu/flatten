@@ -410,9 +410,20 @@ class ClosureChecker:
             )
 
         if not open_signals:
-            open_signals.append(
-                "OPEN: finite runtime observation cannot prove closed; "
-                "__subclasses__ misses unimported and future dynamic classes"
+            reason = (
+                "local hierarchy complete in available runtime/static graph, "
+                "but no positive closure evidence"
+            )
+            return ClosureVerdict(
+                method_qualname=declared_method_qualname,
+                is_closed=False,
+                known_impls=list(observed_impls),
+                open_signals=[],
+                signal="PROBABLY_CLOSED",
+                rationale=reason,
+                status=ClosureStatus.PROBABLY_CLOSED,
+                reasons=(reason,),
+                evidence=tuple(evidence),
             )
         signal = "OPEN"
         return ClosureVerdict(

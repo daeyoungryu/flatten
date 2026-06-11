@@ -1,9 +1,7 @@
 """Runtime tracing for observed polymorphic calls.
 
-Argument snapshot policy: call arguments are captured at call time. The receiver
-(`self`/`cls`) is stored as a weak proxy when possible; other values use
-`copy.deepcopy` with a bounded `repr` fallback. Records without a receiver are
-marked `is_dispatch_target=False`.
+Argument snapshot policy: by default only dispatch metadata is captured. Value
+snapshots are opt-in because deepcopy can be expensive and user-defined.
 """
 
 from __future__ import annotations
@@ -56,11 +54,12 @@ def _snapshot_value(value: Any, *, receiver: bool = False) -> Any:
 class Tracer:
     """Collect OracleRecord values for Python function calls."""
 
-    def __init__(self, target: Any | None = None) -> None:
+    def __init__(self, target: Any | None = None, *, capture_values: bool = True) -> None:
         self.records: list[OracleRecord] = []
         self._target = unwrap(target) if target is not None else None
         self._target_code = getattr(self._target, "__code__", None)
         self._target_name = getattr(self._target_code, "co_name", None)
+        self._capture_values = capture_values
         self._active = False
         self._pending: dict[
             int,
@@ -120,6 +119,8 @@ class Tracer:
         self._active = False
 
     def _on_py_start(self, code: Any, instruction_offset: int) -> None:
+        if not self._should_record(code):
+            return None
         frame = self._find_frame_for_code(code)
         if frame is None:
             return None
@@ -128,6 +129,8 @@ class Tracer:
         return None
 
     def _on_py_return(self, code: Any, instruction_offset: int, return_val: Any) -> None:
+        if not self._should_record(code):
+            return None
         frame = self._find_frame_for_code(code)
         if frame is None:
             return None
@@ -181,19 +184,23 @@ class Tracer:
         )
         caller_lineno, caller_column, caller_end_column = _caller_position(caller)
 
-        args = tuple(
-            _snapshot_value(
-                local_vars[name],
-                receiver=(name == receiver_name and is_dispatch_target),
+        if self._capture_values:
+            args = tuple(
+                _snapshot_value(
+                    local_vars[name],
+                    receiver=(name == receiver_name and is_dispatch_target),
+                )
+                for name in positional_names
+                if name in local_vars
             )
-            for name in positional_names
-            if name in local_vars
-        )
-        kwargs = {
-            name: _snapshot_value(local_vars[name])
-            for name in keyword_only_names
-            if name in local_vars
-        }
+            kwargs = {
+                name: _snapshot_value(local_vars[name])
+                for name in keyword_only_names
+                if name in local_vars
+            }
+        else:
+            args = ()
+            kwargs = {}
         self._pending[id(frame)] = (
             self._qualname_for(frame),
             impl_class,
@@ -230,7 +237,7 @@ class Tracer:
                 impl_class=impl_class,
                 args=args,
                 kwargs=kwargs,
-                return_val=_snapshot_value(return_val),
+                return_val=_snapshot_value(return_val) if self._capture_values else None,
                 call_site=call_site,
                 is_dispatch_target=is_dispatch_target,
                 caller_filename=caller_filename,

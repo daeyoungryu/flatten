@@ -39,6 +39,7 @@ def test_differential_policy_cases_match_expected_reason_codes():
         if not expected["allowed"]:
             assert verdict.status in {
                 ClosureStatus.OPEN,
+                ClosureStatus.PROBABLY_CLOSED,
                 ClosureStatus.UNSAFE,
                 ClosureStatus.UNKNOWN,
             }

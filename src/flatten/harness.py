@@ -8,11 +8,11 @@ import subprocess
 import sys
 import textwrap
 from collections.abc import Callable
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
 
 
 @dataclass(frozen=True)
@@ -27,20 +27,26 @@ class BehaviorObservation:
 EffectCollector = Callable[[], Any]
 
 
-def _jsonable(value: Any) -> Any:
+def _jsonable(value: Any, _seen: set[int] | None = None) -> Any:
+    seen = _seen if _seen is not None else set()
+    if isinstance(value, (list, tuple, dict)) or hasattr(value, "__dict__"):
+        value_id = id(value)
+        if value_id in seen:
+            return "<cycle>"
+        seen.add(value_id)
     if value is None or isinstance(value, (bool, int, float, str)):
         return value
     if isinstance(value, (list, tuple)):
-        return [_jsonable(item) for item in value]
+        return [_jsonable(item, seen) for item in value]
     if isinstance(value, dict):
         return {
-            str(key): _jsonable(item)
+            str(key): _jsonable(item, seen)
             for key, item in sorted(value.items(), key=lambda kv: str(kv[0]))
         }
     if hasattr(value, "__dict__"):
         return {
             "__class__": value.__class__.__qualname__,
-            "state": _jsonable(vars(value)),
+            "state": _jsonable(vars(value), seen),
         }
     return {"__class__": value.__class__.__qualname__}
 
@@ -64,7 +70,7 @@ def capture_behavior(
     stderr_buf = StringIO()
     effects: dict[str, Any] = {}
     try:
-        with patch("sys.stdout", stdout_buf), patch("sys.stderr", stderr_buf):
+        with redirect_stdout(stdout_buf), redirect_stderr(stderr_buf):
             result = func(*args, **kwargs)
         effects["stdout"] = stdout_buf.getvalue()
         effects["stderr"] = stderr_buf.getvalue()

@@ -121,10 +121,12 @@ class RewritePlanner:
             site_observations = observations_by_site.get(site.call_site_id, [])
             if not site_observations:
                 continue
-            receiver_types = sorted(
+            receiver_types = _ordered_receiver_types(
                 {observation_type_name(record) for record in site_observations},
-                reverse=True,
+                verdict,
             )
+            if not receiver_types:
+                continue
             strategy = "direct" if len(receiver_types) == 1 else "guarded"
             temp_receiver = ""
             receiver_expr = ""
@@ -175,13 +177,42 @@ def _replacement_for_site(
     ]
     if len(calls) == 1:
         return cst.parse_expression(calls[0])
-    expr = calls[-1]
-    for receiver_type, call in reversed(
-        list(zip(receiver_types[:-1], calls[:-1], strict=True))
-    ):
+    if receiver_override is None:
+        expr = cst.Module([]).code_for_node(original)
+    else:
+        expr = f"{receiver}.{site.method_name}({', '.join(args[1:])})"
+    for receiver_type, call in reversed(list(zip(receiver_types, calls, strict=True))):
         class_name = receiver_type.rsplit(".", 1)[-1]
         expr = f"{call} if isinstance({receiver}, {class_name}) else {expr}"
     return cst.parse_expression(expr)
+
+
+def _ordered_receiver_types(receiver_types: set[str], verdict: ClosureVerdict) -> list[str]:
+    impls = [impl for impl in verdict.known_impls if isinstance(impl, type)]
+    if not impls:
+        return sorted(receiver_types)
+    by_name: dict[str, type] = {}
+    for impl in impls:
+        by_name[impl.__qualname__] = impl
+        by_name[impl.__name__] = impl
+        by_name[f"{impl.__module__}.{impl.__qualname__}"] = impl
+    resolved: list[tuple[str, type]] = []
+    unresolved: list[str] = []
+    for name in receiver_types:
+        cls = by_name.get(name) or by_name.get(name.rsplit(".", 1)[-1])
+        if cls is None:
+            unresolved.append(name)
+        else:
+            resolved.append((name, cls))
+    if unresolved:
+        return []
+    return [
+        name
+        for name, _ in sorted(
+            resolved,
+            key=lambda item: (-len(item[1].__mro__), item[1].__module__, item[1].__qualname__),
+        )
+    ]
 
 
 def _call_at_site(source: str, site: CallSite) -> cst.Call:

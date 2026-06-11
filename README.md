@@ -1,6 +1,6 @@
 # flatten-polymorph
 
-`flatten-polymorph` is an experimental Python 3.10+ library for turning proven-safe polymorphic method calls into explicit direct calls or guarded dispatch expressions.
+`flatten-polymorph` is an experimental Python 3.10+ library for turning positively closed polymorphic method calls into explicit direct calls or guarded dispatch expressions.
 
 The package is intentionally conservative. Observation is evidence, not proof. A rewrite is emitted only when the call site, observed implementation set, and closure verdict agree that the target is closed. The default policy is safe reject: when closure is unclear, the tool refuses to rewrite.
 
@@ -48,7 +48,7 @@ Current CLOSED evidence includes:
 
 - `typing.final` class or method.
 - Explicit sealed root/class allowlist from observations.
-- Closed-world mode over the analyzed package.
+- Closed-world mode over a scanned package. Single-file static analysis alone is not closure proof.
 Local hierarchy completeness without positive evidence is not enough.
 
 ## OPEN and UNSAFE Cases
@@ -152,7 +152,7 @@ def main():
 For multiple closed implementations, the transformer emits an expression such as:
 
 ```python
-B.run(obj, 1) if isinstance(obj, B) else A.run(obj, 1)
+B.run(obj, 1) if isinstance(obj, B) else A.run(obj, 1) if isinstance(obj, A) else obj.run(1)
 ```
 
 For a non-name receiver in a supported return statement, guarded dispatch first
@@ -160,7 +160,7 @@ stores the receiver in a temporary so the receiver is evaluated once:
 
 ```python
 _flatten_receiver_1 = make()
-return B.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, B) else A.run(_flatten_receiver_1)
+return B.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, B) else A.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, A) else _flatten_receiver_1.run()
 ```
 
 ## Design Notes
@@ -202,4 +202,5 @@ python -m pytest -q
 python -m ruff check .
 python -m mypy src\flatten
 python -m build
+.\scripts\release_gate.ps1
 ```
