@@ -1,5 +1,9 @@
 from flatten.evaluation import EvaluationCounts, LabeledOutcome, compute_metrics
 
+from flatten.contracts import ClosureStatus, RewriteDecision
+from flatten.discovery import discover_call_sites
+from flatten.evaluation import evaluate_artifacts
+
 
 def test_evaluation_counts_derive_rates_from_labeled_outcomes():
     counts = EvaluationCounts(
@@ -43,3 +47,33 @@ def test_evaluation_metrics_json_is_stable():
     assert payload["recall"] is None
     assert payload["false_positive_rate"] is None
     assert payload["false_negative_rate"] is None
+
+
+def test_evaluate_artifacts_counts_call_sites_and_decisions():
+    source = """
+class A:
+    def run(self):
+        return 1
+
+def main(a):
+    return a.run()
+"""
+    call_sites = discover_call_sites(source, filename="case.py")
+    decisions = [
+        RewriteDecision(
+            method_qualname="A.run",
+            allowed=False,
+            status=ClosureStatus.UNSAFE,
+            blockers=("UNSAFE: monkey patch",),
+            reason_code="UNSAFE_MONKEY_PATCH",
+        )
+    ]
+
+    result = evaluate_artifacts(call_sites, decisions)
+
+    assert result.counts.total_call_sites == 1
+    assert result.counts.candidate_call_sites == 1
+    assert result.counts.rewritten_call_sites == 0
+    assert result.counts.rejected_call_sites == 1
+    assert result.counts.unsafe_call_sites == 1
+    assert result.counts.unknown_call_sites == 0
