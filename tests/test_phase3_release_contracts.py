@@ -25,6 +25,21 @@ def test_phase3_required_docs_exist_and_state_limits():
     assert "safe reject" in readme
 
 
+def test_evidence_architecture_doc_covers_review_topics():
+    text = Path("docs/architecture.md").read_text(encoding="utf-8")
+    required = [
+        "Data Flow",
+        "Public API",
+        "Safety Limits",
+        "False Positives",
+        "False Negatives",
+        "Unsupported Python Features",
+        "Evidence Platform",
+    ]
+    for heading in required:
+        assert heading in text
+
+
 def test_phase3_report_schema_exists_with_required_audit_fields():
     schema = Path("docs/rewrite_report.schema.json")
     assert schema.exists()
