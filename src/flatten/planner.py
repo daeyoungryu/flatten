@@ -12,6 +12,7 @@ from flatten.collapse import collapse_source
 from flatten.confidence import confidence_score
 from flatten.contracts import CallSite, ClosureVerdict, RewriteDecision, TransformPlan
 from flatten.observations import ObservationRecord, observation_type_name
+from flatten.proofs import classify_rewrite_decision
 from flatten.transformer import rewrite_source_with_plan
 
 REWRITE_WARNING = (
@@ -30,7 +31,8 @@ class RewritePlanner:
         verdict: ClosureVerdict,
         candidate_plans: Iterable[TransformPlan],
     ) -> list[TransformPlan]:
-        if not self.opt_in or not RewriteDecision.from_verdict(verdict).allowed:
+        decision = _with_proof(RewriteDecision.from_verdict(verdict))
+        if not self.opt_in or not decision.allowed or decision.proof_status != "safe":
             return []
         return [
             replace(
@@ -42,7 +44,7 @@ class RewritePlanner:
         ]
 
     def decide(self, verdicts: Iterable[ClosureVerdict]) -> list[RewriteDecision]:
-        return [RewriteDecision.from_verdict(verdict) for verdict in verdicts]
+        return [_with_proof(RewriteDecision.from_verdict(verdict)) for verdict in verdicts]
 
     def decision_for_plan(
         self,
@@ -56,25 +58,27 @@ class RewritePlanner:
         required_imports: tuple[str, ...] = (),
         safety_notes: tuple[str, ...] = (),
     ) -> RewriteDecision:
-        base = RewriteDecision.from_verdict(verdict)
-        return RewriteDecision(
-            method_qualname=base.method_qualname,
-            allowed=base.allowed,
-            status=base.status,
-            confidence=base.confidence,
-            reasons=base.reasons,
-            blockers=base.blockers,
-            evidence=base.evidence,
-            reason_code=base.reason_code,
-            message=base.message,
-            callsite_id=call_site.call_site_id,
-            original_expression=original_expression,
-            planned_expression=planned_expression,
-            observed_receiver_types=observed_receiver_types,
-            dispatch_order=dispatch_order,
-            closure_verdict=base.status.value,
-            required_imports=required_imports,
-            safety_notes=safety_notes or base.safety_notes,
+        base = _with_proof(RewriteDecision.from_verdict(verdict))
+        return _with_proof(
+            RewriteDecision(
+                method_qualname=base.method_qualname,
+                allowed=base.allowed,
+                status=base.status,
+                confidence=base.confidence,
+                reasons=base.reasons,
+                blockers=base.blockers,
+                evidence=base.evidence,
+                reason_code=base.reason_code,
+                message=base.message,
+                callsite_id=call_site.call_site_id,
+                original_expression=original_expression,
+                planned_expression=planned_expression,
+                observed_receiver_types=observed_receiver_types,
+                dispatch_order=dispatch_order,
+                closure_verdict=base.status.value,
+                required_imports=required_imports,
+                safety_notes=safety_notes or base.safety_notes,
+            )
         )
 
     def rewrite_source(self, source: str, plans: Iterable[TransformPlan]) -> str:
@@ -106,6 +110,7 @@ class RewritePlanner:
                 item
                 for item in verdicts
                 if decisions[item.method_qualname].allowed
+                and decisions[item.method_qualname].proof_status == "safe"
             ),
             None,
         )
@@ -159,6 +164,16 @@ class RewritePlanner:
                 )
             )
         return plans
+
+
+def _with_proof(decision: RewriteDecision) -> RewriteDecision:
+    proof = classify_rewrite_decision(decision)
+    return replace(
+        decision,
+        proof_status=proof.status.value,
+        proof_reasons=proof.reasons,
+        proof_evidence=proof.evidence,
+    )
 
 
 def _replacement_for_site(
