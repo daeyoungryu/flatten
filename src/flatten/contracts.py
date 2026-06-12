@@ -105,9 +105,15 @@ class RewriteDecision:
     @classmethod
     def from_verdict(cls, verdict: ClosureVerdict) -> RewriteDecision:
         status = verdict.status or ClosureStatus.UNKNOWN
-        allowed = status is ClosureStatus.CLOSED and not verdict.blockers
+        allowed = (
+            status is ClosureStatus.CLOSED
+            and not verdict.blockers
+            and bool(verdict.evidence)
+        )
         reasons = verdict.reasons or verdict.evidence
         blockers = verdict.blockers
+        if status is ClosureStatus.CLOSED and not verdict.evidence:
+            blockers = (*blockers, "missing rewrite evidence")
         if not allowed and not blockers:
             blockers = (f"closure status is {status.value}",)
         reason_code, message = _reason_code_for(status, allowed, blockers)

@@ -56,3 +56,17 @@ def test_planner_decisions_include_proof_status():
 
     assert decisions[0].proof_status == "safe"
     assert decisions[0].proof_evidence == ("checked static package subclasses",)
+
+
+def test_closed_verdict_without_evidence_is_not_rewrite_allowed():
+    verdict = ClosureVerdict(
+        method_qualname="A.run",
+        status=ClosureStatus.CLOSED,
+        reasons=("legacy closed fixture",),
+    )
+
+    decision = RewritePlanner(opt_in=True).decide([verdict])[0]
+
+    assert decision.allowed is False
+    assert decision.proof_status == "unknown"
+    assert RewritePlanner(opt_in=True).plan(verdict, []) == []
