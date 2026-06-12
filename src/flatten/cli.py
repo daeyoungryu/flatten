@@ -583,7 +583,19 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 def _decision_from_json(raw: dict[str, Any]) -> RewriteDecision:
-    status = ClosureStatus(str(raw.get("status", "unknown")))
+    status_text = str(raw.get("status", "unknown"))
+    try:
+        status = ClosureStatus(status_text)
+    except ValueError:
+        status = ClosureStatus.UNKNOWN
+        raw = {
+            **raw,
+            "allowed": False,
+            "blockers": [
+                *raw.get("blockers", []),
+                f"invalid rewrite decision status: {status_text}",
+            ],
+        }
     return RewriteDecision(
         method_qualname=str(raw.get("method_qualname", "")),
         allowed=bool(raw.get("allowed", False)),
