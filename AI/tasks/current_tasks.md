@@ -1,6 +1,6 @@
 # Current Tasks
 
-Last updated: 2026-06-11
+Last updated: 2026-06-13
 
 ## Completed
 
@@ -56,6 +56,22 @@ Last updated: 2026-06-11
 - Evidence Platform First slice: added evaluation metrics, behavior comparator,
   proof classification, SAFE-gated planner metadata, `flatten evaluate`, HTML
   evaluation report rendering, and evidence architecture docs.
+- Codex-Claude P0 soundness pass: fixed method-verdict cross-contamination,
+  required explicit `--cases` for `rewrite --apply --entry`, rejected forged
+  plan files without planner-emitted decisions/proof artifacts, and added
+  `tests/regression/test_p0_repro.py`.
+- Phase 1 soundness audit doc: added `docs/soundness.md` covering the complete
+  rewrite pipeline, refusal conditions, soundness assumptions, and dynamic
+  feature SAFE/UNSAFE/UNKNOWN classifications.
+- Phase 2 proof artifact slice: added per-rewrite `proof_artifact` JSON in
+  `flatten plan`, with regression coverage in `tests/test_proof_artifacts.py`.
+- Phase 3/4 mutation harness slice: added `flatten.mutations` source-level
+  variants and a `setattr` false-positive guard in CLI planning, with coverage
+  in `tests/test_mutation_harness.py`.
+- T8 benchmark/release evidence slice: added a 35-project OSS benchmark catalog,
+  `flatten benchmark`, JSON/Markdown benchmark summaries, CI benchmark-sanity,
+  release-gate benchmark execution, README quantitative status, and
+  `docs/research_evaluation.md`.
 
 ## Remaining
 
@@ -67,3 +83,5 @@ Last updated: 2026-06-11
 - Remaining evidence-platform expansion: repository-scale mode, real-world
   benchmark corpus, mutation score automation, observability metrics, and
   deeper type-flow/alias analysis.
+- Remaining release blocker: run the benchmark suite against at least 30 pinned
+  OSS project checkouts and publish nonzero empirical results.

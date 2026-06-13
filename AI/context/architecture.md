@@ -1,6 +1,6 @@
 # flatten Architecture
 
-Last updated: 2026-06-11
+Last updated: 2026-06-13
 
 ## Module Flow
 
@@ -89,8 +89,9 @@ External Phase 3 release pass: COMPLETED
   compatibility shim for `flatten_polymorph`.
 - CI is split into lint, typecheck, test, build, wheel-install-smoke, and
   cli-smoke jobs over Windows/Ubuntu and Python 3.10/3.12.
-- Documentation now includes architecture, safety model, rewrite policy,
-  unsupported cases, testing strategy, CLI, examples, roadmap, and report schema.
+- Documentation now includes architecture, soundness audit, safety model,
+  rewrite policy, unsupported cases, testing strategy, CLI, examples, roadmap,
+  and report schema.
 - Examples are runnable scripts for allowed and rejected policy outcomes.
 
 Evidence Platform First: COMPLETED
@@ -100,10 +101,16 @@ Evidence Platform First: COMPLETED
 - `comparator.py` exposes `BehaviorComparator` for return, stdout, stderr,
   exception, and effect mismatch reporting.
 - `proofs.py` maps rewrite decisions to SAFE, UNSAFE, or UNKNOWN evidence.
+- `cli.py` emits a per-rewrite `proof_artifact` dictionary with call-site,
+  observed-target, closure-rule, risk, and authorization details.
+- `mutations.py` generates source-level mutation variants for false-positive
+  safety checks.
 - `planner.py` attaches proof metadata and emits plans only for SAFE decisions.
 - `cli.py` exposes `evaluate` for metrics JSON from source and optional plan
   artifacts.
 - `report.py` can render evaluation metrics as a small HTML evidence report.
+- `benchmarks.py` loads the OSS project catalog and emits benchmark KPI JSON
+  and Markdown summaries for CI/release sanity gates.
 
 ## Contracts
 
@@ -150,9 +157,16 @@ All shared records live in `src/flatten/contracts.py` to avoid circular imports:
 - `tests/test_phase3_release_contracts.py` covers Phase 3 docs, schema,
   packaging metadata, typed markers, guarded entry points, CI, and examples.
 - `tests/test_evaluation.py`, `tests/test_comparator.py`,
-  `tests/test_proofs.py`, and `tests/test_evidence_cli.py` cover the evidence
-  platform slice.
-- Current full local verification passes with 198 tests.
+  `tests/test_proofs.py`, `tests/test_proof_artifacts.py`, and
+  `tests/test_evidence_cli.py` cover the evidence platform slice.
+- `tests/test_mutation_harness.py` covers generated mutation kinds and the
+  `setattr` false-positive guard.
+- `tests/test_benchmarks.py` covers the 35-project OSS catalog, benchmark KPI
+  report generation, benchmark CLI output, and research-evaluation doc gate.
+- `tests/regression/test_p0_repro.py` covers the Codex-Claude P0 soundness
+  pass: method-specific verdicts, explicit rewrite cases, forged plan refusal,
+  and the recursion call-site observation guard.
+- Current full local verification passes with 214 tests.
 
 ## v0.1.1 Architecture Update
 
@@ -164,3 +178,11 @@ All shared records live in `src/flatten/contracts.py` to avoid circular imports:
   with `--capture-values`.
 - `scripts/release_gate.ps1` verifies the built wheel in a clean venv, including
   installed-package compileall, module help, strict mypy, and a minimal e2e.
+- Planner generation now keeps closure verdicts method-local: observations are
+  grouped per method qualname and a call site can only use a SAFE verdict that
+  matches that site's observed method.
+- `rewrite --apply --entry` requires explicit `--cases`; implicit empty-case
+  validation is not an accepted gate.
+- `.github/workflows/ci.yml` includes `benchmark-sanity`; release-gate depends
+  on it and `scripts/release_gate.ps1` runs benchmark sanity after installed
+  wheel e2e verification.

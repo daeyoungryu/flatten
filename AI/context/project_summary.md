@@ -1,6 +1,6 @@
 # flatten Project Summary
 
-Last updated: 2026-06-11
+Last updated: 2026-06-13
 
 ## Overview
 
@@ -160,10 +160,9 @@ Use:
 & 'C:\Users\Com\AppData\Local\Programs\Python\Python312\python.exe' -m mypy .
 ```
 
-Current Phase 3 result: full regression suite reports 174 passed. The Phase 3
-quality gate (`compileall`, import, CLI help, pytest, ruff, mypy, build) exits
-0. The rebuilt wheel installs in a clean venv; `import flatten`, `python -m
-flatten --help`, and `check-wheel-contents` pass.
+Current local result: full regression suite reports 214 passed. Ruff passes,
+`python -m mypy .` reports success for 23 source files, and
+`scripts/release_gate.ps1` exits with `release gate passed`.
 
 External blockers: hosted GitHub Actions requires access to GitHub Actions or
 an installed/authenticated `gh` CLI; mutation testing requires Linux/WSL because
@@ -177,6 +176,40 @@ evaluation JSON through `flatten evaluate`, and reports can render evaluation
 metrics as HTML. `docs/ARCHITECTURE.md` now documents public APIs, safety
 limits, false positive/negative risks, unsupported Python features, and the
 evidence platform data flow.
+
+## P0 Soundness Coordination Pass
+
+The Codex-Claude coordination channel now lives at
+`AI/collab/COORDINATION.md`. The P0 pass fixed method-verdict cross-contamination
+by grouping observations per method qualname and applying only the matching
+SAFE verdict to each call site. `rewrite --apply --entry` now requires explicit
+`--cases`, and external plan files must include planner-emitted
+`rewrite_decisions` plus a positive per-plan `proof_artifact` in addition to a
+matching source hash and source-scope class references.
+
+`docs/soundness.md` now documents the full Observation -> Closure Analysis ->
+Rewrite Decision -> CST Transform -> Validation flow, including inputs,
+outputs, failure/refusal conditions, soundness assumptions, and SAFE/UNSAFE/
+UNKNOWN classification for dynamic Python features.
+
+The per-plan proof artifact contract is now explicit in CLI plan output. Each
+emitted rewrite plan includes machine-readable `proof_artifact` JSON with
+callsite, observed targets, closure status, passed/failed closure rules, risk
+level, and rewrite authorization.
+
+The mutation harness now lives in `flatten.mutations` and generates source-level
+variants for new subclass, dispatch target, monkey patch, runtime registration,
+and `setattr` changes. Source-level `setattr` mutation is treated as an UNSAFE
+monkey-patch risk during CLI planning.
+
+T8 added an OSS benchmark catalog and release evidence layer. The catalog lives
+at `benchmarks/projects.csv` with 35 public Python projects, and `flatten
+benchmark` emits JSON/Markdown summaries. CI includes a benchmark-sanity job,
+the release gate runs benchmark sanity, and `docs/research_evaluation.md`
+documents threats to validity, known unsound cases, false positive/negative
+analysis, methodology, reproducibility, artifact evaluation, and 0.2.0 release
+criteria. This is catalog/gate infrastructure; the 30-project empirical run is
+still a release blocker.
 
 ## v0.1.1 Defect Fix
 
