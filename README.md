@@ -204,3 +204,34 @@ python -m mypy src\flatten
 python -m build
 .\scripts\release_gate.ps1
 ```
+
+## Benchmark And Release Evidence
+
+The OSS benchmark catalog is tracked in `benchmarks/projects.csv` and currently
+contains 35 public Python projects. The local benchmark sanity command emits
+JSON and Markdown summaries:
+
+```powershell
+python -m flatten benchmark --catalog benchmarks/projects.csv --out-json benchmarks/summary.json --out-md benchmarks/summary.md
+```
+
+Current quantitative status:
+
+| KPI | Value |
+| --- | --- |
+| Project Catalog Size | 35 |
+| Projects Evaluated | 0 |
+| Total Call Sites | 0 |
+| Candidates | 0 |
+| Rewritten | 0 |
+| Rejected | 0 |
+| Unsafe | 0 |
+| Unknown | 0 |
+| False Positives | 0 |
+| Behavior Mismatches | 0 |
+| Proof Coverage | n/a |
+| Closure Coverage | n/a |
+
+This is a catalog and gate status, not a completed 30-project empirical run.
+Release 0.2.0 remains blocked until the release criteria in
+`docs/research_evaluation.md` are satisfied.

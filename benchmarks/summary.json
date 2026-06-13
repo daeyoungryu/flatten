@@ -1,0 +1,228 @@
+{
+  "behavior_mismatches": 0,
+  "candidates": 0,
+  "closure_coverage": null,
+  "false_positives": 0,
+  "project_catalog_size": 35,
+  "projects": [
+    {
+      "category": "web",
+      "name": "FastAPI",
+      "package": "fastapi",
+      "repo_url": "https://github.com/fastapi/fastapi"
+    },
+    {
+      "category": "validation",
+      "name": "Pydantic",
+      "package": "pydantic",
+      "repo_url": "https://github.com/pydantic/pydantic"
+    },
+    {
+      "category": "database",
+      "name": "SQLAlchemy",
+      "package": "sqlalchemy",
+      "repo_url": "https://github.com/sqlalchemy/sqlalchemy"
+    },
+    {
+      "category": "workflow",
+      "name": "Airflow",
+      "package": "apache-airflow",
+      "repo_url": "https://github.com/apache/airflow"
+    },
+    {
+      "category": "cli",
+      "name": "Click",
+      "package": "click",
+      "repo_url": "https://github.com/pallets/click"
+    },
+    {
+      "category": "terminal",
+      "name": "Rich",
+      "package": "rich",
+      "repo_url": "https://github.com/Textualize/rich"
+    },
+    {
+      "category": "http",
+      "name": "Requests",
+      "package": "requests",
+      "repo_url": "https://github.com/psf/requests"
+    },
+    {
+      "category": "data",
+      "name": "Pandas",
+      "package": "pandas",
+      "repo_url": "https://github.com/pandas-dev/pandas"
+    },
+    {
+      "category": "web",
+      "name": "Flask",
+      "package": "flask",
+      "repo_url": "https://github.com/pallets/flask"
+    },
+    {
+      "category": "cli",
+      "name": "Typer",
+      "package": "typer",
+      "repo_url": "https://github.com/fastapi/typer"
+    },
+    {
+      "category": "models",
+      "name": "attrs",
+      "package": "attrs",
+      "repo_url": "https://github.com/python-attrs/attrs"
+    },
+    {
+      "category": "plugins",
+      "name": "pluggy",
+      "package": "pluggy",
+      "repo_url": "https://github.com/pytest-dev/pluggy"
+    },
+    {
+      "category": "testing",
+      "name": "pytest",
+      "package": "pytest",
+      "repo_url": "https://github.com/pytest-dev/pytest"
+    },
+    {
+      "category": "http",
+      "name": "httpx",
+      "package": "httpx",
+      "repo_url": "https://github.com/encode/httpx"
+    },
+    {
+      "category": "web",
+      "name": "Starlette",
+      "package": "starlette",
+      "repo_url": "https://github.com/encode/starlette"
+    },
+    {
+      "category": "web",
+      "name": "Django",
+      "package": "django",
+      "repo_url": "https://github.com/django/django"
+    },
+    {
+      "category": "templates",
+      "name": "Jinja",
+      "package": "jinja2",
+      "repo_url": "https://github.com/pallets/jinja"
+    },
+    {
+      "category": "web",
+      "name": "Werkzeug",
+      "package": "werkzeug",
+      "repo_url": "https://github.com/pallets/werkzeug"
+    },
+    {
+      "category": "database",
+      "name": "Alembic",
+      "package": "alembic",
+      "repo_url": "https://github.com/sqlalchemy/alembic"
+    },
+    {
+      "category": "validation",
+      "name": "Marshmallow",
+      "package": "marshmallow",
+      "repo_url": "https://github.com/marshmallow-code/marshmallow"
+    },
+    {
+      "category": "validation",
+      "name": "Cerberus",
+      "package": "cerberus",
+      "repo_url": "https://github.com/pyeve/cerberus"
+    },
+    {
+      "category": "crawling",
+      "name": "Scrapy",
+      "package": "scrapy",
+      "repo_url": "https://github.com/scrapy/scrapy"
+    },
+    {
+      "category": "network",
+      "name": "Twisted",
+      "package": "twisted",
+      "repo_url": "https://github.com/twisted/twisted"
+    },
+    {
+      "category": "workflow",
+      "name": "Celery",
+      "package": "celery",
+      "repo_url": "https://github.com/celery/celery"
+    },
+    {
+      "category": "workflow",
+      "name": "Prefect",
+      "package": "prefect",
+      "repo_url": "https://github.com/PrefectHQ/prefect"
+    },
+    {
+      "category": "workflow",
+      "name": "Luigi",
+      "package": "luigi",
+      "repo_url": "https://github.com/spotify/luigi"
+    },
+    {
+      "category": "tooling",
+      "name": "Black",
+      "package": "black",
+      "repo_url": "https://github.com/psf/black"
+    },
+    {
+      "category": "tooling",
+      "name": "Ruff",
+      "package": "ruff",
+      "repo_url": "https://github.com/astral-sh/ruff"
+    },
+    {
+      "category": "typecheck",
+      "name": "Mypy",
+      "package": "mypy",
+      "repo_url": "https://github.com/python/mypy"
+    },
+    {
+      "category": "packaging",
+      "name": "Poetry",
+      "package": "poetry",
+      "repo_url": "https://github.com/python-poetry/poetry"
+    },
+    {
+      "category": "packaging",
+      "name": "pip",
+      "package": "pip",
+      "repo_url": "https://github.com/pypa/pip"
+    },
+    {
+      "category": "packaging",
+      "name": "setuptools",
+      "package": "setuptools",
+      "repo_url": "https://github.com/pypa/setuptools"
+    },
+    {
+      "category": "docs",
+      "name": "Sphinx",
+      "package": "sphinx",
+      "repo_url": "https://github.com/sphinx-doc/sphinx"
+    },
+    {
+      "category": "docs",
+      "name": "MkDocs",
+      "package": "mkdocs",
+      "repo_url": "https://github.com/mkdocs/mkdocs"
+    },
+    {
+      "category": "data",
+      "name": "NumPy",
+      "package": "numpy",
+      "repo_url": "https://github.com/numpy/numpy"
+    }
+  ],
+  "projects_evaluated": 0,
+  "proof_coverage": null,
+  "rejected": 0,
+  "rewrite_success_rate": null,
+  "rewritten": 0,
+  "status": "catalog-only; no OSS source checkout evaluated",
+  "total_call_sites": 0,
+  "unknown": 0,
+  "unsafe": 0
+}

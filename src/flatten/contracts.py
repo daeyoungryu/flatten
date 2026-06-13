@@ -101,6 +101,7 @@ class RewriteDecision:
     proof_status: str = ""
     proof_reasons: tuple[str, ...] = ()
     proof_evidence: tuple[str, ...] = ()
+    proof_artifact: dict[str, Any] | None = None
 
     @classmethod
     def from_verdict(cls, verdict: ClosureVerdict) -> RewriteDecision:
@@ -153,6 +154,7 @@ class RewriteDecision:
             "proof_status": self.proof_status,
             "proof_reasons": list(self.proof_reasons),
             "proof_evidence": list(self.proof_evidence),
+            "proof_artifact": self.proof_artifact,
         }
 
 

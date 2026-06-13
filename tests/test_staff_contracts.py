@@ -52,6 +52,7 @@ def test_cli_plan_writes_plan_file_and_rewrite_consumes_plan(tmp_path):
     obs = tmp_path / "obs.json"
     plan = tmp_path / "plan.json"
     rewritten = tmp_path / "rewritten.py"
+    cases = tmp_path / "cases.json"
     source.write_text(
         "from typing import final\n\n"
         "@final\n"
@@ -89,6 +90,7 @@ def test_cli_plan_writes_plan_file_and_rewrite_consumes_plan(tmp_path):
         ),
         encoding="utf-8",
     )
+    cases.write_text(json.dumps([{"args": [], "kwargs": {}}]), encoding="utf-8")
 
     plan_result = subprocess.run(
         [
@@ -121,6 +123,8 @@ def test_cli_plan_writes_plan_file_and_rewrite_consumes_plan(tmp_path):
             "--apply",
             "--entry",
             "case:main",
+            "--cases",
+            str(cases),
         ],
         check=False,
         capture_output=True,

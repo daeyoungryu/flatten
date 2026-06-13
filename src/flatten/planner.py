@@ -105,17 +105,7 @@ class RewritePlanner:
         decisions = {
             decision.method_qualname: decision for decision in self.decide(verdicts)
         }
-        verdict = next(
-            (
-                item
-                for item in verdicts
-                if decisions[item.method_qualname].allowed
-                and decisions[item.method_qualname].proof_status == "safe"
-            ),
-            None,
-        )
-        if verdict is None:
-            return []
+        verdict_by_method = {verdict.method_qualname: verdict for verdict in verdicts}
 
         observations_by_site: dict[str, list[ObservationRecord]] = defaultdict(list)
         for record in observations:
@@ -125,6 +115,17 @@ class RewritePlanner:
         for site in call_sites:
             site_observations = observations_by_site.get(site.call_site_id, [])
             if not site_observations:
+                continue
+            method_key = _observation_method_qualname(site_observations[0])
+            verdict = verdict_by_method.get(method_key)
+            if verdict is None:
+                continue
+            decision = decisions.get(verdict.method_qualname)
+            if (
+                decision is None
+                or not decision.allowed
+                or decision.proof_status != "safe"
+            ):
                 continue
             receiver_types = _ordered_receiver_types(
                 {observation_type_name(record) for record in site_observations},
@@ -228,6 +229,16 @@ def _ordered_receiver_types(receiver_types: set[str], verdict: ClosureVerdict) -
             key=lambda item: (-len(item[1].__mro__), item[1].__module__, item[1].__qualname__),
         )
     ]
+
+
+def _observation_method_qualname(record: ObservationRecord) -> str:
+    if record.qualname:
+        return record.qualname
+    resolved = record.resolved_function
+    if hasattr(resolved, "qualname"):
+        return str(resolved.qualname)
+    text = str(resolved)
+    return text.rsplit(".", 2)[-2] + "." + text.rsplit(".", 1)[-1]
 
 
 def _call_at_site(source: str, site: CallSite) -> cst.Call:

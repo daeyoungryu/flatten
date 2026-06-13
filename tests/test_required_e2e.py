@@ -225,6 +225,7 @@ def test_cli_analyze_plan_rewrite_verify_integration(tmp_path):
     source = tmp_path / "simple.py"
     rewritten = tmp_path / "simple_rewritten.py"
     obs = tmp_path / "obs.json"
+    cases = tmp_path / "cases.json"
     source.write_text(
         "from typing import final\n\n"
         "@final\n"
@@ -250,6 +251,7 @@ def test_cli_analyze_plan_rewrite_verify_integration(tmp_path):
         ),
         encoding="utf-8",
     )
+    cases.write_text(json.dumps([{"args": [], "kwargs": {}}]), encoding="utf-8")
 
     analyze = subprocess.run(
         [sys.executable, "-m", "flatten", "analyze", str(source)],
@@ -277,6 +279,8 @@ def test_cli_analyze_plan_rewrite_verify_integration(tmp_path):
             "--apply",
             "--entry",
             "simple:main",
+            "--cases",
+            str(cases),
         ],
         check=False,
         capture_output=True,

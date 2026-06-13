@@ -12,6 +12,11 @@ from typing import Any
 
 import libcst as cst
 
+from flatten.benchmarks import (
+    load_benchmark_catalog,
+    summarize_benchmark_catalog,
+    write_benchmark_reports,
+)
 from flatten.closure import ClosureChecker, ClosureConfig
 from flatten.contracts import ClosureStatus, ClosureVerdict, RewriteDecision, TransformPlan
 from flatten.discovery import discover_call_sites
@@ -22,6 +27,7 @@ from flatten.observations import (
     ObservationRecord,
     TypeRef,
     observation_function_name,
+    observation_type_name,
     observations_from_json,
     observations_to_json,
     type_ref,
@@ -146,62 +152,96 @@ def _verdicts_from_observations(
 ) -> list[Any]:
     if not observations:
         return []
-    first = observations[0]
-    method_qualname = first.qualname or (
-        first.resolved_function.qualname
-        if isinstance(first.resolved_function, FunctionRef)
-        else observation_function_name(first).rsplit(".", 2)[-2]
-        + "."
-        + (first.method_name or observation_function_name(first).rsplit(".", 1)[-1])
-    )
-    observed_impls: list[type] = []
+    grouped: dict[str, list[ObservationRecord]] = {}
     for record in observations:
-        restored = _restore_type(record.receiver_type, source_path)
-        if restored is None:
-            return [
-                ClosureVerdict(
-                    method_qualname=method_qualname,
-                    known_impls=[],
-                    open_signals=["type restoration failed for observed receiver"],
-                    signal="UNKNOWN",
-                    rationale="cannot prove closed without restoring observed type objects",
-                    status=ClosureStatus.UNKNOWN,
-                    blockers=("type restoration failed for observed receiver",),
-                    evidence=("loaded observation file",),
+        grouped.setdefault(_method_qualname_from_observation(record), []).append(record)
+
+    verdicts: list[ClosureVerdict] = []
+    for method_qualname, records in grouped.items():
+        observed_impls: list[type] = []
+        for record in records:
+            restored = _restore_type(record.receiver_type, source_path)
+            if restored is None:
+                verdicts.append(
+                    ClosureVerdict(
+                        method_qualname=method_qualname,
+                        known_impls=[],
+                        open_signals=["type restoration failed for observed receiver"],
+                        signal="UNKNOWN",
+                        rationale="cannot prove closed without restoring observed type objects",
+                        status=ClosureStatus.UNKNOWN,
+                        blockers=("type restoration failed for observed receiver",),
+                        evidence=("loaded observation file",),
+                    )
                 )
-            ]
-        if restored not in observed_impls:
-            observed_impls.append(restored)
-    checker = ClosureChecker(ClosureConfig(closed_world=closed_world))
-    if source_path is not None and source_path.exists():
-        source = _read(source_path)
-        static_analysis = analyze_class_hierarchy(
-            source,
-            filename=str(source_path).replace("\\", "/"),
-            module_name=observed_impls[0].__module__,
-        )
-        if "class-attribute-assignment" in static_analysis.risk_flags:
-            return [
-                ClosureVerdict(
-                    method_qualname=method_qualname,
-                    known_impls=observed_impls,
-                    open_signals=["UNSAFE: possible monkey patch via class attribute assignment"],
-                    signal="UNSAFE",
-                    rationale="cannot prove closed when source mutates class attributes",
-                    status=ClosureStatus.UNSAFE,
-                    blockers=("UNSAFE: possible monkey patch via class attribute assignment",),
-                    evidence=("checked static class attribute assignments",),
+                break
+            if restored not in observed_impls:
+                observed_impls.append(restored)
+        else:
+            checker = ClosureChecker(ClosureConfig(closed_world=closed_world))
+            if source_path is not None and source_path.exists():
+                source = _read(source_path)
+                static_analysis = analyze_class_hierarchy(
+                    source,
+                    filename=str(source_path).replace("\\", "/"),
+                    module_name=observed_impls[0].__module__,
                 )
-            ]
-        checker = ClosureChecker(
-            ClosureConfig(
-                closed_world=closed_world,
-                static_known_classes=frozenset(static_analysis.classes),
-                static_subclasses=static_analysis.subclasses,
-                use_runtime_subclasses_for_closure=False,
-            )
-        )
-    return [checker.check(method_qualname, observed_impls)]
+                if "class-attribute-assignment" in static_analysis.risk_flags:
+                    verdicts.append(
+                        ClosureVerdict(
+                            method_qualname=method_qualname,
+                            known_impls=observed_impls,
+                            open_signals=[
+                                "UNSAFE: possible monkey patch via class attribute assignment"
+                            ],
+                            signal="UNSAFE",
+                            rationale=(
+                                "cannot prove closed when source mutates class attributes"
+                            ),
+                            status=ClosureStatus.UNSAFE,
+                            blockers=(
+                                "UNSAFE: possible monkey patch via class attribute assignment",
+                            ),
+                            evidence=("checked static class attribute assignments",),
+                        )
+                    )
+                    continue
+                if "setattr" in static_analysis.risk_flags:
+                    verdicts.append(
+                        ClosureVerdict(
+                            method_qualname=method_qualname,
+                            known_impls=observed_impls,
+                            open_signals=["UNSAFE: possible monkey patch via setattr"],
+                            signal="UNSAFE",
+                            rationale="cannot prove closed when source calls setattr",
+                            status=ClosureStatus.UNSAFE,
+                            blockers=("UNSAFE: possible monkey patch via setattr",),
+                            evidence=("checked setattr calls",),
+                        )
+                    )
+                    continue
+                checker = ClosureChecker(
+                    ClosureConfig(
+                        closed_world=closed_world,
+                        static_known_classes=frozenset(static_analysis.classes),
+                        static_subclasses=static_analysis.subclasses,
+                        use_runtime_subclasses_for_closure=False,
+                    )
+                )
+            verdicts.append(checker.check(method_qualname, observed_impls))
+    return verdicts
+
+
+def _method_qualname_from_observation(record: ObservationRecord) -> str:
+    if record.qualname:
+        return record.qualname
+    if isinstance(record.resolved_function, FunctionRef):
+        return record.resolved_function.qualname
+    text = observation_function_name(record)
+    if record.method_name:
+        owner = text.rsplit(".", 1)[0].rsplit(".", 1)[-1]
+        return f"{owner}.{record.method_name}"
+    return text.rsplit(".", 2)[-2] + "." + text.rsplit(".", 1)[-1]
 
 
 def cmd_analyze(args: argparse.Namespace) -> int:
@@ -370,6 +410,7 @@ def _make_plans(
 def cmd_plan(args: argparse.Namespace) -> int:
     call_sites, verdicts, plans, decisions, unbound_count = _make_plans(args)
     source = _read(args.path)
+    observations = _load_observations(args.observations)
     payload = {
         "summary": f"created {len(plans)} rewrite plan(s)",
         "source_hash": _source_hash(source),
@@ -377,20 +418,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
         "verdicts": [_verdict_to_json(verdict) for verdict in verdicts],
         "rewrite_decisions": [_decision_to_json(decision) for decision in decisions],
         "rewrite_plans": [
-            {
-                "call_site_id": plan.target_call_site.call_site_id
-                if plan.target_call_site
-                else None,
-                "strategy": plan.strategy,
-                "reason": plan.rationale,
-                "confidence": plan.confidence,
-                "risk_flags": plan.risk_flags,
-                "target_range": plan.target_range,
-                "replacement": cst.Module([]).code_for_node(plan.replacement),
-                "temp_receiver": plan.temp_receiver,
-                "receiver_expr": plan.receiver_expr,
-                "verdict": _verdict_to_json(plan.verdict),
-            }
+            _plan_to_json(plan, observations)
             for plan in plans
         ],
         "unbound_observations": unbound_count,
@@ -411,6 +439,51 @@ def cmd_plan(args: argparse.Namespace) -> int:
         if args.strict:
             return 2
     return 0
+
+
+def _plan_to_json(
+    plan: TransformPlan,
+    observations: list[ObservationRecord],
+) -> dict[str, Any]:
+    call_site_id = plan.target_call_site.call_site_id if plan.target_call_site else None
+    return {
+        "call_site_id": call_site_id,
+        "strategy": plan.strategy,
+        "reason": plan.rationale,
+        "confidence": plan.confidence,
+        "risk_flags": plan.risk_flags,
+        "target_range": plan.target_range,
+        "replacement": cst.Module([]).code_for_node(plan.replacement),
+        "temp_receiver": plan.temp_receiver,
+        "receiver_expr": plan.receiver_expr,
+        "verdict": _verdict_to_json(plan.verdict),
+        "proof_artifact": _proof_artifact_for_plan(plan, observations),
+    }
+
+
+def _proof_artifact_for_plan(
+    plan: TransformPlan,
+    observations: list[ObservationRecord],
+) -> dict[str, Any]:
+    call_site_id = plan.target_call_site.call_site_id if plan.target_call_site else ""
+    observed_targets = sorted(
+        {
+            observation_type_name(record)
+            for record in observations
+            if record.call_site_id == call_site_id
+        }
+    )
+    verdict = plan.verdict
+    status = verdict.status.value if verdict.status else verdict.signal.lower()
+    return {
+        "callsite": call_site_id,
+        "observed_targets": observed_targets,
+        "closure_status": status,
+        "closure_rules_passed": list(verdict.evidence),
+        "closure_rules_failed": list(verdict.blockers or verdict.open_signals),
+        "risk_level": "safe" if status == ClosureStatus.CLOSED.value else "unsafe",
+        "rewrite_allowed": status == ClosureStatus.CLOSED.value and not verdict.blockers,
+    }
 
 
 def cmd_rewrite(args: argparse.Namespace) -> int:
@@ -441,13 +514,16 @@ def cmd_rewrite(args: argparse.Namespace) -> int:
     if not args.skip_verify and not args.entry:
         print("flatten: error: rewrite --apply requires --entry or --skip-verify", file=sys.stderr)
         return 1
+    if not args.skip_verify and args.entry and args.cases is None:
+        print("flatten: error: rewrite --apply --entry requires --cases", file=sys.stderr)
+        return 1
     rewritten = RewritePlanner(opt_in=True).rewrite_source(_read(args.path), plans)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(rewritten, encoding="utf-8")
     if not args.skip_verify and args.entry:
         original = _entry_func(args.path, args.entry, "_original")
         rewritten_entry = _entry_func(args.out, args.entry, "_rewritten")
-        assert_equivalent(original, rewritten_entry, [((), {})])
+        assert_equivalent(original, rewritten_entry, _load_cases(args.cases))
     summary = (
         f"wrote {args.out}; applied 0 rewrite plan(s)"
         if not plans
@@ -479,6 +555,12 @@ def _plans_from_plan_file(path: Path, source: str) -> list[Any]:
                 raise ValueError(
                     f"untrusted plan: class name not in source scope: {class_name}"
                 )
+        decisions = raw.get("rewrite_decisions")
+        if not isinstance(decisions, list) or not decisions:
+            raise ValueError("untrusted plan: missing rewrite decisions")
+        artifact = item.get("proof_artifact")
+        if not isinstance(artifact, dict) or artifact.get("rewrite_allowed") is not True:
+            raise ValueError("untrusted plan: missing positive proof artifact")
         replacement = cst.parse_expression(item["replacement"])
         verdict = ClosureVerdict(
             method_qualname="",
@@ -604,6 +686,9 @@ def _decision_from_json(raw: dict[str, Any]) -> RewriteDecision:
         reasons=tuple(str(item) for item in raw.get("reasons", [])),
         evidence=tuple(str(item) for item in raw.get("evidence", [])),
         reason_code=str(raw.get("reason_code", "")),
+        proof_artifact=raw.get("proof_artifact")
+        if isinstance(raw.get("proof_artifact"), dict)
+        else None,
     )
 
 
@@ -620,6 +705,18 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
             if isinstance(item, dict)
         ]
     _json_print(evaluate_artifacts(call_sites, decisions).to_json())
+    return 0
+
+
+def cmd_benchmark(args: argparse.Namespace) -> int:
+    projects = load_benchmark_catalog(args.catalog.resolve())
+    summary = summarize_benchmark_catalog(projects)
+    write_benchmark_reports(
+        summary,
+        out_json=args.out_json.resolve() if args.out_json else None,
+        out_md=args.out_md.resolve() if args.out_md else None,
+    )
+    _json_print(summary)
     return 0
 
 
@@ -667,6 +764,7 @@ def build_parser() -> argparse.ArgumentParser:
     rewrite.add_argument("--dry-run", action="store_true")
     rewrite.add_argument("--closed-world", action="store_true")
     rewrite.add_argument("--entry")
+    rewrite.add_argument("--cases", type=Path)
     rewrite.add_argument("--skip-verify", action="store_true")
     rewrite.add_argument("--json", action="store_true")
     rewrite.add_argument("--strict", action="store_true")
@@ -692,6 +790,13 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--plan", type=Path)
     evaluate.add_argument("--json", action="store_true")
     evaluate.set_defaults(func=cmd_evaluate)
+
+    benchmark = subparsers.add_parser("benchmark")
+    benchmark.add_argument("--catalog", type=Path, required=True)
+    benchmark.add_argument("--out-json", type=Path)
+    benchmark.add_argument("--out-md", type=Path)
+    benchmark.add_argument("--json", action="store_true")
+    benchmark.set_defaults(func=cmd_benchmark)
     return parser
 
 
