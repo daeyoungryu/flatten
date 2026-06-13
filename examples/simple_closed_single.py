@@ -1,4 +1,4 @@
-from typing import final
+from flatten.finals import final
 
 
 @final

@@ -7,7 +7,7 @@ from flatten.static import analyze_class_hierarchy
 
 def test_static_hierarchy_extracts_subclasses_methods_final_and_dynamic_risks():
     source = """
-from typing import final
+from flatten.finals import final
 
 @final
 class Root:

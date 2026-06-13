@@ -1,5 +1,3 @@
-from typing import final
-
 import pytest
 
 from flatten.closure import (
@@ -9,6 +7,7 @@ from flatten.closure import (
     _state_read_evidence,
     get_all_subclasses,
 )
+from flatten.finals import final
 from tests.fixtures.diamond import A, B, C, D, E
 
 

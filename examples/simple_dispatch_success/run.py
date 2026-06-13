@@ -1,6 +1,5 @@
-from typing import final
-
 from flatten.closure import ClosureChecker
+from flatten.finals import final
 from flatten.planner import RewritePlanner
 
 

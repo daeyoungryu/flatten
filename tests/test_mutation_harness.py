@@ -7,7 +7,7 @@ from flatten.cli import main
 from flatten.mutations import generate_mutations
 
 BASE_SOURCE = """\
-from typing import final
+from flatten.finals import final
 
 @final
 class Worker:
