@@ -7,7 +7,7 @@ def test_relative_path_trace_plan_rewrite_binds_observations(tmp_path):
     sample = tmp_path / "sample.py"
     sample.write_text(
         """
-from typing import final
+from flatten.finals import final
 
 @final
 class Shape:

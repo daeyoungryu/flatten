@@ -54,7 +54,7 @@ def test_cli_plan_writes_plan_file_and_rewrite_consumes_plan(tmp_path):
     rewritten = tmp_path / "rewritten.py"
     cases = tmp_path / "cases.json"
     source.write_text(
-        "from typing import final\n\n"
+        "from flatten.finals import final\n\n"
         "@final\n"
         "class Worker:\n"
         "    def run(self, value):\n"

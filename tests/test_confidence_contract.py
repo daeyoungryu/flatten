@@ -38,7 +38,7 @@ def test_plan_json_confidence_is_always_number(tmp_path):
     sample = tmp_path / "sample.py"
     sample.write_text(
         """
-from typing import final
+from flatten.finals import final
 
 @final
 class Only:

@@ -10,7 +10,7 @@ def test_cli_plan_emits_proof_artifact_for_each_rewrite(tmp_path: Path, capsys) 
     source = tmp_path / "case.py"
     obs = tmp_path / "obs.json"
     source.write_text(
-        "from typing import final\n\n"
+        "from flatten.finals import final\n\n"
         "@final\n"
         "class Worker:\n"
         "    def run(self, value):\n"

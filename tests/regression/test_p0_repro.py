@@ -32,7 +32,7 @@ def _run(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
 UNSOUND_SRC = textwrap.dedent(
     """
     import random
-    from typing import final
+    from flatten.finals import final
 
     @final
     class Worker:
@@ -167,7 +167,7 @@ def test_t4_recursion_entry_callsite_is_observed(tmp_path: Path) -> None:
     src.write_text(
         textwrap.dedent(
             """
-            from typing import final
+            from flatten.finals import final
 
             @final
             class Worker:

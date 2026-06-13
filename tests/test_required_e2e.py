@@ -34,7 +34,7 @@ def test_discovery_uses_position_based_ids_for_identical_calls():
 
 
 def test_closure_closes_final_local_hierarchy_and_rejects_adversarial_cases():
-    from typing import final
+    from flatten.finals import final
 
     @final
     class Only:
@@ -227,7 +227,7 @@ def test_cli_analyze_plan_rewrite_verify_integration(tmp_path):
     obs = tmp_path / "obs.json"
     cases = tmp_path / "cases.json"
     source.write_text(
-        "from typing import final\n\n"
+        "from flatten.finals import final\n\n"
         "@final\n"
         "class Worker:\n"
         "    def run(self, value):\n"

@@ -78,7 +78,7 @@ $benchmarkJson = Join-Path $caseDir "benchmark_summary.json"
 $benchmarkMd = Join-Path $caseDir "benchmark_summary.md"
 
 $sampleSource = @'
-from typing import final
+from flatten.finals import final
 
 @final
 class Shape:

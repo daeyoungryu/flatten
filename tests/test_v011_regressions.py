@@ -2,7 +2,6 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import final
 
 import libcst as cst
 
@@ -11,6 +10,7 @@ from flatten.cli import _observation_from_trace
 from flatten.closure import ClosureChecker, ClosureConfig
 from flatten.contracts import ClosureStatus, ClosureVerdict, OracleRecord, TransformPlan
 from flatten.discovery import discover_call_sites
+from flatten.finals import final
 from flatten.harness import _jsonable
 from flatten.observations import ObservationRecord, TypeRef
 from flatten.planner import RewritePlanner, _replacement_for_site
@@ -208,7 +208,7 @@ def test_nested_call_trace_binds_inner_method(tmp_path):
     sample = tmp_path / "nested.py"
     sample.write_text(
         """
-from typing import final
+from flatten.finals import final
 
 @final
 class Item:

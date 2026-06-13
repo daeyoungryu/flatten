@@ -68,7 +68,7 @@ def test_cli_plan_writes_json_output(tmp_path, capsys):
     observations = tmp_path / "obs.json"
     out = tmp_path / "plan.json"
     source.write_text(
-        "from typing import final\n\n"
+        "from flatten.finals import final\n\n"
         "@final\n"
         "class Worker:\n"
         "    def run(self):\n"

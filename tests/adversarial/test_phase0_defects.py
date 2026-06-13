@@ -46,7 +46,7 @@ def test_rewrite_without_apply_never_writes_output(tmp_path, capsys):
     path = _write_case(
         tmp_path,
         """
-        from typing import final
+        from flatten.finals import final
         @final
         class Dog:
             def speak(self): return "woof"
@@ -84,7 +84,7 @@ def test_rewrite_with_apply_writes_output(tmp_path):
     path = _write_case(
         tmp_path,
         """
-        from typing import final
+        from flatten.finals import final
         @final
         class Dog:
             def speak(self): return "woof"
@@ -123,7 +123,7 @@ def test_rewrite_apply_requires_verify_unless_explicitly_skipped(tmp_path, capsy
     path = _write_case(
         tmp_path,
         """
-        from typing import final
+        from flatten.finals import final
         @final
         class Dog:
             def speak(self): return "woof"
@@ -226,7 +226,7 @@ def test_final_method_with_instance_attr_read_is_closed(tmp_path, capsys):
     path = _write_case(
         tmp_path,
         """
-        from typing import final
+        from flatten.finals import final
         @final
         class Box:
             def __init__(self, n):
