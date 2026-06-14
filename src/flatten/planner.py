@@ -154,7 +154,8 @@ class RewritePlanner:
             temp_receiver = ""
             receiver_expr = ""
             receiver_override = None
-            # guarded_temp is unsafe inside comprehensions/lambdas: temp hoisting changes evaluation scope
+            # guarded_temp is unsafe inside comprehensions/lambdas:
+            # temp hoisting changes evaluation scope
             if (
                 len(receiver_types) > 1
                 and not site.receiver_expr.isidentifier()
@@ -207,14 +208,18 @@ def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> boo
         def visit_CompFor(self, node: cst.CompFor) -> None:
             try:
                 pos = self.get_metadata(PositionProvider, node)
-                unsafe_ranges.append((pos.start.line, pos.start.column, pos.end.line, pos.end.column))
+                unsafe_ranges.append(
+                    (pos.start.line, pos.start.column, pos.end.line, pos.end.column)
+                )
             except Exception:
                 pass
         
         def visit_Lambda(self, node: cst.Lambda) -> None:
             try:
                 pos = self.get_metadata(PositionProvider, node)
-                unsafe_ranges.append((pos.start.line, pos.start.column, pos.end.line, pos.end.column))
+                unsafe_ranges.append(
+                    (pos.start.line, pos.start.column, pos.end.line, pos.end.column)
+                )
             except Exception:
                 pass
     

@@ -9,7 +9,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from flatten._utils import normalize_filename as _normalize_filename
 from flatten.contracts import ClosureStatus, ClosureVerdict, RewriteDecision
 from flatten.observations import ObservationRecord, TypeRef, observations_from_json
 
@@ -39,7 +38,7 @@ def _load_module(path: Path, module_name: str) -> Any:
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     try:
-        spec.loader.exec_module(module)  # type: ignore[union-attr]
+        spec.loader.exec_module(module)
     except Exception as exc:
         raise RuntimeError(f"Failed to load module from {path}: {exc}") from exc
     return module

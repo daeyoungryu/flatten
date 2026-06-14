@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dis
+from collections import deque
 from dataclasses import dataclass, field
 from types import FunctionType
 
@@ -23,9 +24,9 @@ class ClosureConfig:
 def get_all_subclasses(cls: type) -> list[type]:
     """Return every subclass below cls, including indirect descendants."""
     result: list[type] = []
-    queue = list(cls.__subclasses__())
+    queue: deque[type] = deque(cls.__subclasses__())
     while queue:
-        subclass = queue.pop(0)
+        subclass = queue.popleft()
         result.append(subclass)
         queue.extend(subclass.__subclasses__())
     return result
@@ -136,9 +137,9 @@ def _check_os5(base_cls: type, observed_impls: list[type]) -> str | None:
 
 def _static_descendants(root: str, subclasses: dict[str, set[str]]) -> set[str]:
     descendants: set[str] = set()
-    queue = list(subclasses.get(root, set()))
+    queue: deque[str] = deque(subclasses.get(root, set()))
     while queue:
-        item = queue.pop(0)
+        item = queue.popleft()
         if item in descendants:
             continue
         descendants.add(item)

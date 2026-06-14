@@ -52,7 +52,7 @@ line-length = 100
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 strict = true
 exclude = [
     "^examples/",
@@ -63,6 +63,7 @@ exclude = [
 
 [tool.coverage.run]
 source = ["flatten"]
+branch = true
 
 [tool.mutmut]
 paths_to_mutate = ["src/flatten"]

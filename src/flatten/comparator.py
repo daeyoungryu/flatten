@@ -11,6 +11,8 @@ from flatten.harness import BehaviorObservation, capture_behavior
 
 @dataclass(frozen=True)
 class BehaviorMismatch:
+    """A single field mismatch between original and transformed behavior."""
+
     case_index: int
     field: str
     original: str
@@ -19,11 +21,14 @@ class BehaviorMismatch:
 
 @dataclass(frozen=True)
 class BehaviorComparisonResult:
+    """Result of comparing original and transformed callable behavior across test cases."""
+
     equivalent: bool
     cases: int
     mismatches: list[BehaviorMismatch]
 
     def to_json(self) -> dict[str, Any]:
+        """Serialize to a JSON-compatible dict."""
         return {
             "equivalent": self.equivalent,
             "cases": self.cases,
@@ -32,6 +37,8 @@ class BehaviorComparisonResult:
 
 
 class BehaviorComparator:
+    """Compare the behavior of two callables across a set of test cases."""
+
     def compare(
         self,
         original: Callable[..., Any],

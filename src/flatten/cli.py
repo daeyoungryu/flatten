@@ -5,7 +5,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+# Re-export for backwards compatibility and test imports
+from flatten._cli_io import _load_cases, _load_module  # noqa: F401
 from flatten._cli_orchestration import (
+    _make_plans,  # noqa: F401
+    _observation_from_trace,  # noqa: F401
+    _verdicts_from_observations,  # noqa: F401
     cmd_analyze,
     cmd_benchmark,
     cmd_evaluate,
@@ -15,15 +20,6 @@ from flatten._cli_orchestration import (
     cmd_trace,
     cmd_verify,
 )
-
-# Re-export for backwards compatibility and test imports
-from flatten._cli_io import _load_cases, _load_module  # noqa: F401
-from flatten._cli_orchestration import (  # noqa: F401
-    _make_plans,
-    _observation_from_trace,
-    _verdicts_from_observations,
-)
-from flatten._cli_orchestration import cmd_analyze  # noqa: F401
 
 
 def build_parser() -> argparse.ArgumentParser:

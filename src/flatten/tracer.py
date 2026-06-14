@@ -12,7 +12,6 @@ import sys
 import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
-from pathlib import Path
 from types import FrameType
 from typing import Any, NamedTuple
 
@@ -63,7 +62,13 @@ def _snapshot_value(value: Any, *, receiver: bool = False) -> Any:
             return value
     try:
         return copy.deepcopy(value)
-    except Exception:
+    except Exception as exc:
+        import warnings
+
+        warnings.warn(
+            f"flatten: snapshot failed for {type(value).__name__}: {exc}",
+            stacklevel=2,
+        )
         return repr(value)
 
 

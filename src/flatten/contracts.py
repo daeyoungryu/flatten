@@ -19,6 +19,20 @@ class ClosureStatus(Enum):
 
 @dataclass(frozen=True)
 class CallSite:
+    """A discovered method call site in a Python source file.
+
+    Attributes:
+        call_site_id: Unique identifier string (e.g. ``file.py:10:4-10:18``).
+        filename: Source file path (normalized, forward-slash).
+        line: 1-based start line of the call expression.
+        column: 0-based start column.
+        end_line: 1-based end line of the call expression.
+        end_column: 0-based end column.
+        qualified_name: Dotted method name (e.g. ``MyClass.method``).
+        receiver_expr: Source text of the receiver (e.g. ``obj`` or ``make()``).
+        method_name: Unqualified method name (e.g. ``method``).
+    """
+
     call_site_id: str
     filename: str
     line: int
@@ -32,6 +46,23 @@ class CallSite:
 
 @dataclass(frozen=True)
 class OracleRecord:
+    """A recorded function call captured during runtime tracing.
+
+    Attributes:
+        qualname: Qualified name of the observed function (e.g. ``MyClass.method``).
+        impl_class: Concrete receiver class, or None for non-method calls.
+        args: Positional argument snapshots at call time.
+        kwargs: Keyword argument snapshots at call time.
+        return_val: Return value snapshot (captured if ``capture_values=True``).
+        call_site: Source location string ``file:lineno``.
+        is_dispatch_target: True when the receiver had ``self``/``cls`` as first arg.
+        caller_filename: Resolved path of the caller's source file.
+        caller_lineno: Line number in the caller's source.
+        caller_column: Column offset of the call expression.
+        caller_end_column: End column of the call expression.
+        receiver_var_name: Variable name of the receiver for same-line disambiguation.
+    """
+
     qualname: str
     impl_class: type | None
     args: tuple[Any, ...]
@@ -43,11 +74,27 @@ class OracleRecord:
     caller_lineno: int = 0
     caller_column: int = -1
     caller_end_column: int = -1
-    receiver_var_name: str = ""  # For same-line call disambiguation
+    receiver_var_name: str = ""
 
 
 @dataclass
 class ClosureVerdict:
+    """Verdict on whether a method's dispatch is closed (safe to flatten).
+
+    Attributes:
+        method_qualname: Qualified method name (e.g. ``Base.method``).
+        is_closed: True if the dispatch is provably closed.
+        known_impls: Concrete implementation classes observed or inferred.
+        open_signals: Human-readable reasons the closure is open/unsafe.
+        signal: One of ``CLOSED``, ``OPEN``, ``UNSAFE``, ``UNKNOWN``.
+        rationale: Human-readable explanation of the verdict.
+        status: Strongly-typed ``ClosureStatus`` (computed in ``__post_init__``).
+        confidence: Float [0, 1] confidence score.
+        reasons: Reasons supporting the verdict (from evidence or rationale).
+        blockers: Reasons preventing rewrite authorization.
+        evidence: Positive evidence strings that support a safe rewrite.
+    """
+
     method_qualname: str
     is_closed: bool = False
     known_impls: list[type] = field(default_factory=list)
@@ -82,6 +129,32 @@ class ClosureVerdict:
 
 @dataclass(frozen=True)
 class RewriteDecision:
+    """Authorization decision for rewriting a specific method dispatch.
+
+    Attributes:
+        method_qualname: Qualified method name this decision applies to.
+        allowed: True if the rewrite is authorized.
+        status: Closure status that drove this decision.
+        confidence: Float [0, 1] confidence in the decision.
+        reasons: Positive reasons supporting authorization.
+        blockers: Reasons preventing authorization.
+        evidence: Evidence strings from the underlying ClosureVerdict.
+        reason_code: Machine-readable code (e.g. ``ALLOWED_CLOSED``).
+        message: Human-readable explanation of the decision.
+        callsite_id: Target call site identifier when decision is site-specific.
+        original_expression: Source text of the original call expression.
+        planned_expression: Source text of the replacement expression.
+        observed_receiver_types: Concrete receiver type names observed at runtime.
+        dispatch_order: Ordered receiver type names for the guard chain.
+        closure_verdict: String copy of the closure status value.
+        required_imports: Import statements needed by the replacement expression.
+        safety_notes: Additional notes about rewrite safety.
+        proof_status: Status string from formal proof classification.
+        proof_reasons: Reasons from the proof classification.
+        proof_evidence: Evidence from the proof classification.
+        proof_artifact: Optional structured artifact from proof analysis.
+    """
+
     method_qualname: str
     allowed: bool
     status: ClosureStatus

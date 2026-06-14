@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class ClassInfo:
+    """Static metadata about a single class extracted from source AST."""
+
     name: str
     qualname: str
     module: str
@@ -20,6 +22,8 @@ class ClassInfo:
 
 @dataclass(frozen=True)
 class ClassHierarchy:
+    """Complete static class hierarchy extracted from a source file."""
+
     classes: dict[str, ClassInfo]
     subclasses: dict[str, set[str]]
     method_overrides: dict[str, set[str]]

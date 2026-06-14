@@ -43,7 +43,6 @@ from flatten.harness import assert_equivalent
 from flatten.observations import (
     FunctionRef,
     ObservationRecord,
-    TypeRef,
     observation_function_name,
     observation_type_name,
     observations_to_json,
