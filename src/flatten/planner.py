@@ -153,7 +153,7 @@ class RewritePlanner:
             temp_receiver = ""
             receiver_expr = ""
             receiver_override = None
-            # P0-3b-안전: comprehension/lambda 컨텍스트에서는 guarded_temp 금지
+            # guarded_temp is unsafe inside comprehensions/lambdas: temp hoisting changes evaluation scope
             if (
                 len(receiver_types) > 1
                 and not site.receiver_expr.isidentifier()
@@ -186,7 +186,6 @@ class RewritePlanner:
                 )
             )
 
-        return plans
         return plans
 
 

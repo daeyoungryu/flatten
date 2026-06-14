@@ -61,6 +61,7 @@ def _observed_methods(method_name: str, observed_impls: list[type]) -> list[Func
 
 
 def _check_os1(methods: list[FunctionType]) -> str | None:
+    """Signal OS1: method closes over free variables captured from an enclosing scope."""
     for method in methods:
         if method.__code__.co_freevars:
             return f"OS1: free variables in {method.__qualname__}"
@@ -68,6 +69,7 @@ def _check_os1(methods: list[FunctionType]) -> str | None:
 
 
 def _check_os2(methods: list[FunctionType]) -> str | None:
+    """Signal OS2: method has active closure cells bound to enclosing local variables."""
     for method in methods:
         if method.__closure__:
             return f"OS2: closure cells in {method.__qualname__}"
@@ -75,6 +77,7 @@ def _check_os2(methods: list[FunctionType]) -> str | None:
 
 
 def _check_os3(methods: list[FunctionType]) -> str | None:
+    """Signal OS3: method writes to a nonlocal variable (STORE_DEREF bytecode)."""
     for method in methods:
         if any(instruction.opname == "STORE_DEREF" for instruction in dis.get_instructions(method)):
             return (
@@ -85,6 +88,7 @@ def _check_os3(methods: list[FunctionType]) -> str | None:
 
 
 def _check_os4(methods: list[FunctionType]) -> str | None:
+    """Signal OS4: method writes instance attributes on self (STORE_ATTR on self)."""
     for method in methods:
         previous = None
         for instruction in dis.get_instructions(method):

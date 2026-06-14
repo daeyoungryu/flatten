@@ -12,6 +12,7 @@ from typing import Any
 
 import libcst as cst
 
+from flatten._utils import normalize_filename as _normalize_filename
 from flatten.benchmarks import (
     load_benchmark_catalog,
     summarize_benchmark_catalog,
@@ -752,12 +753,6 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     )
     _json_print(summary)
     return 0
-
-
-def _normalize_filename(filename: str) -> str:
-    if not filename or filename.startswith("<"):
-        return filename
-    return str(Path(filename).resolve()).replace("\\", "/")
 
 
 def build_parser() -> argparse.ArgumentParser:
