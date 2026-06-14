@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import replace
@@ -309,8 +310,10 @@ def _observation_method_qualname(record: ObservationRecord) -> str:
     return text.rsplit(".", 2)[-2] + "." + text.rsplit(".", 1)[-1]
 
 
-def _call_at_site(source: str, site: CallSite) -> cst.Call:
-    from flatten.discovery import discover_call_sites
+@functools.lru_cache(maxsize=32)
+def _parsed_calls_and_sites(source: str, filename: str) -> tuple[list[cst.Call], list[CallSite]]:
+    """Parse source once and return (attribute-calls, discovered call sites) cached by content."""
+    from flatten.discovery import discover_call_sites as _discover
 
     module = cst.parse_module(source)
     found: list[cst.Call] = []
@@ -323,7 +326,12 @@ def _call_at_site(source: str, site: CallSite) -> cst.Call:
                 found.append(node)
 
     module.visit(Finder())
-    sites = discover_call_sites(source, filename=site.filename)
+    sites = _discover(source, filename=filename)
+    return found, sites
+
+
+def _call_at_site(source: str, site: CallSite) -> cst.Call:
+    found, sites = _parsed_calls_and_sites(source, site.filename)
     for candidate, candidate_site in zip(found, sites, strict=True):
         same_id = candidate_site.call_site_id == site.call_site_id
         same_position = (
