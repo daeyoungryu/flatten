@@ -52,4 +52,8 @@ cosmic-ray.toml
 _parse.py
 _report.py
 
-# C
+# Claude local settings
+.claude/settings.local.json
+
+# Local agent worktrees
+.worktrees/
