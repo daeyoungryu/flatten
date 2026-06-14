@@ -10,7 +10,9 @@ from flatten.tracer import Tracer
 
 
 def test_version():
-    assert flatten.__version__ == "0.1.1"
+    from importlib.metadata import version
+
+    assert flatten.__version__ == version("flatten-polymorph")
 
 
 def test_closure_verdict_status():
