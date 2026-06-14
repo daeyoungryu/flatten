@@ -22,6 +22,12 @@ ENV/
 .coverage
 htmlcov/
 .tox/
+coverage.xml
+coverage*.xml
+
+# Type checking / linting cache
+.mypy_cache/
+.ruff_cache/
 
 # IDE
 .vscode/
@@ -46,8 +52,4 @@ cosmic-ray.toml
 _parse.py
 _report.py
 
-# Claude local settings
-.claude/settings.local.json
-
-# Local agent worktrees
-.worktrees/
+# C
