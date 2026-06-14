@@ -1,0 +1,1663 @@
+{
+  "baseline_regression": {
+    "failures": [],
+    "status": "passed",
+    "warnings": []
+  },
+  "cases": [
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "ABC virtual subclassing risk"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "ABC.register creates virtual subclass relationship outside MRO scan",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "abc_virtual_subclass"
+      ],
+      "id": "abc_virtual_subclass_001",
+      "notes": [
+        "ABC virtual subclassing risk"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "async methods unsupported"
+      ],
+      "category": "unsupported_runtime",
+      "closure_status": "unknown",
+      "decision_message": "Async or generator methods are unsupported.",
+      "decision_reason_code": "UNSAFE_ASYNC_OR_GENERATOR",
+      "description": "Async method flattening is not in the supported policy surface",
+      "evidence": [
+        "unsupported case classified"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "async_method"
+      ],
+      "id": "async_method_001",
+      "notes": [
+        "async methods unsupported"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "__setattr__ override"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Custom __setattr__ can change receiver state relevant to dispatch",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "side_effectful_lookup",
+        "__setattr__"
+      ],
+      "id": "custom_setattr_001",
+      "notes": [
+        "__setattr__ override"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "open dependency injection container"
+      ],
+      "category": "reject_open_world",
+      "closure_status": "open",
+      "decision_message": "Closure is incomplete; unobserved implementations may exist.",
+      "decision_reason_code": "OPEN_CLOSURE_INCOMPLETE",
+      "description": "DI container can substitute implementations outside static graph",
+      "evidence": [
+        "checked package boundary"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "dependency_injection_container",
+        "open_world"
+      ],
+      "id": "dependency_injection_container_001",
+      "notes": [
+        "open dependency injection container"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "descriptor dispatch"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Descriptor or binding semantics cannot be flattened safely.",
+      "decision_reason_code": "UNSAFE_DESCRIPTOR_OR_BINDING",
+      "description": "Descriptor binding changes call target and receiver",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "descriptor"
+      ],
+      "id": "descriptor_001",
+      "notes": [
+        "descriptor dispatch"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "deterministic_method_override",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Observed override set is closed under configured package scan",
+      "evidence": [
+        "checked static package subclasses"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "method_override",
+        "closed_world"
+      ],
+      "id": "deterministic_override_001",
+      "notes": [
+        "checked static package subclasses"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "dynamic subclass creation can add implementation after observation"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Runtime type() subclass can appear after observation",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "dynamic_subclass_creation"
+      ],
+      "id": "dynamic_subclass_creation_001",
+      "notes": [
+        "dynamic subclass creation can add implementation after observation"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "pass",
+      "category": "harness_equivalence",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Direct call rewrite preserves return behavior",
+      "equivalence_probe": "equivalent_direct",
+      "evidence": [
+        "typing.final class or method"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "pass",
+      "expected_safety": "safe",
+      "features": [
+        "harness_equivalence",
+        "direct_dispatch"
+      ],
+      "id": "equivalent_after_rewrite_001",
+      "notes": [
+        "typing.final class or method"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "pass",
+      "category": "harness_equivalence",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Same exception type and message is equivalent for observed input",
+      "equivalence_probe": "equivalent_exception",
+      "evidence": [
+        "typing.final class or method"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "pass",
+      "expected_safety": "safe",
+      "features": [
+        "harness_equivalence",
+        "exception_behavior"
+      ],
+      "id": "equivalent_exception_001",
+      "notes": [
+        "typing.final class or method"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "pass",
+      "category": "harness_equivalence",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Guarded dispatch preserves behavior for observed input",
+      "equivalence_probe": "equivalent_guarded",
+      "evidence": [
+        "explicit sealed root allowlist"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "pass",
+      "expected_safety": "safe",
+      "features": [
+        "harness_equivalence",
+        "guarded_dispatch"
+      ],
+      "id": "equivalent_guarded_dispatch_001",
+      "notes": [
+        "explicit sealed root allowlist"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "fail",
+      "blockers": [
+        "exception behavior mismatch"
+      ],
+      "category": "harness_equivalence",
+      "closure_status": "unsafe",
+      "decision_message": "Exception behavior may diverge after rewrite.",
+      "decision_reason_code": "UNSAFE_EXCEPTION_BEHAVIOR",
+      "description": "Exception type/message diverges after rewrite",
+      "equivalence_probe": "exception_mismatch",
+      "evidence": [
+        "harness found mismatch"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "fail",
+      "expected_safety": "unsafe",
+      "features": [
+        "harness_equivalence",
+        "exception_behavior"
+      ],
+      "id": "exception_behavior_mismatch_001",
+      "notes": [
+        "exception behavior mismatch"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "external module boundary"
+      ],
+      "category": "reject_open_world",
+      "closure_status": "open",
+      "decision_message": "Closure is incomplete; unobserved implementations may exist.",
+      "decision_reason_code": "OPEN_CLOSURE_INCOMPLETE",
+      "description": "External package boundary allows future subclass",
+      "evidence": [
+        "checked package boundary"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "external_subclass_possibility",
+        "open_world"
+      ],
+      "id": "external_subclass_possibility_001",
+      "notes": [
+        "external module boundary"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "final_class",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Final receiver class with one observed implementation",
+      "evidence": [
+        "typing.final class or method"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "final_class",
+        "direct_dispatch"
+      ],
+      "id": "final_class_001",
+      "notes": [
+        "typing.final class or method"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "final_method",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Final method on observed receiver",
+      "evidence": [
+        "typing.final class or method"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "final_method",
+        "method_override"
+      ],
+      "id": "final_method_001",
+      "notes": [
+        "typing.final class or method"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "generator methods unsupported"
+      ],
+      "category": "unsupported_runtime",
+      "closure_status": "unknown",
+      "decision_message": "Async or generator methods are unsupported.",
+      "decision_reason_code": "UNSAFE_ASYNC_OR_GENERATOR",
+      "description": "Generator method semantics are not flattened in this version",
+      "evidence": [
+        "unsupported case classified"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "generator_method"
+      ],
+      "id": "generator_method_001",
+      "notes": [
+        "generator methods unsupported"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "__getattr__ override"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Dynamic getattr call cannot be safely flattened.",
+      "decision_reason_code": "UNSAFE_DYNAMIC_GETATTR",
+      "description": "__getattr__ can synthesize method at lookup time",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "__getattr__",
+        "side_effectful_lookup"
+      ],
+      "id": "getattr_001",
+      "notes": [
+        "__getattr__ override"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "__getattribute__ override"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "__getattribute__ override can change method resolution.",
+      "decision_reason_code": "UNSAFE_DYNAMIC_GETATTRIBUTE",
+      "description": "__getattribute__ can intercept every method lookup",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "__getattribute__",
+        "side_effectful_lookup"
+      ],
+      "id": "getattribute_001",
+      "notes": [
+        "__getattribute__ override"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "import hook risk"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Import hook can synthesize modules and subclasses",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "dynamic_imports",
+        "runtime_code_generation"
+      ],
+      "id": "import_hook_001",
+      "notes": [
+        "import hook risk"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "__init_subclass__ hook"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "__init_subclass__ can register or mutate subclasses",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "dynamic_subclass_creation",
+        "metaclass_side_effect"
+      ],
+      "id": "init_subclass_hook_001",
+      "notes": [
+        "__init_subclass__ hook"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "dynamic import can reveal unobserved subclasses"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Closure is incomplete; unobserved implementations may exist.",
+      "decision_reason_code": "OPEN_CLOSURE_INCOMPLETE",
+      "description": "Late import can register an unobserved subclass",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "late_import_subclass",
+        "dynamic_imports"
+      ],
+      "id": "late_import_subclass_001",
+      "notes": [
+        "dynamic import can reveal unobserved subclasses"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "custom metaclass"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Custom metaclass can alter dispatch semantics.",
+      "decision_reason_code": "UNSAFE_CUSTOM_METACLASS",
+      "description": "Custom metaclass can mutate attributes during lookup or subclassing",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "metaclass_side_effect"
+      ],
+      "id": "metaclass_side_effect_001",
+      "notes": [
+        "custom metaclass"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "possible monkey patch on method"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Runtime method replacement was detected.",
+      "decision_reason_code": "UNSAFE_MONKEY_PATCH",
+      "description": "Class method assignment changes dispatch target",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "method_reassignment",
+        "monkey_patching"
+      ],
+      "id": "method_reassignment_001",
+      "notes": [
+        "possible monkey patch on method"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "module reload can replace dispatch targets"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Module reload can replace class objects and methods",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "module_reload"
+      ],
+      "id": "module_reload_001",
+      "notes": [
+        "module reload can replace dispatch targets"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "monkey patch detected"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Runtime method replacement was detected.",
+      "decision_reason_code": "UNSAFE_MONKEY_PATCH",
+      "description": "Method is replaced after observation",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "monkey_patching"
+      ],
+      "id": "monkey_patching_001",
+      "notes": [
+        "monkey patch detected"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "MRO-sensitive dispatch"
+      ],
+      "category": "reject_mro",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "MRO-sensitive dispatch cannot be flattened to a single order safely",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "mro_sensitive_dispatch",
+        "mro"
+      ],
+      "id": "mro_sensitive_dispatch_001",
+      "notes": [
+        "MRO-sensitive dispatch"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "multiple inheritance"
+      ],
+      "category": "reject_mro",
+      "closure_status": "unsafe",
+      "decision_message": "Multiple or diamond inheritance makes dispatch order unsafe to rewrite.",
+      "decision_reason_code": "UNSAFE_MULTIPLE_INHERITANCE",
+      "description": "Multiple inheritance may alter method resolution order",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "multiple_inheritance_ambiguity",
+        "mro"
+      ],
+      "id": "multiple_inheritance_001",
+      "notes": [
+        "multiple inheritance"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "native behavior outside Python analysis"
+      ],
+      "category": "reject_open_world",
+      "closure_status": "open",
+      "decision_message": "Closure is incomplete; unobserved implementations may exist.",
+      "decision_reason_code": "OPEN_CLOSURE_INCOMPLETE",
+      "description": "Native extension behavior is opaque to Python-level proof",
+      "evidence": [
+        "checked package boundary"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "c_extension",
+        "native_behavior"
+      ],
+      "id": "native_extension_dispatch_001",
+      "notes": [
+        "native behavior outside Python analysis"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "fail",
+      "blockers": [
+        "__getattribute__ override"
+      ],
+      "category": "harness_equivalence",
+      "closure_status": "unsafe",
+      "decision_message": "__getattribute__ override can change method resolution.",
+      "decision_reason_code": "UNSAFE_DYNAMIC_GETATTRIBUTE",
+      "description": "__getattribute__ lookup changes returned callable",
+      "equivalence_probe": "attribute_lookup_mismatch",
+      "evidence": [
+        "harness found mismatch"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "fail",
+      "expected_safety": "unsafe",
+      "features": [
+        "harness_equivalence",
+        "__getattribute__"
+      ],
+      "id": "non_equivalent_attribute_lookup_001",
+      "notes": [
+        "__getattribute__ override"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "fail",
+      "blockers": [
+        "descriptor dispatch"
+      ],
+      "category": "harness_equivalence",
+      "closure_status": "unsafe",
+      "decision_message": "Descriptor or binding semantics cannot be flattened safely.",
+      "decision_reason_code": "UNSAFE_DESCRIPTOR_OR_BINDING",
+      "description": "Descriptor binding differs from class direct call",
+      "equivalence_probe": "descriptor_mismatch",
+      "evidence": [
+        "harness found mismatch"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "fail",
+      "expected_safety": "unsafe",
+      "features": [
+        "harness_equivalence",
+        "descriptor"
+      ],
+      "id": "non_equivalent_descriptor_001",
+      "notes": [
+        "descriptor dispatch"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "fail",
+      "blockers": [
+        "side effect mismatch"
+      ],
+      "category": "harness_equivalence",
+      "closure_status": "unsafe",
+      "decision_message": "Argument or receiver side effects may be reordered by rewrite.",
+      "decision_reason_code": "UNSAFE_ARGUMENT_SIDE_EFFECTS",
+      "description": "Rewrite candidate skips method side effect",
+      "equivalence_probe": "side_effect_mismatch",
+      "evidence": [
+        "harness found mismatch"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "fail",
+      "expected_safety": "unsafe",
+      "features": [
+        "harness_equivalence",
+        "side_effectful_lookup"
+      ],
+      "id": "non_equivalent_side_effect_001",
+      "notes": [
+        "side effect mismatch"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "package_local_class_set",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Closed-world package-local class set with no external boundary",
+      "evidence": [
+        "closed-world package scan"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "package_local",
+        "closed_world"
+      ],
+      "id": "package_local_class_set_001",
+      "notes": [
+        "closed-world package scan"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "plugin registry can register new implementations"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Plugin registry can add dispatch implementations at runtime",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "plugin_registry",
+        "open_world"
+      ],
+      "id": "plugin_registry_001",
+      "notes": [
+        "plugin registry can register new implementations"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "no positive closure evidence"
+      ],
+      "category": "unsupported_policy",
+      "closure_status": "probably_closed",
+      "decision_message": "Closure is incomplete; unobserved implementations may exist.",
+      "decision_reason_code": "OPEN_CLOSURE_INCOMPLETE",
+      "description": "Complete local observation is evidence but not proof",
+      "evidence": [
+        "checked runtime subclasses"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "probably_closed",
+        "observation_only"
+      ],
+      "id": "probably_closed_without_positive_evidence_001",
+      "notes": [
+        "no positive closure evidence"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "property dispatch"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Descriptor or binding semantics cannot be flattened safely.",
+      "decision_reason_code": "UNSAFE_DESCRIPTOR_OR_BINDING",
+      "description": "Property access may execute arbitrary code before call",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "property",
+        "side_effectful_lookup"
+      ],
+      "id": "property_001",
+      "notes": [
+        "property dispatch"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "Protocol structural typing risk"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Protocol conformance is structural and not a closed nominal set",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "protocol_structural_typing"
+      ],
+      "id": "protocol_structural_typing_001",
+      "notes": [
+        "Protocol structural typing risk"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "fail",
+      "blockers": [
+        "return value mismatch"
+      ],
+      "category": "harness_equivalence",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Return value differs after rewrite",
+      "equivalence_probe": "return_value_mismatch",
+      "evidence": [
+        "harness found mismatch"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "fail",
+      "expected_safety": "unsafe",
+      "features": [
+        "harness_equivalence",
+        "return_value"
+      ],
+      "id": "return_value_mismatch_001",
+      "notes": [
+        "return value mismatch"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "dynamic code execution"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "exec/eval can generate new classes or methods",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "runtime_code_generation"
+      ],
+      "id": "runtime_code_generation_001",
+      "notes": [
+        "dynamic code execution"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "safe_rewrite",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Closed-world leaf class has no subclasses in static graph",
+      "evidence": [
+        "closed-world package scan"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "closed_world",
+        "leaf_class"
+      ],
+      "id": "safe_closed_world_leaf_001",
+      "notes": [
+        "closed-world package scan"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "safe_rewrite",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Single implementation direct call candidate",
+      "evidence": [
+        "checked runtime subclasses"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "single_impl",
+        "direct_dispatch"
+      ],
+      "id": "safe_direct_call_001",
+      "notes": [
+        "checked runtime subclasses"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "safe_rewrite",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Final leaf receiver blocks future subclass override in policy model",
+      "evidence": [
+        "typing.final class or method"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "final_class",
+        "leaf_class"
+      ],
+      "id": "safe_final_leaf_001",
+      "notes": [
+        "typing.final class or method"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "safe_rewrite",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Closed two-implementation guarded dispatch candidate",
+      "evidence": [
+        "explicit sealed root allowlist"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "guarded_dispatch",
+        "finite_subclasses"
+      ],
+      "id": "safe_guarded_dispatch_001",
+      "notes": [
+        "explicit sealed root allowlist"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "safe_rewrite",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "No receiver attribute writes in observed method body",
+      "evidence": [
+        "checked instance attribute writes"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "no_attribute_write",
+        "direct_dispatch"
+      ],
+      "id": "safe_no_attribute_write_001",
+      "notes": [
+        "checked instance attribute writes"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "safe_rewrite",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "No free variable or closure cell hazards",
+      "evidence": [
+        "checked free variables",
+        "checked closure cells"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "no_freevars",
+        "direct_dispatch"
+      ],
+      "id": "safe_no_freevars_001",
+      "notes": [
+        "checked free variables",
+        "checked closure cells"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "safe_rewrite",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "No nonlocal writes in observed method body",
+      "evidence": [
+        "checked nonlocal writes"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "no_nonlocal_write",
+        "method_override"
+      ],
+      "id": "safe_no_nonlocal_write_001",
+      "notes": [
+        "checked nonlocal writes"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "safe_rewrite",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "State read is accepted only with positive closure evidence and harness note",
+      "evidence": [
+        "STATE_READ: instance attribute read; requires harness verification"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "state_read",
+        "harness_required"
+      ],
+      "id": "safe_state_read_001",
+      "notes": [
+        "STATE_READ: instance attribute read; requires harness verification"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "safe_rewrite",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Static package graph confirms every subclass is observed",
+      "evidence": [
+        "checked static package subclasses"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "static_package_scan",
+        "finite_subclasses"
+      ],
+      "id": "safe_static_package_scan_001",
+      "notes": [
+        "checked static package subclasses"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "sealed_like_local_hierarchy",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Explicit sealed root allowlist covers local subclass set",
+      "evidence": [
+        "explicit sealed root allowlist"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "sealed_root",
+        "finite_subclasses"
+      ],
+      "id": "sealed_local_hierarchy_001",
+      "notes": [
+        "explicit sealed root allowlist"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "setattr method mutation"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "setattr mutates a class or instance method dynamically",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "method_reassignment",
+        "monkey_patching"
+      ],
+      "id": "setattr_mutation_001",
+      "notes": [
+        "setattr method mutation"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "side effectful attribute access"
+      ],
+      "category": "reject_dynamic_python",
+      "closure_status": "unsafe",
+      "decision_message": "Argument or receiver side effects may be reordered by rewrite.",
+      "decision_reason_code": "UNSAFE_ARGUMENT_SIDE_EFFECTS",
+      "description": "Lookup has side effects that a direct call may skip",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "side_effectful_lookup"
+      ],
+      "id": "side_effectful_lookup_001",
+      "notes": [
+        "side effectful attribute access"
+      ]
+    },
+    {
+      "actual_decision": "rewrite",
+      "actual_runtime_equivalence": "not_applicable",
+      "category": "closed_hierarchy",
+      "closure_status": "closed",
+      "decision_message": "Rewrite is allowed by positive closure evidence.",
+      "decision_reason_code": "ALLOWED_CLOSED",
+      "description": "Basic closed class hierarchy with deterministic dispatch",
+      "evidence": [
+        "closed-world package scan"
+      ],
+      "expected_decision": "rewrite",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "safe",
+      "features": [
+        "inheritance",
+        "method_override",
+        "finite_subclasses"
+      ],
+      "id": "simple_closed_hierarchy_001",
+      "notes": [
+        "closed-world package scan"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "fail",
+      "blockers": [
+        "state mutation mismatch"
+      ],
+      "category": "harness_equivalence",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "State mutation mismatch is rejected",
+      "equivalence_probe": "state_mismatch",
+      "evidence": [
+        "harness found mismatch"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "fail",
+      "expected_safety": "unsafe",
+      "features": [
+        "harness_equivalence",
+        "state_mutation"
+      ],
+      "id": "state_mismatch_001",
+      "notes": [
+        "state mutation mismatch"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "fail",
+      "blockers": [
+        "stdout mismatch"
+      ],
+      "category": "harness_equivalence",
+      "closure_status": "unsafe",
+      "decision_message": "Rewrite is unsupported by the current safety policy.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Stdout difference is behavior mismatch",
+      "equivalence_probe": "stdout_mismatch",
+      "evidence": [
+        "harness found mismatch"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "fail",
+      "expected_safety": "unsafe",
+      "features": [
+        "harness_equivalence",
+        "stdout"
+      ],
+      "id": "stdout_mismatch_001",
+      "notes": [
+        "stdout mismatch"
+      ]
+    },
+    {
+      "actual_decision": "reject",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "super dependency"
+      ],
+      "category": "reject_mro",
+      "closure_status": "unsafe",
+      "decision_message": "super() dependent method resolution is unsupported.",
+      "decision_reason_code": "UNSAFE_SUPER_DEPENDENCY",
+      "description": "super() depends on runtime MRO context",
+      "evidence": [
+        "checked dynamic dispatch hazards"
+      ],
+      "expected_decision": "reject",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unsafe",
+      "features": [
+        "super_dependency",
+        "mro"
+      ],
+      "id": "super_dependency_001",
+      "notes": [
+        "super dependency"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "data model hook unsupported"
+      ],
+      "category": "unsupported_policy",
+      "closure_status": "unknown",
+      "decision_message": "Closure status is unknown or unsupported.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Data model hook interaction is intentionally OPEN",
+      "evidence": [
+        "unsupported case classified"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "data_model_hook"
+      ],
+      "id": "unknown_datamodel_hook_001",
+      "notes": [
+        "data model hook unsupported"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "decorator wrapper unsupported"
+      ],
+      "category": "unsupported_policy",
+      "closure_status": "unknown",
+      "decision_message": "Closure status is unknown or unsupported.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Decorated method wrapper identity cannot be proven",
+      "evidence": [
+        "unsupported case classified"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "decorator_wrapper"
+      ],
+      "id": "unknown_decorator_rewrite_001",
+      "notes": [
+        "decorator wrapper unsupported"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "reflection unsupported"
+      ],
+      "category": "unsupported_policy",
+      "closure_status": "unknown",
+      "decision_message": "Closure status is unknown or unsupported.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Reflection-heavy dispatch is left open until modeled",
+      "evidence": [
+        "unsupported case classified"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "reflection"
+      ],
+      "id": "unknown_reflection_001",
+      "notes": [
+        "reflection unsupported"
+      ]
+    }
+  ],
+  "false_negatives": [],
+  "false_positives": [],
+  "metrics": {
+    "behavioral_equivalence_failures": 0,
+    "category_breakdown": {
+      "closed_hierarchy": 1,
+      "deterministic_method_override": 1,
+      "final_class": 1,
+      "final_method": 1,
+      "harness_equivalence": 10,
+      "package_local_class_set": 1,
+      "reject_dynamic_python": 19,
+      "reject_mro": 3,
+      "reject_open_world": 3,
+      "safe_rewrite": 9,
+      "sealed_like_local_hierarchy": 1,
+      "unsupported_policy": 4,
+      "unsupported_runtime": 2
+    },
+    "coverage_by_feature": {
+      "__getattr__": 1,
+      "__getattribute__": 2,
+      "__setattr__": 1,
+      "abc_virtual_subclass": 1,
+      "async_method": 1,
+      "c_extension": 1,
+      "closed_world": 3,
+      "data_model_hook": 1,
+      "decorator_wrapper": 1,
+      "dependency_injection_container": 1,
+      "descriptor": 2,
+      "direct_dispatch": 5,
+      "dynamic_imports": 2,
+      "dynamic_subclass_creation": 2,
+      "exception_behavior": 2,
+      "external_subclass_possibility": 1,
+      "final_class": 2,
+      "final_method": 1,
+      "finite_subclasses": 4,
+      "generator_method": 1,
+      "guarded_dispatch": 2,
+      "harness_equivalence": 10,
+      "harness_required": 1,
+      "inheritance": 1,
+      "late_import_subclass": 1,
+      "leaf_class": 2,
+      "metaclass_side_effect": 2,
+      "method_override": 4,
+      "method_reassignment": 2,
+      "module_reload": 1,
+      "monkey_patching": 3,
+      "mro": 3,
+      "mro_sensitive_dispatch": 1,
+      "multiple_inheritance_ambiguity": 1,
+      "native_behavior": 1,
+      "no_attribute_write": 1,
+      "no_freevars": 1,
+      "no_nonlocal_write": 1,
+      "observation_only": 1,
+      "open_world": 3,
+      "package_local": 1,
+      "plugin_registry": 1,
+      "probably_closed": 1,
+      "property": 1,
+      "protocol_structural_typing": 1,
+      "reflection": 1,
+      "return_value": 1,
+      "runtime_code_generation": 2,
+      "sealed_root": 1,
+      "side_effectful_lookup": 6,
+      "single_impl": 1,
+      "state_mutation": 1,
+      "state_read": 1,
+      "static_package_scan": 1,
+      "stdout": 1,
+      "super_dependency": 1
+    },
+    "dynamic_risk_case_count": 22,
+    "equivalence_case_count": 10,
+    "false_negative": 0,
+    "false_positive": 0,
+    "fnr": 0.0,
+    "fpr": 0.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "rewrite_accepted": 18,
+    "rewrite_rejected": 38,
+    "safety_failure_count": 0,
+    "supported_cases": 50,
+    "total_cases": 56,
+    "true_negative": 38,
+    "true_positive": 18,
+    "unsafe_case_count": 29,
+    "unsafe_rewrite_count": 0,
+    "unsupported_cases": 6
+  },
+  "safety_notes": [],
+  "schema_invalid_cases": [],
+  "schema_invalid_count": 0,
+  "schema_version": 1,
+  "unsupported_cases": [
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "async methods unsupported"
+      ],
+      "category": "unsupported_runtime",
+      "closure_status": "unknown",
+      "decision_message": "Async or generator methods are unsupported.",
+      "decision_reason_code": "UNSAFE_ASYNC_OR_GENERATOR",
+      "description": "Async method flattening is not in the supported policy surface",
+      "evidence": [
+        "unsupported case classified"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "async_method"
+      ],
+      "id": "async_method_001",
+      "notes": [
+        "async methods unsupported"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "generator methods unsupported"
+      ],
+      "category": "unsupported_runtime",
+      "closure_status": "unknown",
+      "decision_message": "Async or generator methods are unsupported.",
+      "decision_reason_code": "UNSAFE_ASYNC_OR_GENERATOR",
+      "description": "Generator method semantics are not flattened in this version",
+      "evidence": [
+        "unsupported case classified"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "generator_method"
+      ],
+      "id": "generator_method_001",
+      "notes": [
+        "generator methods unsupported"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "no positive closure evidence"
+      ],
+      "category": "unsupported_policy",
+      "closure_status": "probably_closed",
+      "decision_message": "Closure is incomplete; unobserved implementations may exist.",
+      "decision_reason_code": "OPEN_CLOSURE_INCOMPLETE",
+      "description": "Complete local observation is evidence but not proof",
+      "evidence": [
+        "checked runtime subclasses"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "probably_closed",
+        "observation_only"
+      ],
+      "id": "probably_closed_without_positive_evidence_001",
+      "notes": [
+        "no positive closure evidence"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "data model hook unsupported"
+      ],
+      "category": "unsupported_policy",
+      "closure_status": "unknown",
+      "decision_message": "Closure status is unknown or unsupported.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Data model hook interaction is intentionally OPEN",
+      "evidence": [
+        "unsupported case classified"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "data_model_hook"
+      ],
+      "id": "unknown_datamodel_hook_001",
+      "notes": [
+        "data model hook unsupported"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "decorator wrapper unsupported"
+      ],
+      "category": "unsupported_policy",
+      "closure_status": "unknown",
+      "decision_message": "Closure status is unknown or unsupported.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Decorated method wrapper identity cannot be proven",
+      "evidence": [
+        "unsupported case classified"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "decorator_wrapper"
+      ],
+      "id": "unknown_decorator_rewrite_001",
+      "notes": [
+        "decorator wrapper unsupported"
+      ]
+    },
+    {
+      "actual_decision": "unsupported",
+      "actual_runtime_equivalence": "not_applicable",
+      "blockers": [
+        "reflection unsupported"
+      ],
+      "category": "unsupported_policy",
+      "closure_status": "unknown",
+      "decision_message": "Closure status is unknown or unsupported.",
+      "decision_reason_code": "UNKNOWN_UNSUPPORTED",
+      "description": "Reflection-heavy dispatch is left open until modeled",
+      "evidence": [
+        "unsupported case classified"
+      ],
+      "expected_decision": "unsupported",
+      "expected_runtime_equivalence": "not_applicable",
+      "expected_safety": "unknown",
+      "features": [
+        "reflection"
+      ],
+      "id": "unknown_reflection_001",
+      "notes": [
+        "reflection unsupported"
+      ]
+    }
+  ]
+}

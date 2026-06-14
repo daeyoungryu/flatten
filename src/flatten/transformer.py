@@ -61,8 +61,6 @@ class PositionRewriteTransformer(cst.CSTTransformer):
         plan = self.plans_by_range.get(key)
         if plan is None:
             return updated
-        if plan.strategy == "guarded_temp":
-            return updated
         return plan.replacement
 
 

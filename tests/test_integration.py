@@ -71,6 +71,7 @@ def test_a1_tracer_paths_create_same_oracle_record_shape():
         "caller_lineno",
         "caller_column",
         "caller_end_column",
+        "receiver_var_name",
     }
     assert record.impl_class is Worker
     assert record.return_val == 3

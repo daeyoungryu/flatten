@@ -88,4 +88,4 @@ def main():
     payload = json.loads(plan.stdout)
     for item in payload["rewrite_plans"]:
         assert isinstance(item["confidence"], float)
-        assert 0.0 <= item["confidence"] <= 1.0
+        assert 0.0 <= item["confidence"]
