@@ -125,8 +125,8 @@ class RewritePlanner:
             site_verdicts = [
                 verdict_by_method[key] for key in method_keys if key in verdict_by_method
             ]
-            if not site_verdicts or len(site_verdicts) != len(method_keys):
-                continue  # some observed override has no verdict
+            if not site_verdicts:
+                continue
 
             site_decisions = [decisions.get(v.method_qualname) for v in site_verdicts]
             if any(
