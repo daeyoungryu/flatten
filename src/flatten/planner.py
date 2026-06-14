@@ -116,17 +116,33 @@ class RewritePlanner:
             site_observations = observations_by_site.get(site.call_site_id, [])
             if not site_observations:
                 continue
-            method_key = _observation_method_qualname(site_observations[0])
-            verdict = verdict_by_method.get(method_key)
-            if verdict is None:
-                continue
-            decision = decisions.get(verdict.method_qualname)
-            if (
-                decision is None
-                or not decision.allowed
-                or decision.proof_status != "safe"
+
+            # P0-2: Polymorphic sites yield one verdict per concrete override.
+            # Require ALL to authorize and merge known_impls.
+            method_keys = {
+                _observation_method_qualname(record) for record in site_observations
+            }
+            site_verdicts = [
+                verdict_by_method[key] for key in method_keys if key in verdict_by_method
+            ]
+            if not site_verdicts or len(site_verdicts) != len(method_keys):
+                continue  # some observed override has no verdict
+
+            site_decisions = [decisions.get(v.method_qualname) for v in site_verdicts]
+            if any(
+                d is None or not d.allowed or d.proof_status != "safe"
+                for d in site_decisions
             ):
                 continue
+
+            # Merge known_impls from all verdicts
+            merged_impls: list[type] = []
+            for v in site_verdicts:
+                for impl in v.known_impls:
+                    if impl not in merged_impls:
+                        merged_impls.append(impl)
+            verdict = replace(site_verdicts[0], known_impls=merged_impls)
+
             receiver_types = _ordered_receiver_types(
                 {observation_type_name(record) for record in site_observations},
                 verdict,
@@ -137,7 +153,12 @@ class RewritePlanner:
             temp_receiver = ""
             receiver_expr = ""
             receiver_override = None
-            if len(receiver_types) > 1 and not site.receiver_expr.isidentifier():
+            # P0-3b-안전: comprehension/lambda 컨텍스트에서는 guarded_temp 금지
+            if (
+                len(receiver_types) > 1
+                and not site.receiver_expr.isidentifier()
+                and not _is_call_site_in_comprehension_or_lambda(source, site)
+            ):
                 strategy = "guarded_temp"
                 temp_receiver = f"_flatten_receiver_{len(plans) + 1}"
                 receiver_expr = site.receiver_expr
@@ -164,7 +185,55 @@ class RewritePlanner:
                     receiver_expr=receiver_expr,
                 )
             )
+
         return plans
+        return plans
+
+
+def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> bool:
+    """Check if call site is inside comprehension or lambda (unsafe for temp hoist)."""
+    try:
+        from libcst.metadata import MetadataWrapper, PositionProvider
+        module = cst.parse_module(source)
+        wrapper = MetadataWrapper(module)
+    except Exception:
+        return False
+    
+    unsafe_ranges: list[tuple[int, int, int, int]] = []
+    
+    class ComprehensionVisitor(cst.CSTVisitor):
+        METADATA_DEPENDENCIES = (PositionProvider,)
+        
+        def visit_CompFor(self, node: cst.CompFor) -> None:
+            try:
+                pos = self.get_metadata(PositionProvider, node)
+                unsafe_ranges.append((pos.start.line, pos.start.column, pos.end.line, pos.end.column))
+            except Exception:
+                pass
+        
+        def visit_Lambda(self, node: cst.Lambda) -> None:
+            try:
+                pos = self.get_metadata(PositionProvider, node)
+                unsafe_ranges.append((pos.start.line, pos.start.column, pos.end.line, pos.end.column))
+            except Exception:
+                pass
+    
+    try:
+        visitor = ComprehensionVisitor()
+        wrapper.visit(visitor)
+    except Exception:
+        return False
+    
+    site_line, site_col = site.line, site.column
+    for start_line, start_col, end_line, end_col in unsafe_ranges:
+        if start_line <= site_line <= end_line:
+            if start_line < site_line < end_line:
+                return True
+            if site_line == start_line and site_col >= start_col:
+                return True
+            if site_line == end_line and site_col <= end_col:
+                return True
+    return False
 
 
 def _with_proof(decision: RewriteDecision) -> RewriteDecision:

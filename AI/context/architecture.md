@@ -162,27 +162,4 @@ All shared records live in `src/flatten/contracts.py` to avoid circular imports:
 - `tests/test_mutation_harness.py` covers generated mutation kinds and the
   `setattr` false-positive guard.
 - `tests/test_benchmarks.py` covers the 35-project OSS catalog, benchmark KPI
-  report generation, benchmark CLI output, and research-evaluation doc gate.
-- `tests/regression/test_p0_repro.py` covers the Codex-Claude P0 soundness
-  pass: method-specific verdicts, explicit rewrite cases, forged plan refusal,
-  and the recursion call-site observation guard.
-- Current full local verification passes with 214 tests.
-
-## v0.1.1 Architecture Update
-
-- `ClosureChecker` can return `PROBABLY_CLOSED`; `RewriteDecision` treats it as
-  a refusal with `OPEN_CLOSURE_INCOMPLETE`.
-- Guarded rewrite expressions preserve behavior for unexpected receiver types
-  by ending in the original dynamic dispatch expression.
-- CLI tracing defaults to metadata-only capture; deep value capture is opt-in
-  with `--capture-values`.
-- `scripts/release_gate.ps1` verifies the built wheel in a clean venv, including
-  installed-package compileall, module help, strict mypy, and a minimal e2e.
-- Planner generation now keeps closure verdicts method-local: observations are
-  grouped per method qualname and a call site can only use a SAFE verdict that
-  matches that site's observed method.
-- `rewrite --apply --entry` requires explicit `--cases`; implicit empty-case
-  validation is not an accepted gate.
-- `.github/workflows/ci.yml` includes `benchmark-sanity`; release-gate depends
-  on it and `scripts/release_gate.ps1` runs benchmark sanity after installed
-  wheel e2e verification.
+  report generation, benchmar

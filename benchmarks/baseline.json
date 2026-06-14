@@ -1,0 +1,9 @@
+{
+  "total_cases": 56,
+  "false_positive": 0,
+  "false_negative": 0,
+  "unsupported_cases": 6,
+  "precision": 1.0,
+  "recall": 1.0,
+  "unsafe_rewrite_count": 0
+}

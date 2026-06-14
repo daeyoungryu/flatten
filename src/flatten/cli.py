@@ -570,19 +570,53 @@ def _plans_from_plan_file(path: Path, source: str) -> list[Any]:
             status=ClosureStatus.CLOSED,
             evidence=evidence,
         )
+        target_range = item.get("target_range")
+        strategy = item.get("strategy", "direct")
+        temp_receiver = str(item.get("temp_receiver", ""))
+        receiver_expr = str(item.get("receiver_expr", ""))
+        call_site_id = item.get("call_site_id", "")
+        target_call_site = _call_site_for_range(source, call_site_id, target_range)
+        
+        if strategy == "guarded_temp" and (
+            target_call_site is None or not temp_receiver or not receiver_expr
+        ):
+            raise ValueError(
+                "untrusted plan: guarded_temp plan missing receiver hoist metadata"
+            )
+        
         plans.append(
             TransformPlan(
                 target_node=None,
                 replacement=replacement,
                 verdict=verdict,
                 rationale=item.get("reason", ""),
-                target_range=item.get("target_range"),
-                strategy=item.get("strategy", "direct"),
+                target_range=target_range,
+                target_call_site=target_call_site,
+                strategy=strategy,
                 confidence=float(item.get("confidence", 0.0)),
                 risk_flags=list(item.get("risk_flags", [])),
+                temp_receiver=temp_receiver,
+                receiver_expr=receiver_expr,
             )
         )
     return plans
+
+
+
+
+def _call_site_for_range(
+    source: str, call_site_id: str, target_range: str | None
+) -> CallSite | None:
+    """Reconstruct CallSite from plan metadata."""
+    filename = call_site_id.split(":", 1)[0] if ":" in call_site_id else "<memory>"
+    for site in discover_call_sites(source, filename=filename):
+        if site.call_site_id == call_site_id:
+            return site
+        if target_range and (
+            f"{site.line}:{site.column}-{site.end_line}:{site.end_column}" == target_range
+        ):
+            return site
+    return None
 
 
 def _top_level_class_names(source: str) -> set[str]:

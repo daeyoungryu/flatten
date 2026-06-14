@@ -43,6 +43,7 @@ class OracleRecord:
     caller_lineno: int = 0
     caller_column: int = -1
     caller_end_column: int = -1
+    receiver_var_name: str = ""  # For same-line call disambiguation
 
 
 @dataclass(frozen=True)

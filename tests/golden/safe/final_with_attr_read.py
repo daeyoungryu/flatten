@@ -12,4 +12,4 @@ class Box:
 
 def main():
     box = Box(3)
-    return box.read()
+    return box
