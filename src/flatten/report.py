@@ -28,8 +28,6 @@ def _verdict_to_dict(verdict: ClosureVerdict) -> dict[str, Any]:
 
 @dataclass(frozen=True)
 class AnalysisReport:
-    """Top-level analysis report containing closure verdicts and a confidence score."""
-
     verdicts: list[ClosureVerdict]
     confidence: float
     metadata: dict[str, Any] | None = None

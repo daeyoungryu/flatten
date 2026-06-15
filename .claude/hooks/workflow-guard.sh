@@ -46,4 +46,10 @@ case "$CMD" in
     if [ ! -f "AI/tasks/current_tasks.md" ]; then
       >&2 echo "BLOCKED [workflow-guard]: AI/tasks/current_tasks.md 없이 커밋 불가."
       >&2 echo "  → 스펙/태스크 없는 커밋을 방지합니다."
-      >&2 echo "  → ai-dev-scaffold 스킬로 AI/ 폴더를 먼저 생성하�
+      >&2 echo "  → ai-dev-scaffold 스킬로 AI/ 폴더를 먼저 생성하세요."
+      exit 2
+    fi
+    ;;
+esac
+
+exit 0

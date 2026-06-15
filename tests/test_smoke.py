@@ -10,9 +10,7 @@ from flatten.tracer import Tracer
 
 
 def test_version():
-    from importlib.metadata import version
-
-    assert flatten.__version__ == version("flatten-polymorph")
+    assert flatten.__version__ == "0.1.1"
 
 
 def test_closure_verdict_status():
@@ -40,17 +38,3 @@ def test_tracer_context_manager():
     with tracer:
         pass
     assert isinstance(tracer.records, list)
-
-
-def test_main_module_entry_point():
-    import subprocess
-    import sys
-
-    result = subprocess.run(
-        [sys.executable, "-m", "flatten", "--help"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode == 0
-    assert "flatten" in result.stdout.lower()

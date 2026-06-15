@@ -17,4 +17,7 @@
             "command": "bash .claude/hooks/workflow-guard.sh"
           }
         ]
- 
+      }
+    ]
+  }
+}

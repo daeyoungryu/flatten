@@ -1,8 +1,5 @@
 import json
-import sys
 import textwrap
-
-import pytest
 
 from flatten.cli import main
 
@@ -194,10 +191,6 @@ def test_trace_binds_callsites_by_runtime_line_not_method_order(tmp_path):
     assert records[1]["call_site_id"].endswith(":11:11-11:20")
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 11),
-    reason="bytecode column positions require Python 3.11+",
-)
 def test_trace_binds_same_line_multiple_calls_by_runtime_column(tmp_path):
     path = _write_case(
         tmp_path,

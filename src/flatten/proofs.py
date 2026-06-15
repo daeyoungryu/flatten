@@ -17,14 +17,11 @@ class ProofStatus(Enum):
 
 @dataclass(frozen=True)
 class ProofEvidence:
-    """Formal proof classification result for a rewrite decision."""
-
     status: ProofStatus
     reasons: tuple[str, ...] = ()
     evidence: tuple[str, ...] = ()
 
     def to_json(self) -> dict[str, Any]:
-        """Serialize to a JSON-compatible dict."""
         return {
             "status": self.status.value,
             "reasons": list(self.reasons),
@@ -33,7 +30,6 @@ class ProofEvidence:
 
 
 def classify_rewrite_decision(decision: RewriteDecision) -> ProofEvidence:
-    """Classify a RewriteDecision as SAFE, UNSAFE, or UNKNOWN based on closure evidence."""
     if decision.allowed and decision.status is ClosureStatus.CLOSED and decision.evidence:
         return ProofEvidence(
             status=ProofStatus.SAFE,

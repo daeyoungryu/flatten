@@ -185,4 +185,55 @@ by grouping observations per method qualname and applying only the matching
 SAFE verdict to each call site. `rewrite --apply --entry` now requires explicit
 `--cases`, and external plan files must include planner-emitted
 `rewrite_decisions` plus a positive per-plan `proof_artifact` in addition to a
-matching source hash and source-scope class reference
+matching source hash and source-scope class references.
+
+`docs/SOUNDNESS.md` now documents the full Observation -> Closure Analysis ->
+Rewrite Decision -> CST Transform -> Validation flow, including inputs,
+outputs, failure/refusal conditions, soundness assumptions, and SAFE/UNSAFE/
+UNKNOWN classification for dynamic Python features.
+
+The per-plan proof artifact contract is now explicit in CLI plan output. Each
+emitted rewrite plan includes machine-readable `proof_artifact` JSON with
+callsite, observed targets, closure status, passed/failed closure rules, risk
+level, and rewrite authorization.
+
+The mutation harness now lives in `flatten.mutations` and generates source-level
+variants for new subclass, dispatch target, monkey patch, runtime registration,
+and `setattr` changes. Source-level `setattr` mutation is treated as an UNSAFE
+monkey-patch risk during CLI planning.
+
+T8 added an OSS benchmark catalog and release evidence layer. The catalog lives
+at `benchmarks/projects.csv` with 35 public Python projects, and `flatten
+benchmark` emits JSON/Markdown summaries. CI includes a benchmark-sanity job,
+the release gate runs benchmark sanity, and `docs/research_evaluation.md`
+documents threats to validity, known unsound cases, false positive/negative
+analysis, methodology, reproducibility, artifact evaluation, and 0.2.0 release
+criteria. This is catalog/gate infrastructure; the 30-project empirical run is
+still a release blocker.
+
+## Executable Safety Evidence Suite
+
+This pass adds an executable local benchmark suite under `benchmarks/cases/`
+with 56 JSON cases spanning safe rewrites, reject/unsafe dynamic Python,
+open-world risks, harness equivalence, and intentionally unsupported cases.
+`python -m benchmarks.runner` derives actual decisions from
+`RewriteDecision.from_verdict`, runs harness probes through
+`assert_modules_equivalent_subprocess`, and emits `benchmark-results.json` plus
+`benchmark-report.md`. `tools/check_evidence.py` fails CI when schema invalid
+count, false positives, or unsafe rewrites are nonzero, or when baseline
+regression rules are violated.
+
+`docs/engineering/PROJECT_AUDIT.md` records the architecture audit requested
+for the evidence pass. `docs/SOUNDNESS.md` is the current evaluator-facing
+soundness report and explicitly distinguishes observation, evidence, and proof.
+CI now includes an `evidence` job that uploads benchmark JSON, benchmark
+Markdown, and `coverage.xml`.
+
+## v0.1.1 Defect Fix
+
+v0.1.1 fixes release blockers and soundness regressions identified after the
+Phase 3 pass. The built-wheel release gate now lives in
+`scripts/release_gate.ps1` and CI job `release-gate`. Local hierarchy
+completeness now yields `PROBABLY_CLOSED` unless positive CLOSED evidence
+exists, and guarded dispatch rewrites fall back to the original dynamic method
+call for unmatched receiver types.

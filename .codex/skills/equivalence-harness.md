@@ -45,4 +45,4 @@ def assert_equivalent(original_func, flattened_func, test_inputs: list):
 - A3: 열린 계층 — stub 표시, 관측분만 펼침
 - A4: OS1~OS5 각각 단위 테스트 통과
 - A5: 변환 전후 동등성 해시 일치
-- A6: 
+- A6: 포매팅 보존 (공백/주석 변경 없음)
