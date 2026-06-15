@@ -43,10 +43,10 @@ class OracleRecord:
     caller_lineno: int = 0
     caller_column: int = -1
     caller_end_column: int = -1
-    receiver_var_name: str = ""
+    receiver_var_name: str = ""  # For same-line call disambiguation
 
 
-@dataclass
+@dataclass(frozen=True)
 class ClosureVerdict:
     method_qualname: str
     is_closed: bool = False
@@ -72,12 +72,12 @@ class ClosureVerdict:
                     status = ClosureStatus.OPEN
                 if status is ClosureStatus.CLOSED:
                     status = ClosureStatus.OPEN
-        self.status = status
-        self.is_closed = status is ClosureStatus.CLOSED
+        object.__setattr__(self, "status", status)
+        object.__setattr__(self, "is_closed", status is ClosureStatus.CLOSED)
         if not self.reasons and self.rationale:
-            self.reasons = (self.rationale,)
+            object.__setattr__(self, "reasons", (self.rationale,))
         if not self.blockers and self.open_signals:
-            self.blockers = tuple(self.open_signals)
+            object.__setattr__(self, "blockers", tuple(self.open_signals))
 
 
 @dataclass(frozen=True)

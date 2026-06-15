@@ -257,29 +257,37 @@ def test_allocate_tool_id_falls_back_to_second_candidate(monkeypatch):
     assert used == [(2, "flatten-tracer"), (3, "flatten-tracer")]
 
 
-@pytest.mark.parametrize(
-    ("version_info", "expected_kwargs"),
-    [
-        ((3, 10), {}),
-        ((3, 12), {"show_caches": True}),
-        ((3, 13), {"show_caches": True}),
-    ],
-)
-def test_caller_position_version_branches(monkeypatch, version_info, expected_kwargs):
-    code = (lambda: None).__code__
-    calls = []
-    instruction = types.SimpleNamespace(
-        offset=4,
-        positions=types.SimpleNamespace(col_offset=7, end_col_offset=15),
+def test_caller_position_uses_ast_column_lookup(tmp_path, monkeypatch):
+    """_caller_position resolves columns via AST, not dis — works on all Python versions."""
+    # Source with a single call on line 1: 'foo(1, 2)' starts at col 9.
+    src = "result = foo(1, 2)\n"
+    src_file = tmp_path / "sample.py"
+    src_file.write_text(src)
+
+    # Reset the module-level AST cache so the temp file is freshly parsed.
+    monkeypatch.setattr(tracer_module, "_ast_cache", {})
+
+    frame = types.SimpleNamespace(
+        f_lineno=1,
+        f_lasti=0,
+        f_code=types.SimpleNamespace(co_filename=str(src_file)),
     )
+    line, col, end_col = _caller_position(frame)
+    assert line == 1
+    assert col == 9    # 'foo(1, 2)' starts at column 9
+    assert end_col == 18  # 'foo(1, 2)' ends at column 18
 
-    def fake_get_instructions(received_code, **kwargs):
-        calls.append((received_code, kwargs))
-        return [instruction]
 
-    monkeypatch.setattr(tracer_module.sys, "version_info", version_info)
-    monkeypatch.setattr(tracer_module.dis, "get_instructions", fake_get_instructions)
-    frame = types.SimpleNamespace(f_lineno=9, f_lasti=4, f_code=code)
-
-    assert _caller_position(frame) == (9, 7, 15)
-    assert calls == [(code, expected_kwargs)]
+def test_caller_position_picks_leftmost_call_on_line(tmp_path, monkeypatch):
+    src = "x = a() + b()\n"
+    src_file = tmp_path / "multi.py"
+    src_file.write_text(src)
+    monkeypatch.setattr(tracer_module, "_ast_cache", {})
+    frame = types.SimpleNamespace(
+        f_lineno=1,
+        f_lasti=0,
+        f_code=types.SimpleNamespace(co_filename=str(src_file)),
+    )
+    line, col, end_col = _caller_position(frame)
+    assert line == 1
+    assert col == 4

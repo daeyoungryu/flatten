@@ -6,8 +6,9 @@ snapshots are opt-in because deepcopy can be expensive and user-defined.
 
 from __future__ import annotations
 
+import ast
 import copy
-import dis
+import linecache
 import sys
 import weakref
 from collections.abc import Iterator
@@ -23,8 +24,6 @@ _TOOL_ID_CANDIDATES = tuple(range(2, 6))
 
 
 class PendingCall(NamedTuple):
-    """Stores call metadata between PY_START and PY_RETURN events."""
-
     qualname: str
     impl_class: type | None
     args: tuple[Any, ...]
@@ -64,7 +63,6 @@ def _snapshot_value(value: Any, *, receiver: bool = False) -> Any:
         return copy.deepcopy(value)
     except Exception as exc:
         import warnings
-
         warnings.warn(
             f"flatten: snapshot failed for {type(value).__name__}: {exc}",
             stacklevel=2,
@@ -89,20 +87,12 @@ class Tracer:
     def start(self) -> None:
         if self._active:
             return
-
         if _USE_MONITORING:
             self._tool_id = _allocate_tool_id()
             monitoring = _monitoring()
-            monitoring.register_callback(
-                self._tool_id, monitoring.events.PY_START, self._on_py_start
-            )
-            monitoring.register_callback(
-                self._tool_id, monitoring.events.PY_RETURN, self._on_py_return
-            )
-            monitoring.set_events(
-                self._tool_id,
-                monitoring.events.PY_START | monitoring.events.PY_RETURN,
-            )
+            monitoring.register_callback(self._tool_id, monitoring.events.PY_START, self._on_py_start)
+            monitoring.register_callback(self._tool_id, monitoring.events.PY_RETURN, self._on_py_return)
+            monitoring.set_events(self._tool_id, monitoring.events.PY_START | monitoring.events.PY_RETURN)
         else:
             sys.settrace(self._settrace_handler)
         self._active = True
@@ -110,7 +100,6 @@ class Tracer:
     def stop(self) -> None:
         if not self._active:
             return
-
         if _USE_MONITORING and self._tool_id is not None:
             monitoring = _monitoring()
             monitoring.set_events(self._tool_id, monitoring.events.NO_EVENTS)
@@ -120,7 +109,6 @@ class Tracer:
             self._tool_id = None
         else:
             sys.settrace(None)
-
         self._pending.clear()
         self._monitoring_frames.clear()
         self._active = False
@@ -171,40 +159,23 @@ class Tracer:
         code = frame.f_code
         if not self._should_record(code):
             return
-
         local_vars = frame.f_locals
         positional_names = code.co_varnames[: code.co_argcount]
-        keyword_only_names = code.co_varnames[
-            code.co_argcount : code.co_argcount + code.co_kwonlyargcount
-        ]
+        keyword_only_names = code.co_varnames[code.co_argcount : code.co_argcount + code.co_kwonlyargcount]
         receiver_name = positional_names[0] if positional_names else None
-        receiver = (
-            local_vars.get(receiver_name)
-            if receiver_name in {"self", "cls"}
-            else None
-        )
+        receiver = local_vars.get(receiver_name) if receiver_name in {"self", "cls"} else None
         is_dispatch_target = receiver is not None
         impl_class = type(receiver) if receiver is not None else None
         caller = getattr(frame, "f_back", None)
-        caller_filename = _normalize_filename(
-            str(caller.f_code.co_filename) if caller is not None else ""
-        )
+        caller_filename = _normalize_filename(str(caller.f_code.co_filename) if caller is not None else "")
         caller_lineno, caller_column, caller_end_column = _caller_position(caller)
-
         if self._capture_values:
             args = tuple(
-                _snapshot_value(
-                    local_vars[name],
-                    receiver=(name == receiver_name and is_dispatch_target),
-                )
+                _snapshot_value(local_vars[name], receiver=(name == receiver_name and is_dispatch_target))
                 for name in positional_names
                 if name in local_vars
             )
-            kwargs = {
-                name: _snapshot_value(local_vars[name])
-                for name in keyword_only_names
-                if name in local_vars
-            }
+            kwargs = {name: _snapshot_value(local_vars[name]) for name in keyword_only_names if name in local_vars}
         else:
             args = ()
             kwargs = {}
@@ -225,7 +196,6 @@ class Tracer:
         pending = self._pending.pop(id(frame), None)
         if pending is None:
             return
-
         self.records.append(
             OracleRecord(
                 qualname=pending.qualname,
@@ -258,34 +228,59 @@ class Tracer:
 
 
 def unwrap(func: Any) -> Any:
-    """Return the original function at the end of a __wrapped__ chain."""
     while hasattr(func, "__wrapped__"):
         func = func.__wrapped__
     return func
 
 
+# Module-level AST cache: filename -> parsed ast.Module
+_ast_cache: dict[str, ast.Module] = {}
+
+
+def _parse_file(filename: str) -> ast.Module | None:
+    cached = _ast_cache.get(filename)
+    if cached is not None:
+        return cached
+    lines = linecache.getlines(filename)
+    if not lines:
+        return None
+    try:
+        tree = ast.parse("".join(lines), filename=filename)
+        _ast_cache[filename] = tree
+        return tree
+    except SyntaxError:
+        return None
+
+
 def _caller_position(frame: Any | None) -> tuple[int, int, int]:
+    """Return (lineno, col_offset, end_col_offset) for the call site in *frame*.
+
+    Uses AST source analysis -- works uniformly on Python 3.8+.
+    Returns -1 for column values when source cannot be located or parsed.
+    """
     if frame is None:
         return 0, -1, -1
     lineno = int(getattr(frame, "f_lineno", 0))
-    lasti = getattr(frame, "f_lasti", None)
-    if lasti is None:
+    if getattr(frame, "f_lasti", None) is None:
         return lineno, -1, -1
-    get_instructions: Any = dis.get_instructions
-    if sys.version_info >= (3, 11):
-        instructions = list(get_instructions(frame.f_code, show_caches=True))
-    else:
-        instructions = list(get_instructions(frame.f_code))
-    candidate = next((item for item in instructions if item.offset == lasti), None)
-    if candidate is None:
-        previous = [item for item in instructions if item.offset <= lasti]
-        candidate = previous[-1] if previous else None
-    positions = getattr(candidate, "positions", None)
-    if candidate is None or positions is None:
+    src_filename: str = getattr(getattr(frame, "f_code", None), "co_filename", "") or ""
+    if not src_filename:
         return lineno, -1, -1
-    column = -1 if positions.col_offset is None else int(positions.col_offset)
-    end_column = -1 if positions.end_col_offset is None else int(positions.end_col_offset)
-    return lineno, column, end_column
+    tree = _parse_file(src_filename)
+    if tree is None:
+        return lineno, -1, -1
+    calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and getattr(node, "lineno", None) == lineno
+    ]
+    if not calls:
+        return lineno, -1, -1
+    calls.sort(key=lambda n: getattr(n, "col_offset", 0))
+    call = calls[0]
+    col = getattr(call, "col_offset", None)
+    end_col = getattr(call, "end_col_offset", None)
+    return lineno, (-1 if col is None else col), (-1 if end_col is None else end_col)
 
 
 @contextmanager

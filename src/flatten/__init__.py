@@ -1,11 +1,6 @@
 """flatten — polymorphic dispatch flattener via runtime tracing + LibCST."""
 
-try:
-    from importlib.metadata import version as _metadata_version
-
-    __version__ = _metadata_version("flatten-polymorph")
-except Exception:
-    __version__ = "unknown"
+__version__ = "0.1.2"
 
 from flatten.closure import ClosureChecker
 from flatten.collapse import CollapseTransformer

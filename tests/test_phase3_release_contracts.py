@@ -1,9 +1,6 @@
 from pathlib import Path
 
-try:
-    import tomllib
-except ImportError:  # Python 3.10
-    import tomli as tomllib  # type: ignore[no-redef]
+import tomllib
 import yaml
 
 

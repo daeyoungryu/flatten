@@ -3,10 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-try:
-    import tomllib
-except ImportError:  # Python 3.10
-    import tomli as tomllib  # type: ignore[no-redef]
+import tomllib
 
 
 def test_distribution_name_is_normalized_and_unique():

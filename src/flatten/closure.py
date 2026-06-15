@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-import dis
+import ast
+import inspect
+import textwrap
 from collections import deque
 from dataclasses import dataclass, field
 from types import FunctionType
@@ -77,53 +79,75 @@ def _check_os2(methods: list[FunctionType]) -> str | None:
     return None
 
 
+def _get_method_ast(method: FunctionType) -> ast.Module | None:
+    """Return the parsed AST for *method*'s source, or None when unavailable."""
+    try:
+        source = textwrap.dedent(inspect.getsource(method))
+        return ast.parse(source)
+    except (OSError, TypeError, SyntaxError, IndentationError):
+        return None
+
+
 def _check_os3(methods: list[FunctionType]) -> str | None:
-    """Signal OS3: method writes to a nonlocal variable (STORE_DEREF bytecode)."""
+    """Signal OS3: method writes to a nonlocal (free) variable."""
     for method in methods:
-        if any(instruction.opname == "STORE_DEREF" for instruction in dis.get_instructions(method)):
-            return (
-                f"OS3: nonlocal write in {method.__qualname__}; "
-                "captured state can change dispatch behavior"
-            )
+        freevars = set(method.__code__.co_freevars)
+        if not freevars:
+            continue
+        tree = _get_method_ast(method)
+        if tree is None:
+            continue
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Store)
+                and node.id in freevars
+            ):
+                return (
+                    f"OS3: nonlocal write in {method.__qualname__}; "
+                    "captured state can change dispatch behavior"
+                )
     return None
 
 
 def _check_os4(methods: list[FunctionType]) -> str | None:
-    """Signal OS4: method writes instance attributes on self (STORE_ATTR on self)."""
+    """Signal OS4: method writes instance attributes on self."""
     for method in methods:
-        previous = None
-        for instruction in dis.get_instructions(method):
+        tree = _get_method_ast(method)
+        if tree is None:
+            continue
+        for node in ast.walk(tree):
             if (
-                previous is not None
-                and previous.opname == "LOAD_FAST"
-                and previous.argval == "self"
-                and instruction.opname in {"STORE_ATTR", "DELETE_ATTR"}
+                isinstance(node, ast.Attribute)
+                and isinstance(node.ctx, (ast.Store, ast.Del))
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "self"
             ):
                 return (
                     f"OS4: instance attribute write in {method.__qualname__}; "
                     "receiver state can change later dispatch behavior"
                 )
-            previous = instruction
     return None
 
 
 def _state_read_evidence(methods: list[FunctionType]) -> list[str]:
     evidence: list[str] = []
     for method in methods:
-        previous = None
-        for instruction in dis.get_instructions(method):
+        tree = _get_method_ast(method)
+        if tree is None:
+            continue
+        for node in ast.walk(tree):
             if (
-                previous is not None
-                and previous.opname == "LOAD_FAST"
-                and previous.argval == "self"
-                and instruction.opname == "LOAD_ATTR"
+                isinstance(node, ast.Attribute)
+                and isinstance(node.ctx, ast.Load)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "self"
             ):
                 evidence.append(
                     f"STATE_READ: instance attribute read in {method.__qualname__}; "
                     "requires harness verification"
                 )
                 break
-            previous = instruction
     return evidence
 
 
@@ -167,12 +191,7 @@ def _qualname(cls: type) -> str:
 
 
 def _is_final(obj: object) -> bool:
-    """Check if object is marked as final via typing.final decorator (Python 3.8+).
-    
-    Works via:
-    - Python 3.8+: typing_extensions.final sets __final__=True
-    - Python 3.11+: typing.final sets __final__=True
-    """
+    """Check if object is marked as final via typing.final decorator (Python 3.8+)."""
     return bool(getattr(obj, "__final__", False))
 
 
@@ -226,26 +245,38 @@ def _risk_signals(base_cls: type, observed_impls: list[type], method_name: str) 
     return signals
 
 
+_DANGEROUS_NAMES: frozenset[str] = frozenset({"eval", "exec", "__import__"})
+
+
 def _method_dynamic_hazards(method: FunctionType) -> list[str]:
     signals: list[str] = []
-    for instruction in dis.get_instructions(method):
-        if instruction.opname == "IMPORT_NAME":
+    tree = _get_method_ast(method)
+    if tree is None:
+        return signals
+
+    # Detect import statements inside the function body (maps to IMPORT_NAME bytecode).
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
             signals.append(
                 f"UNSAFE: dynamic import in {method.__qualname__}; "
                 "import-time side effects can change dispatch behavior"
             )
             break
-    for instruction in dis.get_instructions(method):
-        if instruction.opname in {"LOAD_GLOBAL", "LOAD_NAME"} and instruction.argval in {
-            "eval",
-            "exec",
-            "__import__",
-        }:
+
+    # Detect eval / exec / __import__ referenced from the global namespace.
+    local_names = set(method.__code__.co_varnames)
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Name)
+            and node.id in _DANGEROUS_NAMES
+            and node.id not in local_names
+        ):
             signals.append(
                 f"UNSAFE: dynamic code execution in {method.__qualname__}; "
                 "runtime code can change dispatch behavior"
             )
             break
+
     return signals
 
 
@@ -267,7 +298,7 @@ def _declared_owner(
     observed_impls: list[type],
     method_name: str,
 ) -> type:
-    """Return the common MRO class that declares ``method_name``."""
+    """Return the common MRO class that declares method_name."""
     if len(observed_impls) == 1:
         owner_name = method_qualname.rsplit(".", 1)[0].split(".")[-1]
         for cls in observed_impls[0].__mro__:
