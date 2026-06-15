@@ -2,8 +2,6 @@
 
 import types
 
-import pytest
-
 from flatten import tracer as tracer_module
 from flatten.tracer import Tracer, _allocate_tool_id, _caller_position, trace_calls, unwrap
 
@@ -48,7 +46,7 @@ def test_trace_calls_records_impl_class_args_kwargs_and_return_value():
             return value * scale
 
     worker = Worker()
-    with trace_calls(worker.run) as tracer:
+    with trace_calls(worker.run, capture_values=True) as tracer:
         assert worker.run(7, scale=3) == 21
 
     record = next(r for r in tracer.records if r.qualname.endswith("Worker.run"))
@@ -72,7 +70,7 @@ def test_trace_calls_unwraps_wrapped_function():
         run = wrapper
 
     instance = Wrapped()
-    with trace_calls(instance.run) as tracer:
+    with trace_calls(instance.run, capture_values=True) as tracer:
         assert instance.run() == "original"
 
     record = next(r for r in tracer.records if r.qualname.endswith("original"))
@@ -115,10 +113,12 @@ def test_tracer_uses_one_tracing_backend(monkeypatch):
     mock_monitoring = types.SimpleNamespace(
         register_callback=lambda *args: None,
         set_events=lambda *args: None,
+        set_local_events=lambda *args: None,
         free_tool_id=lambda *args: None,
         events=types.SimpleNamespace(
             PY_START=1,
-            PY_RETURN=2,
+            PY_RETURN=4,
+            PY_UNWIND=0x1000,
             NO_EVENTS=0,
         ),
     )
@@ -141,7 +141,7 @@ def test_recursive_trace_records_each_frame_without_code_key_collision():
             return 1
         return value * factorial(value - 1)
 
-    with trace_calls(factorial) as tracer:
+    with trace_calls(factorial, capture_values=True) as tracer:
         assert factorial(3) == 6
 
     records = [record for record in tracer.records if record.qualname.endswith("factorial")]
@@ -156,7 +156,7 @@ def test_arguments_are_snapshotted_at_call_time():
 
     values = ["original"]
     worker = Worker()
-    with trace_calls(worker.run) as tracer:
+    with trace_calls(worker.run, capture_values=True) as tracer:
         worker.run(values)
 
     record = next(r for r in tracer.records if r.qualname.endswith("Worker.run"))

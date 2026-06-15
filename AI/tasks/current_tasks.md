@@ -82,6 +82,12 @@ Last updated: 2026-06-15
   added module-level `_ast_cache`; 220 passed, 1 skipped. whl rebuilt as
   `dist/flatten_polymorph-0.1.1-py3-none-any.whl`.
 
+- v0.1.2 defect fix pass (2026-06-15): fixed P0 soundness (closure owner
+  anchoring + final_closed clause), P1 exception-path tracing (PY_UNWIND +
+  settrace exception event), P1 tracer overhead (<25 µs/call via set_local_events,
+  _caller_position cache, normalize_filename lru_cache), Phase 4 hygiene
+  (capture_values default False, ruff clean, mypy clean). 223 passed.
+
 ## Remaining
 
 - No requested v0.1.1 defect item remains.

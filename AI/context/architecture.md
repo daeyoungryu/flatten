@@ -204,20 +204,3 @@ All shared records live in `src/flatten/contracts.py` to avoid circular imports:
 - `.github/workflows/ci.yml` now has an `evidence` job that runs import smoke,
   pytest, benchmark JSON/Markdown generation, evidence gate, coverage XML, and
   artifact upload.
-
-## AST Analysis Layer (added 2026-06-15)
-
-`tracer.py` and `closure.py` use `ast.parse` + `ast.walk` instead of
-`dis.get_instructions` for all static code analysis:
-
-| Old (bytecode)            | New (AST)                                       |
-|---------------------------|-------------------------------------------------|
-| `STORE_DEREF` opcode      | `ast.Name(ctx=ast.Store)` where id in freevars  |
-| `STORE_ATTR` on self      | `ast.Attribute(ctx=ast.Store, value=Name('self'))` |
-| `LOAD_ATTR` on self       | `ast.Attribute(ctx=ast.Load, value=Name('self'))` |
-| `IMPORT_NAME` opcode      | `ast.Import` / `ast.ImportFrom` nodes           |
-| `instruction.positions`   | `node.col_offset` / `node.end_col_offset`       |
-
-`_ast_cache: dict[str, ast.Module]` (module-level in `tracer.py`) avoids
-re-parsing the same source file within a session. `closure.py` uses
-`inspect.getsource` + `textwrap.dedent` + `ast.parse` per method.

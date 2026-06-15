@@ -452,19 +452,3 @@ Impact: `benchmarks/cases/*.json`, `benchmarks.runner`, benchmark metrics and
 Markdown report generation, `benchmarks/baseline.json`,
 `tools/check_evidence.py`, `docs/SOUNDNESS.md`, project audit docs, README
 instructions, and CI artifact upload now form the safety evidence pipeline.
-
-## DEC-037 | 2026-06-15 | AST Replaces Bytecode for Position and Closure Analysis
-
-Decision: Replace all `dis.get_instructions()` usage in `tracer.py` and
-`closure.py` with `ast.walk()` + `ast.parse()`.
-
-Reason: Bytecode attributes (`instruction.positions`, `STORE_DEREF`,
-`STORE_ATTR`) are version-specific (Python 3.11+ for positions) and fragile
-across CPython minor releases. AST nodes carry `lineno`, `col_offset`,
-`end_lineno`, `end_col_offset` on Python 3.8+ and are stable across versions.
-
-Impact: `_caller_position()` now uses `linecache` + `ast.parse` with a
-module-level `_ast_cache`. Closure checks (`_check_os3`, `_check_os4`,
-`_state_read_evidence`, `_method_dynamic_hazards`) use `ast.Name`/`ast.Attribute`
-context checks. Tests updated: 3 parametrized bytecode tests replaced by
-2 AST-based tests using `tmp_path`. Result: 220 passed, 1 skipped.

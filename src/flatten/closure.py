@@ -90,64 +90,101 @@ def _get_method_ast(method: FunctionType) -> ast.Module | None:
 
 def _check_os3(methods: list[FunctionType]) -> str | None:
     """Signal OS3: method writes to a nonlocal (free) variable."""
+    import dis
     for method in methods:
         freevars = set(method.__code__.co_freevars)
         if not freevars:
             continue
         tree = _get_method_ast(method)
-        if tree is None:
-            continue
-        for node in ast.walk(tree):
-            if (
-                isinstance(node, ast.Name)
-                and isinstance(node.ctx, ast.Store)
-                and node.id in freevars
-            ):
-                return (
-                    f"OS3: nonlocal write in {method.__qualname__}; "
-                    "captured state can change dispatch behavior"
-                )
+        if tree is not None:
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, ast.Name)
+                    and isinstance(node.ctx, ast.Store)
+                    and node.id in freevars
+                ):
+                    return (
+                        f"OS3: nonlocal write in {method.__qualname__}; "
+                        "captured state can change dispatch behavior"
+                    )
+        else:
+            # Bytecode fallback: STORE_DEREF on a freevar indicates nonlocal write.
+            for instr in dis.get_instructions(method.__code__):
+                if instr.opname == "STORE_DEREF" and instr.argval in freevars:
+                    return (
+                        f"OS3: nonlocal write in {method.__qualname__}; "
+                        "captured state can change dispatch behavior"
+                    )
     return None
 
 
 def _check_os4(methods: list[FunctionType]) -> str | None:
     """Signal OS4: method writes instance attributes on self."""
+    import dis
     for method in methods:
         tree = _get_method_ast(method)
-        if tree is None:
-            continue
-        for node in ast.walk(tree):
-            if (
-                isinstance(node, ast.Attribute)
-                and isinstance(node.ctx, (ast.Store, ast.Del))
-                and isinstance(node.value, ast.Name)
-                and node.value.id == "self"
-            ):
-                return (
-                    f"OS4: instance attribute write in {method.__qualname__}; "
-                    "receiver state can change later dispatch behavior"
-                )
+        if tree is not None:
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, ast.Attribute)
+                    and isinstance(node.ctx, (ast.Store, ast.Del))
+                    and isinstance(node.value, ast.Name)
+                    and node.value.id == "self"
+                ):
+                    return (
+                        f"OS4: instance attribute write in {method.__qualname__}; "
+                        "receiver state can change later dispatch behavior"
+                    )
+        else:
+            # Bytecode fallback: STORE_ATTR preceded by LOAD_FAST 'self'.
+            instrs = list(dis.get_instructions(method.__code__))
+            for i, instr in enumerate(instrs):
+                if (
+                    instr.opname == "STORE_ATTR"
+                    and i > 0
+                    and instrs[i - 1].opname == "LOAD_FAST"
+                    and instrs[i - 1].argval == "self"
+                ):
+                    return (
+                        f"OS4: instance attribute write in {method.__qualname__}; "
+                        "receiver state can change later dispatch behavior"
+                    )
     return None
 
 
 def _state_read_evidence(methods: list[FunctionType]) -> list[str]:
+    import dis
     evidence: list[str] = []
     for method in methods:
         tree = _get_method_ast(method)
-        if tree is None:
-            continue
-        for node in ast.walk(tree):
-            if (
-                isinstance(node, ast.Attribute)
-                and isinstance(node.ctx, ast.Load)
-                and isinstance(node.value, ast.Name)
-                and node.value.id == "self"
-            ):
-                evidence.append(
-                    f"STATE_READ: instance attribute read in {method.__qualname__}; "
-                    "requires harness verification"
-                )
-                break
+        if tree is not None:
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, ast.Attribute)
+                    and isinstance(node.ctx, ast.Load)
+                    and isinstance(node.value, ast.Name)
+                    and node.value.id == "self"
+                ):
+                    evidence.append(
+                        f"STATE_READ: instance attribute read in {method.__qualname__}; "
+                        "requires harness verification"
+                    )
+                    break
+        else:
+            # Bytecode fallback: LOAD_ATTR preceded by LOAD_FAST 'self'.
+            instrs = list(dis.get_instructions(method.__code__))
+            for i, instr in enumerate(instrs):
+                if (
+                    instr.opname == "LOAD_ATTR"
+                    and i > 0
+                    and instrs[i - 1].opname == "LOAD_FAST"
+                    and instrs[i - 1].argval == "self"
+                ):
+                    evidence.append(
+                        f"STATE_READ: instance attribute read in {method.__qualname__}; "
+                        "requires harness verification"
+                    )
+                    break
     return evidence
 
 
@@ -251,31 +288,44 @@ _DANGEROUS_NAMES: frozenset[str] = frozenset({"eval", "exec", "__import__"})
 def _method_dynamic_hazards(method: FunctionType) -> list[str]:
     signals: list[str] = []
     tree = _get_method_ast(method)
-    if tree is None:
-        return signals
 
-    # Detect import statements inside the function body (maps to IMPORT_NAME bytecode).
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            signals.append(
-                f"UNSAFE: dynamic import in {method.__qualname__}; "
-                "import-time side effects can change dispatch behavior"
-            )
-            break
-
-    # Detect eval / exec / __import__ referenced from the global namespace.
-    local_names = set(method.__code__.co_varnames)
-    for node in ast.walk(tree):
-        if (
-            isinstance(node, ast.Name)
-            and node.id in _DANGEROUS_NAMES
-            and node.id not in local_names
-        ):
+    if tree is not None:
+        # AST path: detect import statements inside the function body.
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                signals.append(
+                    f"UNSAFE: dynamic import in {method.__qualname__}; "
+                    "import-time side effects can change dispatch behavior"
+                )
+                break
+        # AST path: detect eval / exec / __import__ referenced from global namespace.
+        local_names = set(method.__code__.co_varnames)
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Name)
+                and node.id in _DANGEROUS_NAMES
+                and node.id not in local_names
+            ):
+                signals.append(
+                    f"UNSAFE: dynamic code execution in {method.__qualname__}; "
+                    "runtime code can change dispatch behavior"
+                )
+                break
+    else:
+        # Bytecode fallback: source unavailable (cross-session or compiled-only).
+        # co_names contains all global/builtin names referenced by the code object.
+        import dis
+        code = method.__code__
+        if set(code.co_names) & _DANGEROUS_NAMES:
             signals.append(
                 f"UNSAFE: dynamic code execution in {method.__qualname__}; "
                 "runtime code can change dispatch behavior"
             )
-            break
+        if any(instr.opname == "IMPORT_NAME" for instr in dis.get_instructions(code)):
+            signals.append(
+                f"UNSAFE: dynamic import in {method.__qualname__}; "
+                "import-time side effects can change dispatch behavior"
+            )
 
     return signals
 
@@ -300,12 +350,10 @@ def _declared_owner(
 ) -> type:
     """Return the common MRO class that declares method_name."""
     if len(observed_impls) == 1:
-        owner_name = method_qualname.rsplit(".", 1)[0].split(".")[-1]
-        for cls in observed_impls[0].__mro__:
-            if (
-                method_name in cls.__dict__
-                and (cls.__name__ == owner_name or cls.__qualname__.split(".")[-1] == owner_name)
-            ):
+        # Anchor to the topmost (root) class that declares method_name so that
+        # OS5 checks the full subclass tree of the real base, not just the leaf.
+        for cls in reversed(observed_impls[0].__mro__):
+            if method_name in cls.__dict__ and cls is not object:
                 return cls
     common_mro = list(observed_impls[0].__mro__)
     for observed in observed_impls[1:]:
@@ -427,7 +475,6 @@ class ClosureChecker:
         final_closed = self.config.allow_final and (
             _is_final(base_cls)
             or _is_final(raw_method)
-            or all(_is_final(cls) for cls in observed_impls)
         )
         sealed_closed = bool(known_names & self.config.sealed_roots)
         closed_world = self.config.closed_world and not open_signals
