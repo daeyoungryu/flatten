@@ -1,6 +1,6 @@
 # Current Tasks
 
-Last updated: 2026-06-13
+Last updated: 2026-06-15
 
 ## Completed
 
@@ -76,6 +76,11 @@ Last updated: 2026-06-13
   benchmark JSON/Markdown runner, metrics, baseline regression, evidence gate,
   `docs/engineering/PROJECT_AUDIT.md`, `docs/SOUNDNESS.md`, README updates,
   `flatten-benchmark`, and CI artifact upload.
+
+- AST migration pass (2026-06-15): replaced all `dis` bytecode analysis
+  with `ast.walk` in `tracer.py` and `closure.py`; removed `import dis`;
+  added module-level `_ast_cache`; 220 passed, 1 skipped. whl rebuilt as
+  `dist/flatten_polymorph-0.1.1-py3-none-any.whl`.
 
 ## Remaining
 

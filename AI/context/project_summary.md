@@ -237,3 +237,18 @@ Phase 3 pass. The built-wheel release gate now lives in
 completeness now yields `PROBABLY_CLOSED` unless positive CLOSED evidence
 exists, and guarded dispatch rewrites fall back to the original dynamic method
 call for unmatched receiver types.
+
+## AST Migration Pass (2026-06-15)
+
+Replaced all `dis` bytecode analysis with `ast`-based analysis for Python 3.8+
+compatibility and stability:
+
+- `tracer.py`: `_caller_position()` now uses `linecache + ast.parse` with a
+  module-level `_ast_cache`. Removed `import dis`.
+- `closure.py`: `_check_os3`, `_check_os4`, `_state_read_evidence`, and
+  `_method_dynamic_hazards` now use `ast.walk` with `ast.Name`/`ast.Attribute`
+  context checks. Added `_get_method_ast()` helper.
+- `tests/test_tracer.py`: 3 bytecode-parametrized tests replaced with 2
+  AST-based tests using `tmp_path` source files.
+- Result: 220 passed, 1 skipped. whl rebuilt as
+  `dist/flatten_polymorph-0.1.1-py3-none-any.whl`.
