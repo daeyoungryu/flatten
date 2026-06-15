@@ -17,7 +17,7 @@ from types import FrameType
 from typing import Any, NamedTuple
 
 from flatten._utils import normalize_filename as _normalize_filename
-from flatten.contracts import OracleRecord
+from flatten.contracts import _RAISE_SENTINEL, OracleRecord
 
 _USE_MONITORING = sys.version_info >= (3, 12)
 _TOOL_ID_CANDIDATES = tuple(range(2, 6))
@@ -174,7 +174,7 @@ class Tracer:
                 impl_class=pending.impl_class,
                 args=pending.args,
                 kwargs=pending.kwargs,
-                return_val=None,
+                return_val=_RAISE_SENTINEL,
                 call_site=pending.call_site,
                 is_dispatch_target=pending.is_dispatch_target,
                 caller_filename=pending.caller_filename,
@@ -288,6 +288,11 @@ class Tracer:
         elif event == "exception":
             self._flush_pending_as_exception(frame)
         return self._settrace_handler
+
+    @property
+    def dispatch_records(self) -> list[OracleRecord]:
+        """Return only records where is_dispatch_target=True (method calls)."""
+        return [r for r in self.records if r.is_dispatch_target]
 
     def __enter__(self) -> Tracer:
         self.start()

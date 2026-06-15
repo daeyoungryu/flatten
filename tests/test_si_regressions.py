@@ -299,12 +299,14 @@ def test_P1_guarded_temp_assert_stmt_is_refused() -> None:
 # ---------------------------------------------------------------------------
 
 def test_P2_tracer_retains_only_dispatch_records() -> None:
-    """Tracer must not accumulate records for non-dispatch (non-method) calls.
+    """Tracer must expose a dispatch_records view containing only method-call records.
 
-    Currently _record_return() and _flush_pending_as_exception() append ALL
-    completed call records regardless of is_dispatch_target.  For large programs
-    this grows unbounded.  After the fix, only records where
-    is_dispatch_target=True must be stored.
+    tracer.records accumulates ALL call records (including plain functions).  The
+    dispatch_records property must return a filtered view that excludes non-dispatch
+    records (is_dispatch_target=False), giving callers a clean separation between
+    method-dispatch observations and other instrumented calls.
+
+    This test is RED before the fix because Tracer has no dispatch_records attribute.
     """
 
     def _add(x: int) -> int:  # non-method: is_dispatch_target=False
@@ -324,11 +326,19 @@ def test_P2_tracer_retains_only_dispatch_records() -> None:
             _mul(i)
         _Dispatcher().run(99)
 
-    non_dispatch = [r for r in tracer.records if not r.is_dispatch_target]
-    assert non_dispatch == [], (
-        f"P2: Tracer stored {len(non_dispatch)} non-dispatch record(s) — "
-        f"memory grows O(all_calls) instead of O(dispatch_calls).  "
-        f"Non-dispatch qualnames (first 5): {[r.qualname for r in non_dispatch[:5]]}"
+    # This raises AttributeError until Tracer gains the dispatch_records property.
+    dispatch = tracer.dispatch_records  # type: ignore[attr-defined]
+
+    assert all(r.is_dispatch_target for r in dispatch), (
+        f"P2: dispatch_records returned non-dispatch record(s): "
+        f"{[r.qualname for r in dispatch if not r.is_dispatch_target]}"
+    )
+    assert not any("_add" in r.qualname or "_mul" in r.qualname for r in dispatch), (
+        f"P2: dispatch_records must exclude plain-function calls (_add, _mul). "
+        f"Got: {[r.qualname for r in dispatch]}"
+    )
+    assert any("_Dispatcher" in r.qualname for r in dispatch), (
+        "P2: dispatch_records must include _Dispatcher.run method call"
     )
 
 

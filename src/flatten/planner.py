@@ -45,16 +45,18 @@ class EvaluationSafety:
     """Determines safe rewrite strategy for a call site, enforcing the SI invariant.
 
     Strategy selection table:
-    | receiver         | impls | context                    | strategy     |
-    |-----------------|-------|----------------------------|-------------|
-    | pure identifier | 1     | any                        | direct      |
-    | pure identifier | ≥2    | any                        | guarded     |
-    | non-identifier  | 1     | any                        | direct      |
-    | non-identifier  | ≥2    | return/assign/expr_stmt    | guarded_temp|
-    | non-identifier  | ≥2    | comprehension/lambda/other | REFUSE      |
+    | receiver         | impls | context                         | strategy     |
+    |-----------------|-------|---------------------------------|-------------|
+    | pure identifier | 1     | any                             | REFUSE (RP) |
+    | pure identifier | ≥2    | any                             | guarded     |
+    | non-identifier  | 1     | any                             | direct      |
+    | non-identifier  | ≥2    | return/assign/expr_stmt         | guarded_temp|
+    | non-identifier  | ≥2    | comp/lambda/if/while/assert     | REFUSE (SE) |
 
-    No guarded_temp → guarded fallback for non-identifier receivers.
-    Non-identifier + ≥2 impls + unsafe context → REFUSED_RECEIVER_REEVAL.
+    Identifier + 1 impl is refused (Receiver Pinning): emitting 'direct' would pin
+    the call to one concrete type without a guard, breaking duck-typed objects.
+    Non-identifier + ≥2 impls in unhoistable contexts is refused (Single Evaluation):
+    the transformer cannot safely hoist the temp assignment before those statements.
     """
 
     REFUSED_RECEIVER_REEVAL = "REFUSED_RECEIVER_REEVAL"
@@ -67,10 +69,32 @@ class EvaluationSafety:
         self._source = source
 
     def must_refuse(self) -> bool:
-        """True when rewriting would re-evaluate the receiver expression."""
-        if self._n_impls <= 1 or self._site.receiver_expr.isidentifier():
+        """True when rewriting would violate RP or SE invariants.
+
+        RP (Receiver Pinning): identifier receiver that is a function parameter + 1 impl →
+        'direct' would pin the call to one concrete type without an isinstance guard.
+        A parameter can receive any compatible object at runtime; the planner must refuse
+        rather than emit an unsound static binding.
+
+        Local variable receivers (x = Worker(); x.method()) are not refused because
+        the assignment context pins the type, and the isinstance fallback in guarded
+        rewrites handles any duck-typed caller.
+
+        SE (Single Evaluation): non-identifier receiver + ≥2 impls in a context
+        where the transformer cannot hoist a temp assignment → refuse.
+        """
+        if self._site.receiver_expr.isidentifier():
+            if self._n_impls == 1:
+                # Refuse only when receiver is an untyped function parameter (RP).
+                # Local-variable receivers with 1 observed impl are allowed (direct).
+                return _is_receiver_a_function_parameter(self._source, self._site)
+            # Identifier + ≥2 impls: 'guarded' strategy is safe (identifier evaluated once).
             return False
-        return _is_call_site_in_comprehension_or_lambda(self._source, self._site)
+        # Non-identifier + 1 impl: 'direct' is safe (no re-eval needed).
+        if self._n_impls <= 1:
+            return False
+        # Non-identifier + ≥2 impls: check whether temp hoisting is possible.
+        return _is_call_site_in_unhoistable_context(self._source, self._site)
 
     def strategy(self) -> str:
         if self._n_impls == 1:
@@ -273,8 +297,57 @@ class RewritePlanner:
         return plans
 
 
-def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> bool:
-    """Check if call site is inside comprehension or lambda (unsafe for temp hoist)."""
+def _is_receiver_a_function_parameter(source: str, site: CallSite) -> bool:
+    """Return True if the receiver identifier is a parameter of its enclosing function.
+
+    Parameters are unpinned — the caller can pass any compatible object, so emitting
+    a direct (unguarded) static call violates Receiver Pinning.  Local variables
+    assigned within the function body are not parameters and are not refused here.
+    """
+    import ast as _ast
+
+    try:
+        tree = _ast.parse(source)
+    except SyntaxError:
+        return False
+
+    receiver = site.receiver_expr
+    call_line = site.line
+
+    best_func: _ast.FunctionDef | _ast.AsyncFunctionDef | None = None
+    best_start = -1
+
+    for node in _ast.walk(tree):
+        if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
+            end = getattr(node, "end_lineno", None) or node.lineno
+            if node.lineno <= call_line <= end and node.lineno > best_start:
+                best_start = node.lineno
+                best_func = node
+
+    if best_func is None:
+        return False
+
+    args = best_func.args
+    param_names: set[str] = set(
+        [a.arg for a in args.args]
+        + [a.arg for a in args.posonlyargs]
+        + [a.arg for a in args.kwonlyargs]
+        + ([args.vararg.arg] if args.vararg else [])
+        + ([args.kwarg.arg] if args.kwarg else [])
+    )
+    return receiver in param_names
+
+
+def _is_call_site_in_unhoistable_context(source: str, site: CallSite) -> bool:
+    """Return True when the call site is in a context where temp hoisting is impossible.
+
+    Unhoistable contexts:
+    - Comprehension iteration (CompFor) — hoist would escape the comprehension scope
+    - Lambda body — hoist cannot precede a lambda expression
+    - If-statement test — PositionRewriteTransformer only handles SimpleStatementLine
+    - While-statement test — same; and re-hoisting per iteration is structurally unsound
+    - Assert statement — leave_SimpleStatementLine excludes cst.Assert from hoist targets
+    """
     try:
         from libcst.metadata import MetadataWrapper, PositionProvider
         module = cst.parse_module(source)
@@ -284,10 +357,10 @@ def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> boo
 
     unsafe_ranges: list[tuple[int, int, int, int]] = []
 
-    class ComprehensionVisitor(cst.CSTVisitor):
+    class UnhoistableVisitor(cst.CSTVisitor):
         METADATA_DEPENDENCIES = (PositionProvider,)
 
-        def visit_CompFor(self, node: cst.CompFor) -> None:
+        def _record(self, node: cst.CSTNode) -> None:
             try:
                 pos = self.get_metadata(PositionProvider, node)
                 unsafe_ranges.append(
@@ -295,18 +368,24 @@ def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> boo
                 )
             except Exception:
                 pass
+
+        def visit_CompFor(self, node: cst.CompFor) -> None:
+            self._record(node)
 
         def visit_Lambda(self, node: cst.Lambda) -> None:
-            try:
-                pos = self.get_metadata(PositionProvider, node)
-                unsafe_ranges.append(
-                    (pos.start.line, pos.start.column, pos.end.line, pos.end.column)
-                )
-            except Exception:
-                pass
+            self._record(node)
+
+        def visit_If(self, node: cst.If) -> None:
+            self._record(node.test)
+
+        def visit_While(self, node: cst.While) -> None:
+            self._record(node.test)
+
+        def visit_Assert(self, node: cst.Assert) -> None:
+            self._record(node)
 
     try:
-        visitor = ComprehensionVisitor()
+        visitor = UnhoistableVisitor()
         wrapper.visit(visitor)
     except Exception:
         return False
@@ -321,6 +400,11 @@ def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> boo
             if site_line == end_line and site_col <= end_col:
                 return True
     return False
+
+
+def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> bool:
+    """Legacy alias kept for any external callers; delegates to the broader check."""
+    return _is_call_site_in_unhoistable_context(source, site)
 
 
 def _unique_temp_name(source: str, plan_count: int) -> str:
