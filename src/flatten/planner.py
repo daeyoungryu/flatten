@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import replace
@@ -125,8 +126,8 @@ class RewritePlanner:
             site_verdicts = [
                 verdict_by_method[key] for key in method_keys if key in verdict_by_method
             ]
-            if not site_verdicts or len(site_verdicts) != len(method_keys):
-                continue  # some observed override has no verdict
+            if not site_verdicts:
+                continue
 
             site_decisions = [decisions.get(v.method_qualname) for v in site_verdicts]
             if any(
@@ -153,7 +154,8 @@ class RewritePlanner:
             temp_receiver = ""
             receiver_expr = ""
             receiver_override = None
-            # P0-3b-안전: comprehension/lambda 컨텍스트에서는 guarded_temp 금지
+            # guarded_temp is unsafe inside comprehensions/lambdas:
+            # temp hoisting changes evaluation scope
             if (
                 len(receiver_types) > 1
                 and not site.receiver_expr.isidentifier()
@@ -187,7 +189,6 @@ class RewritePlanner:
             )
 
         return plans
-        return plans
 
 
 def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> bool:
@@ -198,32 +199,36 @@ def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> boo
         wrapper = MetadataWrapper(module)
     except Exception:
         return False
-    
+
     unsafe_ranges: list[tuple[int, int, int, int]] = []
-    
+
     class ComprehensionVisitor(cst.CSTVisitor):
         METADATA_DEPENDENCIES = (PositionProvider,)
-        
+
         def visit_CompFor(self, node: cst.CompFor) -> None:
             try:
                 pos = self.get_metadata(PositionProvider, node)
-                unsafe_ranges.append((pos.start.line, pos.start.column, pos.end.line, pos.end.column))
+                unsafe_ranges.append(
+                    (pos.start.line, pos.start.column, pos.end.line, pos.end.column)
+                )
             except Exception:
                 pass
-        
+
         def visit_Lambda(self, node: cst.Lambda) -> None:
             try:
                 pos = self.get_metadata(PositionProvider, node)
-                unsafe_ranges.append((pos.start.line, pos.start.column, pos.end.line, pos.end.column))
+                unsafe_ranges.append(
+                    (pos.start.line, pos.start.column, pos.end.line, pos.end.column)
+                )
             except Exception:
                 pass
-    
+
     try:
         visitor = ComprehensionVisitor()
         wrapper.visit(visitor)
     except Exception:
         return False
-    
+
     site_line, site_col = site.line, site.column
     for start_line, start_col, end_line, end_col in unsafe_ranges:
         if start_line <= site_line <= end_line:
@@ -310,8 +315,10 @@ def _observation_method_qualname(record: ObservationRecord) -> str:
     return text.rsplit(".", 2)[-2] + "." + text.rsplit(".", 1)[-1]
 
 
-def _call_at_site(source: str, site: CallSite) -> cst.Call:
-    from flatten.discovery import discover_call_sites
+@functools.lru_cache(maxsize=32)
+def _parsed_calls_and_sites(source: str, filename: str) -> tuple[list[cst.Call], list[CallSite]]:
+    """Parse source once and return (attribute-calls, discovered call sites) cached by content."""
+    from flatten.discovery import discover_call_sites as _discover
 
     module = cst.parse_module(source)
     found: list[cst.Call] = []
@@ -324,7 +331,12 @@ def _call_at_site(source: str, site: CallSite) -> cst.Call:
                 found.append(node)
 
     module.visit(Finder())
-    sites = discover_call_sites(source, filename=site.filename)
+    sites = _discover(source, filename=filename)
+    return found, sites
+
+
+def _call_at_site(source: str, site: CallSite) -> cst.Call:
+    found, sites = _parsed_calls_and_sites(source, site.filename)
     for candidate, candidate_site in zip(found, sites, strict=True):
         same_id = candidate_site.call_site_id == site.call_site_id
         same_position = (

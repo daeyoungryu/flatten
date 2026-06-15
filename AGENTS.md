@@ -28,3 +28,27 @@
 3. Python 3.8+ 지원 — 3.12+는 `sys.monitoring`, 3.8~3.11은 `sys.settrace` fallback
 4. 모든 변환은 LibCST 사용 (ast.unparse 금지)
 5. 커밋 단위: feat → test → docs 순서 유지
+
+---
+
+## Git 워크플로우 (필수)
+
+어떤 작업이 완료되면 반드시 다음을 수행한다:
+
+```bash
+git add -A && git commit -m "..." && git push
+```
+
+- `git status`는 항상 clean 상태를 유지한다
+- 작업 후 커밋하지 않고 끝내는 것은 금지된다
+- **오류/경고가 있어도 push를 생략하지 않는다.** 오류는 commit 메시지 body에 기록한다
+
+### 오류가 있을 때 commit 메시지 형식
+
+```
+feat: 기능 구현
+
+[오류/경고 기록]
+- lint warning: xxx
+- test failure: yyy (known issue, tracked)
+```

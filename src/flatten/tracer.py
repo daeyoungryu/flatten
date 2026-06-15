@@ -12,14 +12,29 @@ import sys
 import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
-from pathlib import Path
 from types import FrameType
-from typing import Any
+from typing import Any, NamedTuple
 
+from flatten._utils import normalize_filename as _normalize_filename
 from flatten.contracts import OracleRecord
 
 _USE_MONITORING = sys.version_info >= (3, 12)
 _TOOL_ID_CANDIDATES = tuple(range(2, 6))
+
+
+class PendingCall(NamedTuple):
+    """Stores call metadata between PY_START and PY_RETURN events."""
+
+    qualname: str
+    impl_class: type | None
+    args: tuple[Any, ...]
+    kwargs: dict[str, Any]
+    call_site: str
+    is_dispatch_target: bool
+    caller_filename: str
+    caller_lineno: int
+    caller_column: int
+    caller_end_column: int
 
 
 def _monitoring() -> Any:
@@ -47,7 +62,13 @@ def _snapshot_value(value: Any, *, receiver: bool = False) -> Any:
             return value
     try:
         return copy.deepcopy(value)
-    except Exception:
+    except Exception as exc:
+        import warnings
+
+        warnings.warn(
+            f"flatten: snapshot failed for {type(value).__name__}: {exc}",
+            stacklevel=2,
+        )
         return repr(value)
 
 
@@ -61,21 +82,7 @@ class Tracer:
         self._target_name = getattr(self._target_code, "co_name", None)
         self._capture_values = capture_values
         self._active = False
-        self._pending: dict[
-            int,
-            tuple[
-                str,
-                type | None,
-                tuple[Any, ...],
-                dict[str, Any],
-                str,
-                bool,
-                str,
-                int,
-                int,
-                int,
-            ],
-        ] = {}
+        self._pending: dict[int, PendingCall] = {}
         self._monitoring_frames: dict[int, Any] = {}
         self._tool_id: int | None = None
 
@@ -201,17 +208,17 @@ class Tracer:
         else:
             args = ()
             kwargs = {}
-        self._pending[id(frame)] = (
-            self._qualname_for(frame),
-            impl_class,
-            args,
-            kwargs,
-            f"{code.co_filename}:{code.co_firstlineno}",
-            is_dispatch_target,
-            caller_filename,
-            caller_lineno,
-            caller_column,
-            caller_end_column,
+        self._pending[id(frame)] = PendingCall(
+            qualname=self._qualname_for(frame),
+            impl_class=impl_class,
+            args=args,
+            kwargs=kwargs,
+            call_site=f"{code.co_filename}:{code.co_firstlineno}",
+            is_dispatch_target=is_dispatch_target,
+            caller_filename=caller_filename,
+            caller_lineno=caller_lineno,
+            caller_column=caller_column,
+            caller_end_column=caller_end_column,
         )
 
     def _record_return(self, frame: Any, return_val: Any) -> None:
@@ -219,31 +226,19 @@ class Tracer:
         if pending is None:
             return
 
-        (
-            qualname,
-            impl_class,
-            args,
-            kwargs,
-            call_site,
-            is_dispatch_target,
-            caller_filename,
-            caller_lineno,
-            caller_column,
-            caller_end_column,
-        ) = pending
         self.records.append(
             OracleRecord(
-                qualname=qualname,
-                impl_class=impl_class,
-                args=args,
-                kwargs=kwargs,
+                qualname=pending.qualname,
+                impl_class=pending.impl_class,
+                args=pending.args,
+                kwargs=pending.kwargs,
                 return_val=_snapshot_value(return_val) if self._capture_values else None,
-                call_site=call_site,
-                is_dispatch_target=is_dispatch_target,
-                caller_filename=caller_filename,
-                caller_lineno=caller_lineno,
-                caller_column=caller_column,
-                caller_end_column=caller_end_column,
+                call_site=pending.call_site,
+                is_dispatch_target=pending.is_dispatch_target,
+                caller_filename=pending.caller_filename,
+                caller_lineno=pending.caller_lineno,
+                caller_column=pending.caller_column,
+                caller_end_column=pending.caller_end_column,
             )
         )
 
@@ -291,12 +286,6 @@ def _caller_position(frame: Any | None) -> tuple[int, int, int]:
     column = -1 if positions.col_offset is None else int(positions.col_offset)
     end_column = -1 if positions.end_col_offset is None else int(positions.end_col_offset)
     return lineno, column, end_column
-
-
-def _normalize_filename(filename: str) -> str:
-    if not filename or filename.startswith("<"):
-        return filename
-    return str(Path(filename).resolve()).replace("\\", "/")
 
 
 @contextmanager

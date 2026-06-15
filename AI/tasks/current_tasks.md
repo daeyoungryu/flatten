@@ -63,32 +63,4 @@ Last updated: 2026-06-13
 - Phase 1 soundness audit doc: added `docs/SOUNDNESS.md` covering the complete
   rewrite pipeline, refusal conditions, soundness assumptions, and dynamic
   feature SAFE/UNSAFE/UNKNOWN classifications.
-- Phase 2 proof artifact slice: added per-rewrite `proof_artifact` JSON in
-  `flatten plan`, with regression coverage in `tests/test_proof_artifacts.py`.
-- Phase 3/4 mutation harness slice: added `flatten.mutations` source-level
-  variants and a `setattr` false-positive guard in CLI planning, with coverage
-  in `tests/test_mutation_harness.py`.
-- T8 benchmark/release evidence slice: added a 35-project OSS benchmark catalog,
-  `flatten benchmark`, JSON/Markdown benchmark summaries, CI benchmark-sanity,
-  release-gate benchmark execution, README quantitative status, and
-  `docs/research_evaluation.md`.
-- Executable safety evidence suite: added 56 local benchmark cases,
-  benchmark JSON/Markdown runner, metrics, baseline regression, evidence gate,
-  `docs/engineering/PROJECT_AUDIT.md`, `docs/SOUNDNESS.md`, README updates,
-  `flatten-benchmark`, and CI artifact upload.
-
-## Remaining
-
-- No requested v0.1.1 defect item remains.
-- Blocked external validation: hosted GitHub Actions needs GitHub Actions
-  access or an installed/authenticated `gh` CLI.
-- Blocked external validation: mutation testing needs Linux/WSL because native
-  Windows is unsupported by `mutmut`; this machine has no WSL distribution.
-- Remaining evidence-platform expansion: repository-scale mode, real-world
-  benchmark corpus, mutation score automation, observability metrics, and
-  deeper type-flow/alias analysis.
-- Remaining release blocker: run the benchmark suite against at least 30 pinned
-  OSS project checkouts and publish nonzero empirical results.
-- Remaining evidence-platform expansion: convert additional differential and
-  golden fixtures into benchmark cases, and add repository-scale case execution
-  once pinned OSS checkouts are available.
+- Phase 2 proof artifact slice: added per-rewrite `proof_artifact` J

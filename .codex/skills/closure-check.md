@@ -30,4 +30,4 @@ def is_closed(method_qualname: str, observed_impls: list[type]) -> ClosureVerdic
 
 ## 주의
 - OS 신호 하나라도 있으면 열린 계층으로 처리
-- 열린 계층 stub 형식: `# OPEN_DISPATCH: {qualname} — unobserved impls possible`
+- 열린 계층 stub 형식: `# OPEN_DISPATCH: {qualname}

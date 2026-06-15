@@ -39,4 +39,4 @@ wrapper = MetadataWrapper(cst.parse_module(source))
 
 ## 주의
 - `ast` 모듈 사용 금지 — 포매팅 손실 발생
-- `leave_*` 메서드는 반드시 노드를 반환해야 함
+- `leave_*` 메서드

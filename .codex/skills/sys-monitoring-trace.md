@@ -50,5 +50,4 @@ def stop_trace():
 ## 주의
 - 버전 분기는 반드시 `sys.version_info >= (3, 12)` 체크로 — 다른 방법 사용 금지
 - TOOL_ID는 전역 1개 유지 (3.12+ 경로에서만 사용)
-- 추적 중 예외 발생 시 반드시 stop_trace() 호출 (finally 블록)
-- monkey-patch 방식 사용 금지
+- 추적 중 예외 발생 시 반드시 stop_trace() 호출 (

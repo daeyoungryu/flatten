@@ -74,6 +74,7 @@ def evaluate_artifacts(
     rewrite_decisions: Sequence[RewriteDecision],
     outcomes: list[LabeledOutcome] | None = None,
 ) -> EvaluationMetrics:
+    """Compute evaluation metrics from discovered call sites and rewrite decisions."""
     rewritten = sum(1 for decision in rewrite_decisions if decision.allowed)
     rejected = sum(1 for decision in rewrite_decisions if not decision.allowed)
     unsafe = sum(
