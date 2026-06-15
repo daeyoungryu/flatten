@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dis
+from collections import deque
 from dataclasses import dataclass, field
 from types import FunctionType
 
@@ -23,9 +24,9 @@ class ClosureConfig:
 def get_all_subclasses(cls: type) -> list[type]:
     """Return every subclass below cls, including indirect descendants."""
     result: list[type] = []
-    queue = list(cls.__subclasses__())
+    queue: deque[type] = deque(cls.__subclasses__())
     while queue:
-        subclass = queue.pop(0)
+        subclass = queue.popleft()
         result.append(subclass)
         queue.extend(subclass.__subclasses__())
     return result
@@ -61,6 +62,7 @@ def _observed_methods(method_name: str, observed_impls: list[type]) -> list[Func
 
 
 def _check_os1(methods: list[FunctionType]) -> str | None:
+    """Signal OS1: method closes over free variables captured from an enclosing scope."""
     for method in methods:
         if method.__code__.co_freevars:
             return f"OS1: free variables in {method.__qualname__}"
@@ -68,6 +70,7 @@ def _check_os1(methods: list[FunctionType]) -> str | None:
 
 
 def _check_os2(methods: list[FunctionType]) -> str | None:
+    """Signal OS2: method has active closure cells bound to enclosing local variables."""
     for method in methods:
         if method.__closure__:
             return f"OS2: closure cells in {method.__qualname__}"
@@ -75,6 +78,7 @@ def _check_os2(methods: list[FunctionType]) -> str | None:
 
 
 def _check_os3(methods: list[FunctionType]) -> str | None:
+    """Signal OS3: method writes to a nonlocal variable (STORE_DEREF bytecode)."""
     for method in methods:
         if any(instruction.opname == "STORE_DEREF" for instruction in dis.get_instructions(method)):
             return (
@@ -85,6 +89,7 @@ def _check_os3(methods: list[FunctionType]) -> str | None:
 
 
 def _check_os4(methods: list[FunctionType]) -> str | None:
+    """Signal OS4: method writes instance attributes on self (STORE_ATTR on self)."""
     for method in methods:
         previous = None
         for instruction in dis.get_instructions(method):
@@ -132,9 +137,9 @@ def _check_os5(base_cls: type, observed_impls: list[type]) -> str | None:
 
 def _static_descendants(root: str, subclasses: dict[str, set[str]]) -> set[str]:
     descendants: set[str] = set()
-    queue = list(subclasses.get(root, set()))
+    queue: deque[str] = deque(subclasses.get(root, set()))
     while queue:
-        item = queue.pop(0)
+        item = queue.popleft()
         if item in descendants:
             continue
         descendants.add(item)

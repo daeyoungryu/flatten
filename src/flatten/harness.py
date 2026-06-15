@@ -196,7 +196,7 @@ def assert_modules_equivalent_subprocess(
         for case in cases
     ]
     for index, (original, rewritten) in enumerate(
-        zip(original_results, rewritten_results)
+        zip(original_results, rewritten_results, strict=False)
     ):
         if original != rewritten:
             if original.get("outcome") == "raise" or rewritten.get("outcome") == "raise":
@@ -234,16 +234,20 @@ def _run_module_case_subprocess(
         import random
         import sys
 
-        module_path, entry_name, case_json, effect_expression, seed_json = sys.argv[1:6]
-        seed = json.loads(seed_json)
+        params = json.loads(sys.stdin.read())
+        module_path = params["module_path"]
+        entry_name = params["entry_name"]
+        case = params["case"]
+        effect_expression = params["effect_expression"]
+        seed = params["seed"]
         if seed is not None:
             random.seed(seed)
         spec = importlib.util.spec_from_file_location("_flatten_verify_target", module_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"Cannot load module from {module_path}")
         module = importlib.util.module_from_spec(spec)
-        assert spec is not None and spec.loader is not None
         spec.loader.exec_module(module)
         fn = getattr(module, entry_name)
-        case = json.loads(case_json)
         stdout = io.StringIO()
         stderr = io.StringIO()
         try:
@@ -268,18 +272,17 @@ def _run_module_case_subprocess(
         print(json.dumps(payload, sort_keys=True))
         """
     )
+    stdin_payload = json.dumps({
+        "module_path": str(module_path.resolve()),
+        "entry_name": entry_name,
+        "case": case,
+        "effect_expression": effect_expression or "",
+        "seed": seed,
+    })
     try:
         result = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                script,
-                str(module_path.resolve()),
-                entry_name,
-                json.dumps(case),
-                effect_expression or "",
-                json.dumps(seed),
-            ],
+            [sys.executable, "-c", script],
+            input=stdin_payload,
             check=False,
             capture_output=True,
             text=True,
@@ -288,7 +291,11 @@ def _run_module_case_subprocess(
     except subprocess.TimeoutExpired as exc:
         raise TimeoutError(f"verification subprocess timed out after {timeout}s") from exc
     if result.returncode != 0:
-        raise AssertionError(result.stderr or result.stdout)
+        raise RuntimeError(
+            f"Subprocess exited with code {result.returncode}\n"
+            f"--- stdout ---\n{result.stdout}\n"
+            f"--- stderr ---\n{result.stderr}"
+        )
     payload = json.loads(result.stdout)
     if not isinstance(payload, dict):
         raise AssertionError("verification subprocess returned non-object JSON")

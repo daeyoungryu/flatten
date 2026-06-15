@@ -9,6 +9,8 @@ from flatten.contracts import TransformPlan
 
 
 class PositionRewriteTransformer(cst.CSTTransformer):
+    """LibCST transformer that applies TransformPlan rewrites by source position."""
+
     METADATA_DEPENDENCIES = (PositionProvider,)
 
     def __init__(self, plans: list[TransformPlan]) -> None:
@@ -65,5 +67,6 @@ class PositionRewriteTransformer(cst.CSTTransformer):
 
 
 def rewrite_source_with_plan(source: str, plans: list[TransformPlan]) -> str:
+    """Apply a list of TransformPlan rewrites to Python source and return the result."""
     wrapper = MetadataWrapper(cst.parse_module(source))
     return wrapper.visit(PositionRewriteTransformer(plans)).code

@@ -78,39 +78,4 @@ $benchmarkJson = Join-Path $caseDir "benchmark_summary.json"
 $benchmarkMd = Join-Path $caseDir "benchmark_summary.md"
 
 $sampleSource = @'
-from flatten.finals import final
-
-@final
-class Shape:
-    def area(self):
-        return 2
-
-def entry():
-    s = Shape()
-    return s.area()
-'@
-[System.IO.File]::WriteAllText(
-    $sample,
-    $sampleSource,
-    [System.Text.UTF8Encoding]::new($false)
-)
-[System.IO.File]::WriteAllText(
-    $cases,
-    '[{"args":[],"kwargs":{}}]',
-    [System.Text.UTF8Encoding]::new($false)
-)
-
-& $venvPython -m flatten analyze $sample --json | Out-Host
-Assert-LastExitCode "flatten analyze"
-& $venvPython -m flatten trace $sample --entry shapes:entry --out $obs | Out-Host
-Assert-LastExitCode "flatten trace"
-& $venvPython -m flatten plan $sample --observations $obs --out $plan | Out-Host
-Assert-LastExitCode "flatten plan"
-& $venvPython -m flatten rewrite $sample --observations $obs --out $rewritten --apply --entry shapes:entry --cases $cases | Out-Host
-Assert-LastExitCode "flatten rewrite"
-& $venvPython -m flatten verify $sample $rewritten --entry shapes:entry --cases $cases | Out-Host
-Assert-LastExitCode "flatten verify"
-& $venvPython -m flatten benchmark --catalog (Join-Path $repo "benchmarks/projects.csv") --out-json $benchmarkJson --out-md $benchmarkMd | Out-Host
-Assert-LastExitCode "flatten benchmark"
-
-Write-Host "release gate passed"
+from flatten.finals import 
