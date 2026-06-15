@@ -9,6 +9,8 @@ from flatten.contracts import TransformPlan
 
 
 class PositionRewriteTransformer(cst.CSTTransformer):
+    """LibCST transformer that applies TransformPlan rewrites by source position."""
+
     METADATA_DEPENDENCIES = (PositionProvider,)
 
     def __init__(self, plans: list[TransformPlan]) -> None:
@@ -30,10 +32,15 @@ class PositionRewriteTransformer(cst.CSTTransformer):
                 and plan.target_call_site is not None
                 and plan.target_call_site.line == position.start.line
                 and len(updated.body) == 1
-                and isinstance(updated.body[0], cst.Return)
                 and plan.temp_receiver
                 and plan.receiver_expr
+                and isinstance(
+                    updated.body[0],
+                    (cst.Return, cst.Assign, cst.AnnAssign, cst.Expr),
+                )
             ):
+                # leave_Call has already replaced the call with plan.replacement.
+                # Insert the temp-receiver assignment on the preceding line.
                 assignment = cst.SimpleStatementLine(
                     [
                         cst.Assign(
@@ -46,10 +53,7 @@ class PositionRewriteTransformer(cst.CSTTransformer):
                         )
                     ]
                 )
-                rewritten_return = updated.with_changes(
-                    body=[updated.body[0].with_changes(value=plan.replacement)]
-                )
-                return cst.FlattenSentinel([assignment, rewritten_return])
+                return cst.FlattenSentinel([assignment, updated])
         return updated
 
     def leave_Call(self, original: cst.Call, updated: cst.Call) -> cst.BaseExpression:
@@ -65,5 +69,6 @@ class PositionRewriteTransformer(cst.CSTTransformer):
 
 
 def rewrite_source_with_plan(source: str, plans: list[TransformPlan]) -> str:
+    """Apply a list of TransformPlan rewrites to Python source and return the result."""
     wrapper = MetadataWrapper(cst.parse_module(source))
     return wrapper.visit(PositionRewriteTransformer(plans)).code

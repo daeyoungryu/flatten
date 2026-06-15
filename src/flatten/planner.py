@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import replace
@@ -10,10 +11,73 @@ import libcst as cst
 
 from flatten.collapse import collapse_source
 from flatten.confidence import confidence_score
-from flatten.contracts import CallSite, ClosureVerdict, RewriteDecision, TransformPlan
+from flatten.contracts import (
+    CallSite,
+    ClosureStatus,
+    ClosureVerdict,
+    RewriteDecision,
+    TransformPlan,
+)
 from flatten.observations import ObservationRecord, observation_type_name
 from flatten.proofs import classify_rewrite_decision
 from flatten.transformer import rewrite_source_with_plan
+
+# Conservatism order for verdict collision resolution (lower = more conservative).
+_CONSERVATISM_RANK: dict[ClosureStatus, int] = {
+    ClosureStatus.UNSAFE: 0,
+    ClosureStatus.OPEN: 1,
+    ClosureStatus.UNKNOWN: 2,
+    ClosureStatus.PROBABLY_CLOSED: 3,
+    ClosureStatus.CLOSED: 4,
+}
+
+
+def _most_conservative(a: ClosureVerdict, b: ClosureVerdict) -> ClosureVerdict:
+    """Return the more conservative of two verdicts for the same method_qualname."""
+    a_rank = _CONSERVATISM_RANK.get(a.status) if a.status is not None else 2
+    b_rank = _CONSERVATISM_RANK.get(b.status) if b.status is not None else 2
+    a_rank = a_rank if a_rank is not None else 2
+    b_rank = b_rank if b_rank is not None else 2
+    return a if a_rank <= b_rank else b
+
+
+class EvaluationSafety:
+    """Determines safe rewrite strategy for a call site, enforcing the SI invariant.
+
+    Strategy selection table:
+    | receiver         | impls | context                    | strategy     |
+    |-----------------|-------|----------------------------|-------------|
+    | pure identifier | 1     | any                        | direct      |
+    | pure identifier | ≥2    | any                        | guarded     |
+    | non-identifier  | 1     | any                        | direct      |
+    | non-identifier  | ≥2    | return/assign/expr_stmt    | guarded_temp|
+    | non-identifier  | ≥2    | comprehension/lambda/other | REFUSE      |
+
+    No guarded_temp → guarded fallback for non-identifier receivers.
+    Non-identifier + ≥2 impls + unsafe context → REFUSED_RECEIVER_REEVAL.
+    """
+
+    REFUSED_RECEIVER_REEVAL = "REFUSED_RECEIVER_REEVAL"
+
+    def __init__(
+        self, site: CallSite, receiver_types: list[str], source: str
+    ) -> None:
+        self._site = site
+        self._n_impls = len(receiver_types)
+        self._source = source
+
+    def must_refuse(self) -> bool:
+        """True when rewriting would re-evaluate the receiver expression."""
+        if self._n_impls <= 1 or self._site.receiver_expr.isidentifier():
+            return False
+        return _is_call_site_in_comprehension_or_lambda(self._source, self._site)
+
+    def strategy(self) -> str:
+        if self._n_impls == 1:
+            return "direct"
+        if self._site.receiver_expr.isidentifier():
+            return "guarded"
+        return "guarded_temp"
 
 REWRITE_WARNING = (
     "# flatten: observed-based guess; unobserved implementations may exist"
@@ -102,10 +166,27 @@ class RewritePlanner:
     ) -> list[TransformPlan]:
         if not self.opt_in:
             return []
-        decisions = {
-            decision.method_qualname: decision for decision in self.decide(verdicts)
-        }
-        verdict_by_method = {verdict.method_qualname: verdict for verdict in verdicts}
+
+        # Phase 2: conservative verdict merge — same method_qualname → pick least permissive.
+        verdict_by_method: dict[str, ClosureVerdict] = {}
+        colliding_keys: set[str] = set()
+        for v in verdicts:
+            key = v.method_qualname
+            if key in verdict_by_method:
+                colliding_keys.add(key)
+                verdict_by_method[key] = _most_conservative(verdict_by_method[key], v)
+            else:
+                verdict_by_method[key] = v
+
+        decisions: dict[str, RewriteDecision] = {}
+        for v in verdict_by_method.values():
+            d = _with_proof(RewriteDecision.from_verdict(v))
+            if v.method_qualname in colliding_keys:
+                d = replace(
+                    d,
+                    message=f"{d.message} CONFLICTING_VERDICTS_RESOLVED_CONSERVATIVE",
+                )
+            decisions[v.method_qualname] = d
 
         observations_by_site: dict[str, list[ObservationRecord]] = defaultdict(list)
         for record in observations:
@@ -125,8 +206,8 @@ class RewritePlanner:
             site_verdicts = [
                 verdict_by_method[key] for key in method_keys if key in verdict_by_method
             ]
-            if not site_verdicts or len(site_verdicts) != len(method_keys):
-                continue  # some observed override has no verdict
+            if not site_verdicts:
+                continue
 
             site_decisions = [decisions.get(v.method_qualname) for v in site_verdicts]
             if any(
@@ -149,20 +230,23 @@ class RewritePlanner:
             )
             if not receiver_types:
                 continue
-            strategy = "direct" if len(receiver_types) == 1 else "guarded"
+
+            # Phase 1: EvaluationSafety — refuse sites that would violate SI.
+            eval_safety = EvaluationSafety(site, receiver_types, source)
+            if eval_safety.must_refuse():
+                # Non-identifier receiver + ≥2 impls + comprehension/lambda → REFUSE.
+                # Rewriting would re-evaluate the receiver, violating SI evaluation-count.
+                continue
+
+            strategy = eval_safety.strategy()
             temp_receiver = ""
             receiver_expr = ""
             receiver_override = None
-            # P0-3b-안전: comprehension/lambda 컨텍스트에서는 guarded_temp 금지
-            if (
-                len(receiver_types) > 1
-                and not site.receiver_expr.isidentifier()
-                and not _is_call_site_in_comprehension_or_lambda(source, site)
-            ):
-                strategy = "guarded_temp"
-                temp_receiver = f"_flatten_receiver_{len(plans) + 1}"
+            if strategy == "guarded_temp":
+                temp_receiver = _unique_temp_name(source, len(plans))
                 receiver_expr = site.receiver_expr
                 receiver_override = temp_receiver
+
             replacement = _replacement_for_site(
                 source,
                 site,
@@ -187,7 +271,6 @@ class RewritePlanner:
             )
 
         return plans
-        return plans
 
 
 def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> bool:
@@ -198,32 +281,36 @@ def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> boo
         wrapper = MetadataWrapper(module)
     except Exception:
         return False
-    
+
     unsafe_ranges: list[tuple[int, int, int, int]] = []
-    
+
     class ComprehensionVisitor(cst.CSTVisitor):
         METADATA_DEPENDENCIES = (PositionProvider,)
-        
+
         def visit_CompFor(self, node: cst.CompFor) -> None:
             try:
                 pos = self.get_metadata(PositionProvider, node)
-                unsafe_ranges.append((pos.start.line, pos.start.column, pos.end.line, pos.end.column))
+                unsafe_ranges.append(
+                    (pos.start.line, pos.start.column, pos.end.line, pos.end.column)
+                )
             except Exception:
                 pass
-        
+
         def visit_Lambda(self, node: cst.Lambda) -> None:
             try:
                 pos = self.get_metadata(PositionProvider, node)
-                unsafe_ranges.append((pos.start.line, pos.start.column, pos.end.line, pos.end.column))
+                unsafe_ranges.append(
+                    (pos.start.line, pos.start.column, pos.end.line, pos.end.column)
+                )
             except Exception:
                 pass
-    
+
     try:
         visitor = ComprehensionVisitor()
         wrapper.visit(visitor)
     except Exception:
         return False
-    
+
     site_line, site_col = site.line, site.column
     for start_line, start_col, end_line, end_col in unsafe_ranges:
         if start_line <= site_line <= end_line:
@@ -234,6 +321,14 @@ def _is_call_site_in_comprehension_or_lambda(source: str, site: CallSite) -> boo
             if site_line == end_line and site_col <= end_col:
                 return True
     return False
+
+
+def _unique_temp_name(source: str, plan_count: int) -> str:
+    """Return a temp-receiver name that does not appear anywhere in source."""
+    n = plan_count + 1
+    while f"_flatten_receiver_{n}" in source:
+        n += 1
+    return f"_flatten_receiver_{n}"
 
 
 def _with_proof(decision: RewriteDecision) -> RewriteDecision:
@@ -310,8 +405,10 @@ def _observation_method_qualname(record: ObservationRecord) -> str:
     return text.rsplit(".", 2)[-2] + "." + text.rsplit(".", 1)[-1]
 
 
-def _call_at_site(source: str, site: CallSite) -> cst.Call:
-    from flatten.discovery import discover_call_sites
+@functools.lru_cache(maxsize=32)
+def _parsed_calls_and_sites(source: str, filename: str) -> tuple[list[cst.Call], list[CallSite]]:
+    """Parse source once and return (attribute-calls, discovered call sites) cached by content."""
+    from flatten.discovery import discover_call_sites as _discover
 
     module = cst.parse_module(source)
     found: list[cst.Call] = []
@@ -324,7 +421,12 @@ def _call_at_site(source: str, site: CallSite) -> cst.Call:
                 found.append(node)
 
     module.visit(Finder())
-    sites = discover_call_sites(source, filename=site.filename)
+    sites = _discover(source, filename=filename)
+    return found, sites
+
+
+def _call_at_site(source: str, site: CallSite) -> cst.Call:
+    found, sites = _parsed_calls_and_sites(source, site.filename)
     for candidate, candidate_site in zip(found, sites, strict=True):
         same_id = candidate_site.call_site_id == site.call_site_id
         same_position = (
