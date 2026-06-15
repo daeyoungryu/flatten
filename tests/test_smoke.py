@@ -1,6 +1,12 @@
 """Smoke test: import + basic function call."""
 
 import json
+from pathlib import Path
+
+try:
+    import tomllib
+except ImportError:  # Python 3.10
+    import tomli as tomllib  # type: ignore[no-redef]
 
 import flatten
 from flatten.cli import main
@@ -10,7 +16,9 @@ from flatten.tracer import Tracer
 
 
 def test_version():
-    assert flatten.__version__ == "0.1.1"
+    project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]
+
+    assert flatten.__version__ == project["version"]
 
 
 def test_closure_verdict_status():
@@ -38,3 +46,17 @@ def test_tracer_context_manager():
     with tracer:
         pass
     assert isinstance(tracer.records, list)
+
+
+def test_main_module_entry_point():
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-m", "flatten", "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert "flatten" in result.stdout.lower()

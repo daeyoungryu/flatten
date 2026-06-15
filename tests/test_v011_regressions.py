@@ -20,8 +20,8 @@ from flatten.tracer import Tracer
 def test_v011_version_metadata_is_consistent():
     pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
 
-    assert flatten.__version__ == "0.2.0"
-    assert 'version = "0.2.0"' in pyproject
+    assert flatten.__version__ == "0.2.1"
+    assert 'version = "0.2.1"' in pyproject
 
 
 def test_flatten_polymorph_module_help_matches_flatten_help():

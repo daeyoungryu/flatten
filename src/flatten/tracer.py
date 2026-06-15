@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import dis
 import linecache
 import sys
 import weakref
@@ -83,6 +84,7 @@ class Tracer:
         self._pending: dict[int, PendingCall] = {}
         self._monitoring_frames: dict[int, Any] = {}
         self._tool_id: int | None = None
+        self._scope_depth = 0
 
     def start(self) -> None:
         if self._active:
@@ -95,14 +97,14 @@ class Tracer:
             monitoring.register_callback(self._tool_id, ev.PY_RETURN, self._on_py_return)
             monitoring.register_callback(self._tool_id, ev.PY_UNWIND, self._on_py_unwind)
             # PY_UNWIND is global-only (not valid for set_local_events).
-            # PY_START/PY_RETURN are set locally when we have a target to avoid
-            # spurious callbacks for every other function in the program.
+            # In target mode callbacks are global, but _should_record gates
+            # recording to the target call tree so dispatch inside the entry
+            # function is observed without per-call monitoring reconfiguration.
             monitoring.set_events(self._tool_id, ev.PY_UNWIND)
             if self._target_code is not None:
-                monitoring.set_local_events(
+                monitoring.set_events(
                     self._tool_id,
-                    self._target_code,
-                    ev.PY_START | ev.PY_RETURN,
+                    ev.PY_START | ev.PY_RETURN | ev.PY_UNWIND,
                 )
             else:
                 monitoring.set_events(
@@ -132,6 +134,7 @@ class Tracer:
             sys.settrace(None)
         self._pending.clear()
         self._monitoring_frames.clear()
+        self._scope_depth = 0
         self._active = False
 
     def _on_py_start(self, code: Any, instruction_offset: int) -> None:
@@ -140,6 +143,7 @@ class Tracer:
         frame = self._find_frame_for_code(code)
         if frame is None:
             return None
+        self._enter_scope_for(code)
         self._monitoring_frames[id(frame)] = frame
         self._record_call(frame)
         return None
@@ -152,6 +156,7 @@ class Tracer:
             return None
         self._monitoring_frames.pop(id(frame), None)
         self._record_return(frame, return_val)
+        self._leave_scope_for(code)
         return None
 
     def _on_py_unwind(self, code: Any, instruction_offset: int, exception: Any) -> None:
@@ -162,6 +167,7 @@ class Tracer:
             return None
         self._monitoring_frames.pop(id(frame), None)
         self._flush_pending_as_exception(frame)
+        self._leave_scope_for(code)
         return None
 
     def _flush_pending_as_exception(self, frame: Any) -> None:
@@ -187,7 +193,19 @@ class Tracer:
     def _should_record(self, code: Any) -> bool:
         if self._target_code is None:
             return True
-        return code is self._target_code
+        return code is self._target_code or self._scope_depth > 0
+
+    def _enter_scope_for(self, code: Any) -> None:
+        if self._target_code is None:
+            return
+        if code is self._target_code or self._scope_depth > 0:
+            self._scope_depth += 1
+
+    def _leave_scope_for(self, code: Any) -> None:
+        if self._target_code is None:
+            return
+        if code is self._target_code or self._scope_depth > 0:
+            self._scope_depth = max(0, self._scope_depth - 1)
 
     def _find_frame_for_code(self, code: Any) -> FrameType | None:
         # In monitoring callbacks the monitored frame is the direct caller (depth 1).
@@ -282,9 +300,15 @@ class Tracer:
 
     def _settrace_handler(self, frame: Any, event: str, arg: Any) -> Any:
         if event == "call":
+            code = getattr(frame, "f_code", None)
+            if code is not None and self._should_record(code):
+                self._enter_scope_for(code)
             self._record_call(frame)
         elif event == "return":
             self._record_return(frame, arg)
+            code = getattr(frame, "f_code", None)
+            if code is not None:
+                self._leave_scope_for(code)
         elif event == "exception":
             self._flush_pending_as_exception(frame)
         return self._settrace_handler
@@ -312,6 +336,8 @@ def unwrap(func: Any) -> Any:
 _ast_cache: dict[str, ast.Module] = {}
 # Module-level position cache: (filename, lineno) -> (col_offset, end_col_offset)
 _position_cache: dict[tuple[str, int], tuple[int, int]] = {}
+# Module-level bytecode position cache: (id(code), f_lasti, lineno) -> columns or None
+_bytecode_position_cache: dict[tuple[int, int, int], tuple[int, int] | None] = {}
 
 
 def _parse_file(filename: str) -> ast.Module | None:
@@ -341,6 +367,9 @@ def _caller_position(frame: Any | None) -> tuple[int, int, int]:
     lineno = int(getattr(frame, "f_lineno", 0))
     if getattr(frame, "f_lasti", None) is None:
         return lineno, -1, -1
+    bytecode_position = _bytecode_call_position(frame, lineno)
+    if bytecode_position is not None:
+        return lineno, bytecode_position[0], bytecode_position[1]
     src_filename: str = getattr(getattr(frame, "f_code", None), "co_filename", "") or ""
     if not src_filename:
         return lineno, -1, -1
@@ -367,6 +396,36 @@ def _caller_position(frame: Any | None) -> tuple[int, int, int]:
     result = (-1 if col is None else col, -1 if end_col is None else end_col)
     _position_cache[cache_key] = result
     return lineno, result[0], result[1]
+
+
+def _bytecode_call_position(frame: Any, lineno: int) -> tuple[int, int] | None:
+    f_lasti = getattr(frame, "f_lasti", None)
+    code = getattr(frame, "f_code", None)
+    if f_lasti is None or code is None:
+        return None
+    cache_key = (id(code), int(f_lasti), lineno)
+    if cache_key in _bytecode_position_cache:
+        return _bytecode_position_cache[cache_key]
+    call_position: tuple[int, int] | None = None
+    try:
+        instructions = dis.get_instructions(code)
+    except TypeError:
+        return None
+    for instruction in instructions:
+        if instruction.offset > f_lasti:
+            break
+        if "CALL" not in instruction.opname:
+            continue
+        positions = getattr(instruction, "positions", None)
+        if positions is None or positions.lineno != lineno:
+            continue
+        col = positions.col_offset
+        end_col = positions.end_col_offset
+        if col is None or end_col is None:
+            continue
+        call_position = (col, end_col)
+    _bytecode_position_cache[cache_key] = call_position
+    return call_position
 
 
 @contextmanager

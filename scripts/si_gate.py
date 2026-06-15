@@ -20,7 +20,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 _ROOT = Path(__file__).parent.parent
 _REGRESSION_FILE = _ROOT / "tests" / "test_si_regressions.py"
 
