@@ -88,6 +88,12 @@ Last updated: 2026-06-15
   _caller_position cache, normalize_filename lru_cache), Phase 4 hygiene
   (capture_values default False, ruff clean, mypy clean). 223 passed.
 
+- v0.2.1 SI hardening pass (2026-06-15): fixed RP (receiver-pinning: refuse
+  direct when receiver is a function parameter), SE (single-evaluation: refuse
+  guarded_temp in if/while/assert unhoistable contexts), P2 tracer
+  (dispatch_records property + OracleRecord.outcome sentinel). 8/8 SI gate
+  tests pass. Branch: fix/si-hardening.
+
 ## Remaining
 
 - No requested v0.1.1 defect item remains.

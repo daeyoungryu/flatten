@@ -60,7 +60,10 @@ def main() -> int:
             file=sys.stderr,
         )
         print("Fix: add 'if not pending.is_dispatch_target: return' to", file=sys.stderr)
-        print("     _record_return() and _flush_pending_as_exception() in tracer.py", file=sys.stderr)
+        print(
+            "     _record_return() and _flush_pending_as_exception() in tracer.py",
+            file=sys.stderr,
+        )
         return 1
 
     print(f"\nPASS: only dispatch records stored ({dispatch} record(s)).")

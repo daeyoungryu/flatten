@@ -24,4 +24,4 @@ def test_wheel_filename_pattern_after_build(tmp_path):
     assert result.returncode == 0, result.stderr
     wheels = list(tmp_path.glob("*.whl"))
     assert len(wheels) == 1
-    assert re.fullmatch(r"flatten_polymorph-0\.2\.0-py3-none-any\.whl", wheels[0].name)
+    assert re.fullmatch(r"flatten_polymorph-0\.2\.1-py3-none-any\.whl", wheels[0].name)

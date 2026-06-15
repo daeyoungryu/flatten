@@ -195,6 +195,45 @@ def test_trace_calls_does_not_record_unrelated_method_with_same_name():
     assert recorded == [C]
 
 
+def test_tracer_target_records_dispatch_inside_target_scope():
+    class Worker:
+        def work(self):
+            return "done"
+
+    def use_worker():
+        return Worker().work()
+
+    tracer = Tracer(target=use_worker)
+    with tracer:
+        assert use_worker() == "done"
+
+    dispatch_records = [
+        record for record in tracer.records if record.qualname.endswith("Worker.work")
+    ]
+    assert len(dispatch_records) == 1
+    assert dispatch_records[0].impl_class is Worker
+
+
+def test_tracer_target_records_raising_dispatch_inside_target_scope():
+    class Worker:
+        def work(self):
+            raise ValueError("boom")
+
+    def use_worker():
+        return Worker().work()
+
+    tracer = Tracer(target=use_worker)
+    with tracer:
+        try:
+            use_worker()
+        except ValueError:
+            pass
+
+    record = next(record for record in tracer.records if record.qualname.endswith("Worker.work"))
+    assert record.impl_class is Worker
+    assert record.outcome == "raise"
+
+
 def test_caller_position_handles_missing_and_current_frames():
     import sys
 

@@ -68,3 +68,19 @@ touch src/flatten/모듈.py
 # 3. 전체 테스트
 python -m pytest tests/ -x -q 2>&1 | tail -3
 ```
+
+---
+
+## Git 워크플로우 규칙
+
+- 어떤 작업이 완료되면 반드시 `git add -A && git commit && git push`를 수행한다
+- `git status`는 항상 clean 상태를 유지한다
+- commit 전에 오류/경고가 있다면 오류 내용을 commit 메시지 본문(body)에 포함시킨다:
+  ```
+  feat: 기능 구현
+
+  [오류/경고 기록]
+  - lint warning: xxx
+  - test failure: yyy (known issue, tracked)
+  ```
+- 오류가 있더라도 push를 생략하지 않는다. 오류는 기록해서 남긴다

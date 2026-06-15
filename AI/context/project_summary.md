@@ -160,9 +160,24 @@ Use:
 & 'C:\Users\Com\AppData\Local\Programs\Python\Python312\python.exe' -m mypy .
 ```
 
-Current local result: full regression suite reports 214 passed. Ruff passes,
-`python -m mypy .` reports success for 23 source files, and
-`scripts/release_gate.ps1` exits with `release gate passed`.
+Current local result: full regression suite reports 243 passed, 1 pre-existing
+failure (test_trace_binds_same_line_multiple_calls_by_runtime_column). Ruff
+passes, `python -m mypy --strict src/flatten/` reports success for 25 source
+files. SI gate 8/8 passes on branch `fix/si-hardening`.
+
+v0.2.1 SI hardening (2026-06-15):
+
+- RP fix: `planner.py` refuses `direct` strategy when receiver is an
+  identifier that names a function parameter; `_is_receiver_a_function_parameter()`
+  uses AST to distinguish pinned locals from unpinned parameters.
+- SE fix: `_is_call_site_in_unhoistable_context()` extends refusal to
+  `if`/`while` conditions and `assert` statements where LibCST cannot hoist
+  a temp receiver assignment.
+- P2 fix: `OracleRecord` gains a non-field `outcome` attribute (`"raise"` or
+  `"return"`) set in `__post_init__` via `_RAISE_SENTINEL` sentinel detection.
+- P2 fix: `Tracer.dispatch_records` property filters `tracer.records` to
+  dispatch-only (`is_dispatch_target=True`) without disturbing backward-
+  compatible full records list.
 
 External blockers: hosted GitHub Actions requires access to GitHub Actions or
 an installed/authenticated `gh` CLI; mutation testing requires Linux/WSL because
@@ -237,3 +252,18 @@ Phase 3 pass. The built-wheel release gate now lives in
 completeness now yields `PROBABLY_CLOSED` unless positive CLOSED evidence
 exists, and guarded dispatch rewrites fall back to the original dynamic method
 call for unmatched receiver types.
+
+## AST Migration Pass (2026-06-15)
+
+Replaced all `dis` bytecode analysis with `ast`-based analysis for Python 3.8+
+compatibility and stability:
+
+- `tracer.py`: `_caller_position()` now uses `linecache + ast.parse` with a
+  module-level `_ast_cache`. Removed `import dis`.
+- `closure.py`: `_check_os3`, `_check_os4`, `_state_read_evidence`, and
+  `_method_dynamic_hazards` now use `ast.walk` with `ast.Name`/`ast.Attribute`
+  context checks. Added `_get_method_ast()` helper.
+- `tests/test_tracer.py`: 3 bytecode-parametrized tests replaced with 2
+  AST-based tests using `tmp_path` source files.
+- Result: 220 passed, 1 skipped. whl rebuilt as
+  `dist/flatten_polymorph-0.1.1-py3-none-any.whl`.

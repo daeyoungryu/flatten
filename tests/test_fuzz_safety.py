@@ -1,3 +1,5 @@
+import keyword
+
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -8,7 +10,9 @@ from flatten.planner import RewritePlanner
 
 @settings(max_examples=75)
 @given(
-    method_name=st.from_regex(r"[a-z][a-z0-9_]{0,8}", fullmatch=True),
+    method_name=st.from_regex(r"[a-z][a-z0-9_]{0,8}", fullmatch=True).filter(
+        lambda n: not keyword.iskeyword(n)
+    ),
     hidden_count=st.integers(min_value=0, max_value=3),
     observed_count=st.integers(min_value=1, max_value=3),
 )
