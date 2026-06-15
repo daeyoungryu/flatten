@@ -55,7 +55,7 @@ def test_a1_tracer_paths_create_same_oracle_record_shape():
             return value + 1
 
     worker = Worker()
-    with trace_calls(worker.run) as tracer:
+    with trace_calls(worker.run, capture_values=True) as tracer:
         worker.run(2)
 
     record = next(r for r in tracer.records if r.qualname.endswith("Worker.run"))
