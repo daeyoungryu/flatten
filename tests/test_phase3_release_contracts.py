@@ -69,7 +69,7 @@ def test_phase3_packaging_metadata_and_typed_markers():
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
     project = pyproject["project"]
     assert project["name"] == "flatten-polymorph"
-    assert project["requires-python"] == ">=3.10"
+    assert project["requires-python"] == ">=3.8"
     assert project["license"] == "MIT"
     assert "License :: OSI Approved :: MIT License" in project["classifiers"]
     assert pyproject["project"]["scripts"]["flatten"] == "flatten.cli:main"
@@ -93,7 +93,7 @@ def test_phase3_ci_matrix_and_smoke_jobs_are_fixed():
         matrix = job.get("strategy", {}).get("matrix", {})
         if matrix:
             assert matrix["os"] == ["windows-latest", "ubuntu-latest"]
-            assert matrix["python-version"] == ["3.10", "3.12"]
+            assert matrix["python-version"] == ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
 
 def test_phase3_examples_have_required_directories_and_scripts():

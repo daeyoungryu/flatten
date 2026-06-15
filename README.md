@@ -1,6 +1,6 @@
 # flatten-polymorph
 
-`flatten-polymorph` is an experimental Python 3.10+ library for turning positively closed polymorphic method calls into explicit direct calls or guarded dispatch expressions.
+`flatten-polymorph` is an experimental Python 3.8+ library for turning positively closed polymorphic method calls into explicit direct calls or guarded dispatch expressions.
 
 The package is intentionally conservative. Observation is evidence, not proof. A rewrite is emitted only when the call site, observed implementation set, and closure verdict agree that the target is closed. The default policy is safe reject: when closure is unclear, the tool refuses to rewrite.
 
@@ -32,7 +32,8 @@ Import names:
 - Implementation import and CLI module: `flatten`
 - Compatibility shim: `flatten_polymorph`
 
-Supported Python versions: 3.10 minimum, 3.12 recommended.
+Supported Python versions: 3.8 minimum. Python 3.12+ uses `sys.monitoring`;
+Python 3.8 through 3.11 use the `sys.settrace` fallback.
 
 ## When Rewrite Is Allowed
 
