@@ -452,3 +452,37 @@ Impact: `benchmarks/cases/*.json`, `benchmarks.runner`, benchmark metrics and
 Markdown report generation, `benchmarks/baseline.json`,
 `tools/check_evidence.py`, `docs/SOUNDNESS.md`, project audit docs, README
 instructions, and CI artifact upload now form the safety evidence pipeline.
+
+## DEC-037 | 2026-06-15 | AST Replaces Bytecode for Position and Closure Analysis
+
+Decision: Replace all `dis.get_instructions()` usage in `tracer.py` and
+`closure.py` with `ast.walk()` + `ast.parse()`.
+
+Reason: Bytecode attributes (`instruction.positions`, `STORE_DEREF`,
+`STORE_ATTR`) are version-specific (Python 3.11+ for positions) and fragile
+across CPython minor releases. AST nodes carry `lineno`, `col_offset`,
+`end_lineno`, `end_col_offset` on Python 3.8+ and are stable across versions.
+
+Impact: `_caller_position()` now uses `linecache` + `ast.parse` with a
+module-level `_ast_cache`. Closure checks (`_check_os3`, `_check_os4`,
+`_state_read_evidence`, `_method_dynamic_hazards`) use `ast.Name`/`ast.Attribute`
+context checks. Tests updated: 3 parametrized bytecode tests replaced by
+2 AST-based tests using `tmp_path`. Result: 220 passed, 1 skipped.
+
+## DEC-038 | 2026-06-15 | 0.2.0 Soundness Invariant Enforcement
+
+Decision: Add EvaluationSafety (planner), conservative verdict merge, guarded_temp
+all-context hoisting, Hypothesis fuzz (500 examples), and OSS corpus analysis (10
+stdlib modules, 1277 call sites) as preconditions for the 0.2.0 release.
+
+Reason: Three SI regression tests (RED in 0.1.3) confirmed that: (a) non-identifier
+receivers in comprehensions/lambdas were not refused, (b) verdict collision was
+last-wins (not conservative), and (c) guarded_temp hoisting only worked for return
+statements. Each defect could cause transformed code to violate the SI.
+
+Impact: `planner.py` adds `EvaluationSafety` (refuses comprehension/lambda sites for
+non-identifier receivers with ≥2 impls), `_most_conservative` verdict merge, and
+`_unique_temp_name`. `transformer.py` extends `leave_SimpleStatementLine` to handle
+Return/Assign/AnnAssign/Expr contexts. `tests/regression/` has 5 new regression
+tests. `tests/fuzz/test_si_property.py` has 500-example Hypothesis property tests.
+`AI/reviews/0.2.0/` holds evidence artifacts. Result: 235 passed, 1 pre-existing failure.

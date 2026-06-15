@@ -1,0 +1,178 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Com\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: C:\Users\Com\Documents\Claude\Projects\flatten
+configfile: pyproject.toml
+plugins: anyio-4.7.0, hypothesis-6.155.2, asyncio-1.4.0, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 6 items
+
+tests/regression/test_si_receiver_multi_eval.py::test_si_receiver_multi_eval_refused FAILED [ 16%]
+tests/regression/test_verdict_key_collision.py::test_collision_open_then_closed_gives_zero_plans FAILED [ 33%]
+tests/regression/test_verdict_key_collision.py::test_collision_closed_then_open_gives_zero_plans PASSED [ 50%]
+tests/regression/test_guarded_temp_statement_contexts.py::test_case_a_return_gets_guarded_temp PASSED [ 66%]
+tests/regression/test_guarded_temp_statement_contexts.py::test_case_b_assign_gets_guarded_temp FAILED [ 83%]
+tests/regression/test_guarded_temp_statement_contexts.py::test_case_c_expr_stmt_gets_guarded_temp FAILED [100%]
+
+================================== FAILURES ===================================
+_____________________ test_si_receiver_multi_eval_refused _____________________
+
+    def test_si_receiver_multi_eval_refused() -> None:
+        """Non-identifier receiver with ¡Ã2 impls inside list comprehension ¡æ 0 plans.
+    
+        The receiver nxt(i) has side effects. A guarded rewrite would evaluate it
+        multiple times, violating the SI evaluation-count invariant.
+        """
+        A_cls, B_cls = _exec_classes(SRC)
+        sites = discover_call_sites(SRC, filename="<test>")
+        run_site = next(s for s in sites if s.method_name == "run")
+    
+        assert not run_site.receiver_expr.isidentifier(), (
+            f"Precondition: receiver '{run_site.receiver_expr}' should be non-identifier"
+        )
+    
+        checker = ClosureChecker(ClosureConfig(closed_world=True))
+        verdict_a = checker.check("A.run", [A_cls, B_cls])
+        verdict_b = checker.check("B.run", [A_cls, B_cls])
+    
+        def _obs(qualname: str, cls_name: str, order: int) -> ObservationRecord:
+            return ObservationRecord(
+                call_site_id=run_site.call_site_id,
+                receiver_type=TypeRef(module="", qualname=cls_name, file=None, is_builtin=False),
+                resolved_function=FunctionRef(
+                    module="", qualname=qualname, file=None, firstlineno=None
+                ),
+                method_name="run",
+                frame_module="",
+                order=order,
+                qualname=qualname,
+            )
+    
+        observations = [_obs("A.run", "A", 1), _obs("B.run", "B", 2)]
+        planner = RewritePlanner(opt_in=True)
+        plans = planner.plan_from_observations(
+            SRC, sites, observations, [verdict_a, verdict_b]
+        )
+    
+>       assert len(plans) == 0, (
+            f"Expected 0 plans \u2014 receiver re-evaluation would violate SI. "
+            f"Got {len(plans)} plan(s) with strategies: {[p.strategy for p in plans]}"
+        )
+E       AssertionError: Expected 0 plans \u2014 receiver re-evaluation would violate SI. Got 1 plan(s) with strategies: ['guarded']
+E       assert 1 == 0
+E        +  where 1 = len([TransformPlan(target_node=None, replacement=IfExp(\n    test=Call(\n        func=Name(\n            value='isinstance',\n            lpar=[],\n            rpar=[],\n        ),\n        args=[\n            Arg(\n                value=Call(\n                    func=Name(\n                        value='nxt',\n                        lpar=[],\n                        rpar=[],\n                    ),\n                    args=[\n                        Arg(\n                            value=Name(\n                                value='i',\n                                lpar=[],\n                                rpar=[],\n                            ),\n                            keyword=None,\n                            equal=MaybeSentinel.DEFAULT,\n                            comma=MaybeSentinel.DEFAULT,\n                            star='',\n                            whitespace_after_star=SimpleWhitespace(\n                                value='',\n                            ),\n                            whitespace_after_arg=SimpleWhitespace(\n                                value='',\n                            ),\n                        ),\n                    ],\n                    lpar=[],\n     ...,\n    rpar=[],\n    whitespace_before_if=SimpleWhitespace(\n        value=' ',\n    ),\n    whitespace_after_if=SimpleWhitespace(\n        value=' ',\n    ),\n    whitespace_before_else=SimpleWhitespace(\n        value=' ',\n    ),\n    whitespace_after_else=SimpleWhitespace(\n        value=' ',\n    ),\n), verdict=ClosureVerdict(method_qualname='A.run', is_closed=True, known_impls=[<class 'A'>, <class 'B'>], open_signals=[], signal='CLOSED', rationale='typing.final class or method', status=<ClosureStatus.CLOSED: 'closed'>, confidence=0.0, reasons=('typing.final class or method',), blockers=(), evidence=('checked free variables', 'checked closure cells', 'checked nonlocal writes', 'checked instance attribute writes', 'checked runtime subclasses')), rationale='typing.final class or method', target_range='14:15-14:28', target_call_site=CallSite(call_site_id='C:/Users/Com/Documents/Claude/Projects/flatten/<test>:14:15-14:28', filename='C:/Users/Com/Documents/Claude/Projects/flatten/<test>', line=14, column=15, end_line=14, end_column=28, qualified_name='nxt(i).run', receiver_expr='nxt(i)', method_name='run'), strategy='guarded', confidence=0.95, risk_flags=[], temp_receiver='', receiver_expr='')])
+
+tests\regression\test_si_receiver_multi_eval.py:79: AssertionError
+______________ test_collision_open_then_closed_gives_zero_plans _______________
+
+    def test_collision_open_then_closed_gives_zero_plans() -> None:
+        """[verdict_open, verdict_closed] ¡æ 0 plans (conservative open wins).
+    
+        With last-wins bug: closed dict entry overwrites open ¡æ 1 plan emitted.
+        Expected behavior: open status is more conservative ¡æ 0 plans.
+        """
+        A_cls, B_cls, sites, obs = _setup()
+    
+        verdict_open = ClosureVerdict(
+            method_qualname="A.run",
+            known_impls=[A_cls, B_cls],
+            open_signals=["unobserved subclass"],
+            signal="OPEN",
+            status=ClosureStatus.OPEN,
+            rationale="unobserved subclass",
+            blockers=("unobserved subclass",),
+            is_closed=False,
+        )
+        verdict_closed = ClosureVerdict(
+            method_qualname="A.run",
+            known_impls=[A_cls, B_cls],
+            signal="CLOSED",
+            status=ClosureStatus.CLOSED,
+            rationale="typing.final class",
+            evidence=("checked final",),
+            is_closed=True,
+        )
+    
+        planner = RewritePlanner(opt_in=True)
+        plans = planner.plan_from_observations(
+            SRC, sites, obs, [verdict_open, verdict_closed]
+        )
+>       assert len(plans) == 0, (
+            f"Expected 0 plans when OPEN verdict conflicts with CLOSED for same method. "
+            f"Got {len(plans)} plan(s). Conservative verdict (OPEN) must win regardless of order."
+        )
+E       AssertionError: Expected 0 plans when OPEN verdict conflicts with CLOSED for same method. Got 1 plan(s). Conservative verdict (OPEN) must win regardless of order.
+E       assert 1 == 0
+E        +  where 1 = len([TransformPlan(target_node=None, replacement=Call(\n    func=Attribute(\n        value=Name(\n            value='A',\n            lpar=[],\n            rpar=[],\n        ),\n        attr=Name(\n            value='run',\n            lpar=[],\n            rpar=[],\n        ),\n        dot=Dot(\n            whitespace_before=SimpleWhitespace(\n                value='',\n            ),\n            whitespace_after=SimpleWhitespace(\n                value='',\n            ),\n        ),\n        lpar=[],\n        rpar=[],\n    ),\n    args=[\n        Arg(\n            value=Call(\n                func=Name(\n                    value='make',\n                    lpar=[],\n                    rpar=[],\n                ),\n                args=[],\n                lpar=[],\n                rpar=[],\n                whitespace_after_func=SimpleWhitespace(\n                    value='',\n                ),\n                whitespace_before_args=SimpleWhitespace(\n                    value='',\n                ),\n            ),\n            keyword=None,\n            equal=MaybeSentinel.DEFAULT,\n            comma=MaybeSentinel.DEFAULT,\n            star='',\n            whitespace_after_star=SimpleWhitespace(\n                value='',\n            ),\n            whitespace_after_arg=SimpleWhitespace(\n                value='',\n            ),\n        ),\n    ],\n    lpar=[],\n    rpar=[],\n    whitespace_after_func=SimpleWhitespace(\n        value='',\n    ),\n    whitespace_before_args=SimpleWhitespace(\n        value='',\n    ),\n), verdict=ClosureVerdict(method_qualname='A.run', is_closed=True, known_impls=[<class 'A'>, <class 'B'>], open_signals=[], signal='CLOSED', rationale='typing.final class', status=<ClosureStatus.CLOSED: 'closed'>, confidence=0.0, reasons=('typing.final class',), blockers=(), evidence=('checked final',)), rationale='typing.final class', target_range='11:8-11:20', target_call_site=CallSite(call_site_id='C:/Users/Com/Documents/Claude/Projects/flatten/<test>:11:8-11:20', filename='C:/Users/Com/Documents/Claude/Projects/flatten/<test>', line=11, column=8, end_line=11, end_column=20, qualified_name='make().run', receiver_expr='make()', method_name='run'), strategy='direct', confidence=0.95, risk_flags=[], temp_receiver='', receiver_expr='')])
+
+tests\regression\test_verdict_key_collision.py:87: AssertionError
+____________________ test_case_b_assign_gets_guarded_temp _____________________
+
+    def test_case_b_assign_gets_guarded_temp() -> None:
+        """x = make().run() \u2014 guarded_temp with hoisting (RED: assignment missing)."""
+        plans = _plans_for(SRC_ASSIGN)
+        assert len(plans) == 1, f"Expected 1 plan, got {len(plans)}"
+        assert plans[0].strategy == "guarded_temp", (
+            f"Expected guarded_temp, got {plans[0].strategy!r}"
+        )
+        result = rewrite_source_with_plan(SRC_ASSIGN, plans)
+>       assert "_flatten_receiver_1 = make()" in result, (
+            f"Temp-receiver hoisting missing from assign context. "
+            f"Rewritten source:\n{result}"
+        )
+E       AssertionError: Temp-receiver hoisting missing from assign context. Rewritten source:
+E         from typing import final
+E         @final
+E         class A:
+E             def run(self): return "A"
+E         @final
+E         class B:
+E             def run(self): return "B"
+E         def make():
+E             return A()
+E         def entry():
+E             x = A.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, A) else B.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, B) else _flatten_receiver_1.run()
+E             return x
+E         
+E       assert '_flatten_receiver_1 = make()' in 'from typing import final\n@final\nclass A:\n    def run(self): return "A"\n@final\nclass B:\n    def run(self): return "B"\ndef make():\n    return A()\ndef entry():\n    x = A.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, A) else B.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, B) else _flatten_receiver_1.run()\n    return x\n'
+
+tests\regression\test_guarded_temp_statement_contexts.py:113: AssertionError
+___________________ test_case_c_expr_stmt_gets_guarded_temp ___________________
+
+    def test_case_c_expr_stmt_gets_guarded_temp() -> None:
+        """make().run() (expression statement) \u2014 guarded_temp with hoisting (RED)."""
+        plans = _plans_for(SRC_EXPR)
+        assert len(plans) == 1, f"Expected 1 plan, got {len(plans)}"
+        assert plans[0].strategy == "guarded_temp", (
+            f"Expected guarded_temp, got {plans[0].strategy!r}"
+        )
+        result = rewrite_source_with_plan(SRC_EXPR, plans)
+>       assert "_flatten_receiver_1 = make()" in result, (
+            f"Temp-receiver hoisting missing from expr_stmt context. "
+            f"Rewritten source:\n{result}"
+        )
+E       AssertionError: Temp-receiver hoisting missing from expr_stmt context. Rewritten source:
+E         from typing import final
+E         _log = []
+E         @final
+E         class A:
+E             def run(self): _log.append("A")
+E         @final
+E         class B:
+E             def run(self): _log.append("B")
+E         def make():
+E             return A()
+E         def entry():
+E             A.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, A) else B.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, B) else _flatten_receiver_1.run()
+E             return _log[:]
+E         
+E       assert '_flatten_receiver_1 = make()' in 'from typing import final\n_log = []\n@final\nclass A:\n    def run(self): _log.append("A")\n@final\nclass B:\n    def run(self): _log.append("B")\ndef make():\n    return A()\ndef entry():\n    A.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, A) else B.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, B) else _flatten_receiver_1.run()\n    return _log[:]\n'
+
+tests\regression\test_guarded_temp_statement_contexts.py:127: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/regression/test_si_receiver_multi_eval.py::test_si_receiver_multi_eval_refused
+FAILED tests/regression/test_verdict_key_collision.py::test_collision_open_then_closed_gives_zero_plans
+FAILED tests/regression/test_guarded_temp_statement_contexts.py::test_case_b_assign_gets_guarded_temp
+FAILED tests/regression/test_guarded_temp_statement_contexts.py::test_case_c_expr_stmt_gets_guarded_temp
+========================= 4 failed, 2 passed in 1.05s =========================

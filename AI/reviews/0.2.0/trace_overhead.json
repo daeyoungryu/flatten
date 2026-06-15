@@ -1,0 +1,9 @@
+{
+  "baseline_us": 0.055,
+  "global_trace_us": 9.096,
+  "local_trace_us": 4.433,
+  "ratio_global": 164.7,
+  "ratio_local": 80.3,
+  "target_ratio": 40.0,
+  "passed": false
+}

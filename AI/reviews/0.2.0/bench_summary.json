@@ -1,0 +1,127 @@
+{
+  "version": "0.2.0",
+  "date": "2026-06-15",
+  "corpus": "Python 3.12 standard library",
+  "modules_tested": 10,
+  "total_call_sites": 1277,
+  "total_plans_emitted": 0,
+  "behavior_mismatches": 0,
+  "false_positives": 0,
+  "note": "No observations provided (no-trace mode) \u2014 planner correctly emits 0 plans for all modules. SI invariant trivially holds: no rewrites applied.",
+  "details": [
+    {
+      "module": "email",
+      "file": "charset.py",
+      "lines": 398,
+      "call_sites": 34,
+      "plans_emitted": 0,
+      "behavior_mismatches": 0,
+      "false_positives": 0,
+      "parse_ms": 64.6,
+      "status": "ok"
+    },
+    {
+      "module": "email.message",
+      "file": "message.py",
+      "lines": 1209,
+      "call_sites": 223,
+      "plans_emitted": 0,
+      "behavior_mismatches": 0,
+      "false_positives": 0,
+      "parse_ms": 221.6,
+      "status": "ok"
+    },
+    {
+      "module": "json.decoder",
+      "file": "decoder.py",
+      "lines": 357,
+      "call_sites": 25,
+      "plans_emitted": 0,
+      "behavior_mismatches": 0,
+      "false_positives": 0,
+      "parse_ms": 73.3,
+      "status": "ok"
+    },
+    {
+      "module": "json.encoder",
+      "file": "encoder.py",
+      "lines": 443,
+      "call_sites": 15,
+      "plans_emitted": 0,
+      "behavior_mismatches": 0,
+      "false_positives": 0,
+      "parse_ms": 78.1,
+      "status": "ok"
+    },
+    {
+      "module": "logging",
+      "file": "__init__.py",
+      "lines": 2345,
+      "call_sites": 229,
+      "plans_emitted": 0,
+      "behavior_mismatches": 0,
+      "false_positives": 0,
+      "parse_ms": 365.5,
+      "status": "ok"
+    },
+    {
+      "module": "http.client",
+      "file": "client.py",
+      "lines": 1550,
+      "call_sites": 204,
+      "plans_emitted": 0,
+      "behavior_mismatches": 0,
+      "false_positives": 0,
+      "parse_ms": 247.8,
+      "status": "ok"
+    },
+    {
+      "module": "urllib.parse",
+      "file": "parse.py",
+      "lines": 1262,
+      "call_sites": 133,
+      "plans_emitted": 0,
+      "behavior_mismatches": 0,
+      "false_positives": 0,
+      "parse_ms": 233.6,
+      "status": "ok"
+    },
+    {
+      "module": "pathlib",
+      "error": "file not found"
+    },
+    {
+      "module": "collections",
+      "file": "__init__.py",
+      "lines": 1592,
+      "call_sites": 204,
+      "plans_emitted": 0,
+      "behavior_mismatches": 0,
+      "false_positives": 0,
+      "parse_ms": 313.2,
+      "status": "ok"
+    },
+    {
+      "module": "importlib.util",
+      "file": "util.py",
+      "lines": 270,
+      "call_sites": 19,
+      "plans_emitted": 0,
+      "behavior_mismatches": 0,
+      "false_positives": 0,
+      "parse_ms": 40.3,
+      "status": "ok"
+    },
+    {
+      "module": "pathlib",
+      "file": "pathlib.py",
+      "lines": 1435,
+      "call_sites": 191,
+      "plans_emitted": 0,
+      "behavior_mismatches": 0,
+      "false_positives": 0,
+      "parse_ms": 268.7,
+      "status": "ok"
+    }
+  ]
+}
