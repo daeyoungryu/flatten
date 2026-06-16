@@ -42,7 +42,7 @@ def test_verdict_fields(checker):
     assert verdict.method_qualname == "B.process"
     assert isinstance(verdict.known_impls, list)
     assert isinstance(verdict.open_signals, list)
-    assert verdict.signal in {"OPEN", "UNSAFE", "OS1", "OS2", "OS3", "OS4", "OS5"}
+    assert verdict.signal in {"OPEN", "UNSAFE", "OS1", "OS3", "OS4", "OS5"}
     assert verdict.rationale
 
 
@@ -61,7 +61,7 @@ def test_os1_detects_freevars(checker):
     assert any(signal.startswith("OS1") for signal in verdict.open_signals)
 
 
-def test_os2_detects_closure_cells(checker):
+def test_os1_reports_freevars_and_closure_cells_without_os2_duplicate(checker):
     state = {"prefix": "x"}
 
     class Base:
@@ -69,7 +69,9 @@ def test_os2_detects_closure_cells(checker):
             return state["prefix"] + value
 
     verdict = checker.check("Base.process", [Base])
-    assert any(signal.startswith("OS2") for signal in verdict.open_signals)
+    assert any(signal.startswith("OS1") for signal in verdict.open_signals)
+    assert any("closure cells" in signal for signal in verdict.open_signals)
+    assert not any(signal.startswith("OS2") for signal in verdict.open_signals)
 
 
 def test_os3_detects_nonlocal(checker):

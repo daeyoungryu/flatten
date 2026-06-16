@@ -79,6 +79,7 @@ class Tracer:
         self._target = unwrap(target) if target is not None else None
         self._target_code = getattr(self._target, "__code__", None)
         self._target_name = getattr(self._target_code, "co_name", None)
+        self._target_has_calls = _code_may_call(self._target_code)
         self._capture_values = capture_values
         self._active = False
         self._pending: dict[int, PendingCall] = {}
@@ -96,15 +97,12 @@ class Tracer:
             monitoring.register_callback(self._tool_id, ev.PY_START, self._on_py_start)
             monitoring.register_callback(self._tool_id, ev.PY_RETURN, self._on_py_return)
             monitoring.register_callback(self._tool_id, ev.PY_UNWIND, self._on_py_unwind)
-            # PY_UNWIND is global-only (not valid for set_local_events).
-            # In target mode callbacks are global, but _should_record gates
-            # recording to the target call tree so dispatch inside the entry
-            # function is observed without per-call monitoring reconfiguration.
             monitoring.set_events(self._tool_id, ev.PY_UNWIND)
             if self._target_code is not None:
-                monitoring.set_events(
+                monitoring.set_local_events(
                     self._tool_id,
-                    ev.PY_START | ev.PY_RETURN | ev.PY_UNWIND,
+                    self._target_code,
+                    ev.PY_START | ev.PY_RETURN,
                 )
             else:
                 monitoring.set_events(
@@ -198,14 +196,35 @@ class Tracer:
     def _enter_scope_for(self, code: Any) -> None:
         if self._target_code is None:
             return
+        was_outside_target = self._scope_depth == 0
         if code is self._target_code or self._scope_depth > 0:
             self._scope_depth += 1
+            if (
+                was_outside_target
+                and self._target_has_calls
+                and self._tool_id is not None
+                and _USE_MONITORING
+            ):
+                monitoring = _monitoring()
+                ev = monitoring.events
+                monitoring.set_events(
+                    self._tool_id,
+                    ev.PY_START | ev.PY_RETURN | ev.PY_UNWIND,
+                )
 
     def _leave_scope_for(self, code: Any) -> None:
         if self._target_code is None:
             return
         if code is self._target_code or self._scope_depth > 0:
             self._scope_depth = max(0, self._scope_depth - 1)
+            if (
+                self._scope_depth == 0
+                and self._target_has_calls
+                and self._tool_id is not None
+                and _USE_MONITORING
+            ):
+                monitoring = _monitoring()
+                monitoring.set_events(self._tool_id, monitoring.events.PY_UNWIND)
 
     def _find_frame_for_code(self, code: Any) -> FrameType | None:
         # In monitoring callbacks the monitored frame is the direct caller (depth 1).
@@ -332,12 +351,23 @@ def unwrap(func: Any) -> Any:
     return func
 
 
+def _code_may_call(code: Any | None) -> bool:
+    if code is None:
+        return False
+    try:
+        return any("CALL" in instruction.opname for instruction in dis.get_instructions(code))
+    except TypeError:
+        return True
+
+
 # Module-level AST cache: filename -> parsed ast.Module
 _ast_cache: dict[str, ast.Module] = {}
 # Module-level position cache: (filename, lineno) -> (col_offset, end_col_offset)
 _position_cache: dict[tuple[str, int], tuple[int, int]] = {}
-# Module-level bytecode position cache: (id(code), f_lasti, lineno) -> columns or None
-_bytecode_position_cache: dict[tuple[int, int, int], tuple[int, int] | None] = {}
+# Module-level bytecode position cache:
+# ((filename, firstlineno, name), f_lasti, lineno) -> columns or None
+_BytecodeCacheKey = tuple[tuple[str, int, str], int, int]
+_bytecode_position_cache: dict[_BytecodeCacheKey, tuple[int, int] | None] = {}
 
 
 def _parse_file(filename: str) -> ast.Module | None:
@@ -403,7 +433,12 @@ def _bytecode_call_position(frame: Any, lineno: int) -> tuple[int, int] | None:
     code = getattr(frame, "f_code", None)
     if f_lasti is None or code is None:
         return None
-    cache_key = (id(code), int(f_lasti), lineno)
+    code_identity = (
+        str(getattr(code, "co_filename", "")),
+        int(getattr(code, "co_firstlineno", 0)),
+        str(getattr(code, "co_name", "")),
+    )
+    cache_key = (code_identity, int(f_lasti), lineno)
     if cache_key in _bytecode_position_cache:
         return _bytecode_position_cache[cache_key]
     call_position: tuple[int, int] | None = None

@@ -72,6 +72,7 @@ def test_a1_tracer_paths_create_same_oracle_record_shape():
         "caller_column",
         "caller_end_column",
         "receiver_var_name",
+        "outcome",
     }
     assert record.impl_class is Worker
     assert record.return_val == 3
@@ -113,7 +114,6 @@ def test_a2_detects_os1_through_os5_individually():
 
     checks = [
         ("OS1", checker.check("FreeVar.run", [FreeVar])),
-        ("OS2", checker.check("FreeVar.run", [FreeVar])),
         ("OS3", checker.check("NonlocalWrite.run", [make_nonlocal()])),
         ("OS4", checker.check("InstanceAttr.run", [InstanceAttr])),
         ("OS5", checker.check("Base.run", [Base, Child])),

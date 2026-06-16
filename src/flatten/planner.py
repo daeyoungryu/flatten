@@ -434,7 +434,14 @@ def _replacement_for_site(
 ) -> cst.BaseExpression:
     original = _call_at_site(source, site)
     receiver = receiver_override or site.receiver_expr
-    args = [receiver] + [cst.Module([]).code_for_node(arg) for arg in original.args]
+    module = cst.Module([])
+    args = [
+        receiver,
+        *[
+            module.code_for_node(arg.with_changes(comma=cst.MaybeSentinel.DEFAULT))
+            for arg in original.args
+        ],
+    ]
     calls = [
         f"{receiver_type.rsplit('.', 1)[-1]}.{site.method_name}({', '.join(args)})"
         for receiver_type in receiver_types

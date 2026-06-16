@@ -3,6 +3,7 @@ import json
 import pytest
 
 import flatten.harness as harness
+from flatten.cli import _load_cases
 
 
 def _assert_modules_equivalent_subprocess(*args, **kwargs):
@@ -41,6 +42,42 @@ def main(value=2):
     assert result["equivalent"] is True
     assert result["cases"] == 1
     assert result["seed"] == 123
+
+
+def test_subprocess_harness_rejects_unsafe_effect_expression(tmp_path):
+    original = tmp_path / "original.py"
+    rewritten = tmp_path / "rewritten.py"
+    for path in (original, rewritten):
+        path.write_text("def main():\n    return 1\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="effect_expression"):
+        _assert_modules_equivalent_subprocess(
+            original,
+            rewritten,
+            "main",
+            cases=[{"args": [], "kwargs": {}}],
+            effect_expression="__import__('os').system('echo unsafe')",
+            timeout=5.0,
+        )
+
+
+def test_cli_cases_reject_unsafe_effect_expression(tmp_path):
+    cases = tmp_path / "cases.json"
+    cases.write_text(
+        json.dumps(
+            [
+                {
+                    "args": [],
+                    "kwargs": {},
+                    "effect_expression": "state.counter; __import__('os')",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="effect_expression"):
+        _load_cases(cases)
 
 
 def test_subprocess_harness_reports_exception_message_divergence(tmp_path):

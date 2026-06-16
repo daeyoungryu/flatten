@@ -34,7 +34,7 @@ _RAISE_SENTINEL: Any = object()
 """Sentinel passed as return_val when a call ended via exception.
 
 OracleRecord.__post_init__ detects this, replaces return_val with None,
-and sets the non-field 'outcome' attribute to "raise".
+and sets the 'outcome' field to "raise".
 """
 
 
@@ -52,6 +52,7 @@ class OracleRecord:
     caller_column: int = -1
     caller_end_column: int = -1
     receiver_var_name: str = ""
+    outcome: str = ""
 
     def __post_init__(self) -> None:
         if self.return_val is _RAISE_SENTINEL:

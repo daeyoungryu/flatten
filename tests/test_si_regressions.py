@@ -377,11 +377,11 @@ def test_P2_exception_outcome_is_distinguishable_from_return_none() -> None:
     raiser_rec = raiser_recs[0]
     none_rec = none_recs[0]
 
-    assert getattr(raiser_rec, "outcome", None) == "raise", (  # type: ignore[attr-defined]
+    assert raiser_rec.outcome == "raise", (
         f"P2: _Raiser.run raised ValueError but record.outcome="
-        f"{getattr(raiser_rec, 'outcome', '<missing>')!r}.  Expected 'raise'."
+        f"{raiser_rec.outcome!r}.  Expected 'raise'."
     )
-    assert getattr(none_rec, "outcome", None) == "return", (  # type: ignore[attr-defined]
+    assert none_rec.outcome == "return", (
         f"P2: _NoneReturner.run returned None but record.outcome="
-        f"{getattr(none_rec, 'outcome', '<missing>')!r}.  Expected 'return'."
+        f"{none_rec.outcome!r}.  Expected 'return'."
     )
