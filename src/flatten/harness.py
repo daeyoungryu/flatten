@@ -195,9 +195,7 @@ def assert_modules_equivalent_subprocess(
         )
         for case in cases
     ]
-    for index, (original, rewritten) in enumerate(
-        zip(original_results, rewritten_results, strict=False)
-    ):
+    for index, (original, rewritten) in enumerate(zip(original_results, rewritten_results)):
         if original != rewritten:
             if original.get("outcome") == "raise" or rewritten.get("outcome") == "raise":
                 raise AssertionError(
