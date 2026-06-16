@@ -445,7 +445,9 @@ def _replacement_for_site(
         expr = cst.Module([]).code_for_node(original)
     else:
         expr = f"{receiver}.{site.method_name}({', '.join(args[1:])})"
-    for receiver_type, call in reversed(list(zip(receiver_types, calls, strict=True))):
+    if len(receiver_types) != len(calls):
+        raise ValueError("receiver type and replacement call counts differ")
+    for receiver_type, call in reversed(list(zip(receiver_types, calls))):
         class_name = receiver_type.rsplit(".", 1)[-1]
         expr = f"{call} if isinstance({receiver}, {class_name}) else {expr}"
     return cst.parse_expression(expr)
@@ -511,7 +513,9 @@ def _parsed_calls_and_sites(source: str, filename: str) -> tuple[list[cst.Call],
 
 def _call_at_site(source: str, site: CallSite) -> cst.Call:
     found, sites = _parsed_calls_and_sites(source, site.filename)
-    for candidate, candidate_site in zip(found, sites, strict=True):
+    if len(found) != len(sites):
+        raise ValueError("parsed call and discovered call-site counts differ")
+    for candidate, candidate_site in zip(found, sites):
         same_id = candidate_site.call_site_id == site.call_site_id
         same_position = (
             candidate_site.line == site.line
