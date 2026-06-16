@@ -184,6 +184,15 @@ def test_replacement_for_site_uses_direct_strategy_for_one_receiver_type():
     assert cst.Module([]).code_for_node(replacement) == "Worker.run(obj)"
 
 
+def test_replacement_for_site_preserves_multi_argument_call_syntax():
+    source = "def f(obj, a, b, c):\n    return obj.run(a, b, key=c)\n"
+    site = discover_call_sites(source, filename="case.py")[0]
+
+    replacement = _replacement_for_site(source, site, ["pkg.mod.Worker"])
+
+    assert cst.Module([]).code_for_node(replacement) == "Worker.run(obj, a, b, key=c)"
+
+
 def test_replacement_for_site_uses_guard_for_two_receiver_types():
     source = "def f(obj):\n    return obj.run()\n"
     site = discover_call_sites(source, filename="case.py")[0]

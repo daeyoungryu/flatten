@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from flatten.contracts import ClosureStatus, ClosureVerdict, RewriteDecision
+from flatten.harness import validate_effect_expression
 from flatten.observations import ObservationRecord, TypeRef, observations_from_json
 
 
@@ -202,5 +203,10 @@ def _load_cases(path: Path) -> list[tuple[tuple[Any, ...], dict[str, Any]]]:
             raise ValueError(f"case #{index} must be an object or [args, kwargs]")
         if not isinstance(args, list) or not isinstance(kwargs, dict):
             raise ValueError(f"case #{index} args must be list and kwargs must be object")
+        if isinstance(item, dict):
+            effect_expression = item.get("effect_expression")
+            if effect_expression is not None and not isinstance(effect_expression, str):
+                raise ValueError(f"case #{index} effect_expression must be string")
+            validate_effect_expression(effect_expression)
         cases.append((tuple(args), dict(kwargs)))
     return cases

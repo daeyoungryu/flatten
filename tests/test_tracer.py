@@ -3,7 +3,14 @@
 import types
 
 from flatten import tracer as tracer_module
-from flatten.tracer import Tracer, _allocate_tool_id, _caller_position, trace_calls, unwrap
+from flatten.tracer import (
+    Tracer,
+    _allocate_tool_id,
+    _bytecode_call_position,
+    _caller_position,
+    trace_calls,
+    unwrap,
+)
 
 
 def test_tracer_records_calls():
@@ -133,6 +140,44 @@ def test_tracer_uses_one_tracing_backend(monkeypatch):
     tracer.stop()
 
     assert calls == []
+
+
+def test_tracer_target_monitoring_uses_local_events(monkeypatch):
+    import sys
+
+    def target():
+        return "ok"
+
+    event_calls = []
+    local_event_calls = []
+    mock_monitoring = types.SimpleNamespace(
+        register_callback=lambda *args: None,
+        set_events=lambda *args: event_calls.append(args),
+        set_local_events=lambda *args: local_event_calls.append(args),
+        free_tool_id=lambda *args: None,
+        events=types.SimpleNamespace(
+            PY_START=1,
+            PY_RETURN=4,
+            PY_UNWIND=0x1000,
+            NO_EVENTS=0,
+        ),
+    )
+    monkeypatch.setattr("flatten.tracer._USE_MONITORING", True)
+    monkeypatch.setattr("flatten.tracer._allocate_tool_id", lambda: 5)
+    monkeypatch.setattr(sys, "monitoring", mock_monitoring, raising=False)
+    monkeypatch.setattr("flatten.tracer.sys", sys)
+
+    tracer = Tracer(target=target)
+    tracer.start()
+    tracer.stop()
+
+    assert event_calls[0] == (5, mock_monitoring.events.PY_UNWIND)
+    assert local_event_calls[0] == (
+        5,
+        target.__code__,
+        mock_monitoring.events.PY_START | mock_monitoring.events.PY_RETURN,
+    )
+    assert local_event_calls[-1] == (5, target.__code__, mock_monitoring.events.NO_EVENTS)
 
 
 def test_recursive_trace_records_each_frame_without_code_key_collision():
@@ -330,3 +375,25 @@ def test_caller_position_picks_leftmost_call_on_line(tmp_path, monkeypatch):
     line, col, end_col = _caller_position(frame)
     assert line == 1
     assert col == 4
+
+
+def test_bytecode_position_cache_key_uses_stable_code_identity(monkeypatch):
+    def sample():
+        return len([1])
+
+    cache = {}
+    monkeypatch.setattr(tracer_module, "_bytecode_position_cache", cache)
+    frame = types.SimpleNamespace(
+        f_lineno=sample.__code__.co_firstlineno + 1,
+        f_lasti=10_000,
+        f_code=sample.__code__,
+    )
+
+    _bytecode_call_position(frame, frame.f_lineno)
+
+    key = next(iter(cache))
+    assert key[0] == (
+        sample.__code__.co_filename,
+        sample.__code__.co_firstlineno,
+        sample.__code__.co_name,
+    )

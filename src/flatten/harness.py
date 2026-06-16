@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import textwrap
@@ -24,6 +25,14 @@ class BehaviorObservation:
 
 
 EffectCollector = Callable[[], Any]
+_SAFE_EFFECT_EXPRESSION_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_.]*$")
+
+
+def validate_effect_expression(effect_expression: str | None) -> None:
+    if effect_expression and not _SAFE_EFFECT_EXPRESSION_RE.fullmatch(effect_expression):
+        raise ValueError(
+            "effect_expression must be a plain name or dotted attribute path"
+        )
 
 
 def _jsonable(value: Any, _seen: set[int] | None = None) -> Any:
@@ -172,6 +181,7 @@ def assert_modules_equivalent_subprocess(
     seed: int | None = None,
 ) -> dict[str, Any]:
     """Compare module entry behavior in isolated subprocesses."""
+    validate_effect_expression(effect_expression)
     original_results = [
         _run_module_case_subprocess(
             original_path,
@@ -239,6 +249,16 @@ def _run_module_case_subprocess(
         seed = params["seed"]
         if seed is not None:
             random.seed(seed)
+
+        def resolve_effect(root, expression):
+            if not expression:
+                return None
+            first, *rest = expression.split(".")
+            value = vars(root)[first]
+            for part in rest:
+                value = getattr(value, part)
+            return value
+
         spec = importlib.util.spec_from_file_location("_flatten_verify_target", module_path)
         if spec is None or spec.loader is None:
             raise RuntimeError(f"Cannot load module from {module_path}")
@@ -255,7 +275,7 @@ def _run_module_case_subprocess(
                 "value": value,
                 "stdout": stdout.getvalue(),
                 "stderr": stderr.getvalue(),
-                "effects": eval(effect_expression, vars(module)) if effect_expression else None,
+                "effects": resolve_effect(module, effect_expression),
             }
         except Exception as exc:
             payload = {
@@ -264,7 +284,7 @@ def _run_module_case_subprocess(
                 "exception_message": str(exc),
                 "stdout": stdout.getvalue(),
                 "stderr": stderr.getvalue(),
-                "effects": eval(effect_expression, vars(module)) if effect_expression else None,
+                "effects": resolve_effect(module, effect_expression),
             }
         print(json.dumps(payload, sort_keys=True))
         """

@@ -64,18 +64,10 @@ def _observed_methods(method_name: str, observed_impls: list[type]) -> list[Func
 
 
 def _check_os1(methods: list[FunctionType]) -> str | None:
-    """Signal OS1: method closes over free variables captured from an enclosing scope."""
+    """Signal OS1: method has free variables or closure cells from an enclosing scope."""
     for method in methods:
-        if method.__code__.co_freevars:
-            return f"OS1: free variables in {method.__qualname__}"
-    return None
-
-
-def _check_os2(methods: list[FunctionType]) -> str | None:
-    """Signal OS2: method has active closure cells bound to enclosing local variables."""
-    for method in methods:
-        if method.__closure__:
-            return f"OS2: closure cells in {method.__qualname__}"
+        if method.__code__.co_freevars or method.__closure__:
+            return f"OS1: free variables or closure cells in {method.__qualname__}"
     return None
 
 
@@ -452,7 +444,6 @@ class ClosureChecker:
             signal
             for signal in (
                 _check_os1(methods),
-                _check_os2(methods),
                 _check_os3(methods),
                 _check_os4(methods),
                 subclass_signal,
@@ -460,8 +451,7 @@ class ClosureChecker:
             if signal is not None
         ]
         evidence = [
-            "checked free variables",
-            "checked closure cells",
+            "checked free variables and closure cells",
             "checked nonlocal writes",
             "checked instance attribute writes",
             "checked static package subclasses"

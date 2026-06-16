@@ -60,8 +60,7 @@ def test_cli_plan_emits_proof_artifact_for_each_rewrite(tmp_path: Path, capsys) 
         "observed_targets": ["case.Worker"],
         "closure_status": "closed",
         "closure_rules_passed": [
-            "checked free variables",
-            "checked closure cells",
+            "checked free variables and closure cells",
             "checked nonlocal writes",
             "checked instance attribute writes",
             "checked static package subclasses",

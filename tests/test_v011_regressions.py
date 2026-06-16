@@ -1,6 +1,7 @@
 import json
 import subprocess
 import sys
+from dataclasses import asdict, fields
 from pathlib import Path
 
 import libcst as cst
@@ -202,6 +203,20 @@ def test_trace_binding_requires_matching_method_name_on_same_line():
 
     assert observation.method_name == "bar"
     assert observation.call_site_id == sites[1].call_site_id
+
+
+def test_oracle_record_outcome_is_declared_dataclass_field():
+    record = OracleRecord(
+        qualname="Worker.run",
+        impl_class=None,
+        args=(),
+        kwargs={},
+        return_val=None,
+    )
+
+    assert record.outcome == "return"
+    assert "outcome" in {field.name for field in fields(OracleRecord)}
+    assert asdict(record)["outcome"] == "return"
 
 
 def test_nested_call_trace_binds_inner_method(tmp_path):
