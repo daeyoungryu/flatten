@@ -366,8 +366,9 @@ _ast_cache: dict[str, ast.Module] = {}
 _position_cache: dict[tuple[str, int], tuple[int, int]] = {}
 # Module-level bytecode position cache:
 # ((filename, firstlineno, name), f_lasti, lineno) -> columns or None
-_BytecodeCacheKey = tuple[tuple[str, int, str], int, int]
-_bytecode_position_cache: dict[_BytecodeCacheKey, tuple[int, int] | None] = {}
+_bytecode_position_cache: dict[
+    tuple[tuple[str, int, str], int, int], tuple[int, int] | None
+] = {}
 
 
 def _parse_file(filename: str) -> ast.Module | None:

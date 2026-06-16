@@ -31,3 +31,19 @@ def test_source_avoids_runtime_subscript_of_collections_abc_imports():
                     offenders.append(f"{path}:{node.lineno}:{value.id}")
 
     assert offenders == []
+
+
+def test_source_avoids_runtime_subscript_of_builtin_generics():
+    offenders = []
+    builtin_generic_names = {"dict", "frozenset", "list", "set", "tuple", "type"}
+    for path in Path("src/flatten").rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Subscript):
+                continue
+            value = node.value.value
+            if isinstance(value, ast.Name) and value.id in builtin_generic_names:
+                offenders.append(f"{path}:{node.lineno}:{value.id}")
+
+    assert offenders == []
