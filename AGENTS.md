@@ -54,3 +54,16 @@ feat: 기능 구현
 ```
 
 ## Imported Claude Cowork project instructions
+
+<!-- MCP_ROLE_SPLIT_2026_06_17 -->
+
+## MCP Role Split
+
+This project uses project-local MCP contracts. Prefer .mcp.json and AI/mcp/*.json over global MCP assumptions.
+
+- Codex role: implement source changes, run tests, and use the filesystem MCP as the primary working surface.
+- Claude role: design, architecture review, and knowledge exploration through Obsidian, SQLite, and Graphiti when available.
+- SQLite MCP: AI/memory/sqlite/project_memory.sqlite with schema in AI/memory/sqlite/schema.sql.
+- Obsidian MCP: seekstone with vault root C:\Users\Com\Documents\Obsidian Vault; scope work to $(System.Collections.Hashtable.Obsidian).
+- Graphiti MCP status: $(System.Collections.Hashtable.Graphiti). Do not activate Graphiti when env keys are missing; keep it contract-ready until the project .env provides the required Neo4j/OpenAI values.
+- Do not overwrite global MCP config as part of normal project work.

@@ -1,0 +1,14 @@
+{
+    "name":  "flatten-filesystem",
+    "type":  "filesystem",
+    "status":  "active-safe",
+    "command":  "npx",
+    "args":  [
+                 "-y",
+                 "@modelcontextprotocol/server-filesystem",
+                 "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten"
+             ],
+    "root":  "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten",
+    "owner":  "codex-primary",
+    "purpose":  "Codex source implementation and Claude project inspection scoped to this project root."
+}

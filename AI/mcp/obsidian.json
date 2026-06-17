@@ -1,0 +1,19 @@
+{
+    "name":  "flatten-obsidian",
+    "type":  "obsidian",
+    "status":  "active-ready",
+    "command":  "npx",
+    "args":  [
+                 "-y",
+                 "seekstone"
+             ],
+    "vault_path":  "C:\\Users\\Com\\Documents\\Obsidian Vault",
+    "project_folder":  "Projects/flatten",
+    "bridge":  "AI/obsidian/vault_link.md",
+    "owner":  "claude-primary",
+    "purpose":  "Architecture notes, design rationale, review notes, and operational knowledge.",
+    "env":  {
+                "SEEKSTONE_VAULT":  "C:\\Users\\Com\\Documents\\Obsidian Vault"
+            },
+    "safety_note":  "Seekstone opens the whole Obsidian vault. Use project_folder to scope searches/edits to this project when possible."
+}

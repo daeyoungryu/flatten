@@ -149,3 +149,15 @@ wiki/
 **`wiki/errors/pyc_cache_issues.md`**
 - pyc 캐시 오류 증상: 코드 수정 후에도 구버전 동작
 - 해결: `touch src/flatten/모듈.py` 또는 `find . -name "*.pyc" -delete`
+
+<!-- MCP_ROLE_SPLIT_2026_06_17 -->
+
+## MCP Role Split
+
+Use the project-local MCP contract as the source of truth: .mcp.json, AI/mcp/README.md, and AI/mcp/*.json.
+
+- Claude owns design, architecture review, and memory exploration.
+- Use Obsidian through seekstone at vault root C:\Users\Com\Documents\Obsidian Vault; keep project activity scoped to $(System.Collections.Hashtable.Obsidian).
+- Use SQLite MCP for structured project memory at AI/memory/sqlite/project_memory.sqlite.
+- Use Graphiti only when AI/mcp/graphiti.json is ctive-ready. If status is contract-ready-missing-env, do not start it or add placeholder secrets.
+- Hand implementation tasks to Codex with concrete files, tests, and acceptance criteria.
