@@ -42,6 +42,7 @@ MANIFEST
 # Misc
 .DS_Store
 Thumbs.db
+.env
 
 # cosmic-ray artifacts
 session.sqlite

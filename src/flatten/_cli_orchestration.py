@@ -50,6 +50,7 @@ from flatten.observations import (
 )
 from flatten.planner import RewritePlanner
 from flatten.report import AnalysisReport
+from flatten.specialize import expand_target, specialize_source
 from flatten.static import analyze_class_hierarchy
 from flatten.tracer import Tracer
 
@@ -707,4 +708,40 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         out_md=args.out_md.resolve() if args.out_md else None,
     )
     _json_print(summary)
+    return 0
+
+
+def cmd_expand(args: argparse.Namespace) -> int:
+    """Print the source for a target function or method."""
+    args.path = args.path.resolve()
+    print(expand_target(args.path, args.target))
+    return 0
+
+
+def cmd_specialize(args: argparse.Namespace) -> int:
+    """Generate a Python file with a concrete ``specialized()`` entry point."""
+    args.path = args.path.resolve()
+    args.args_json = args.args_json.resolve()
+    args.out = args.out.resolve()
+    result = specialize_source(
+        args.path,
+        args.entry,
+        args.target,
+        args.args_json,
+        args.out,
+    )
+    _json_print(
+        {
+            "summary": f"wrote {args.out}",
+            "verified": result.verified,
+            "call_graph": [
+                {
+                    "caller": edge.caller,
+                    "callee": edge.callee,
+                    "receiver_type": edge.receiver_type,
+                }
+                for edge in result.call_graph
+            ],
+        }
+    )
     return 0
