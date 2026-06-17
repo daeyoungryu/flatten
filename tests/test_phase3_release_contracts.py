@@ -29,7 +29,7 @@ def test_phase3_required_docs_exist_and_state_limits():
 
 
 def test_evidence_architecture_doc_covers_review_topics():
-    text = Path("docs/architecture.md").read_text(encoding="utf-8")
+    text = Path("docs/ARCHITECTURE.md").read_text(encoding="utf-8")
     required = [
         "Data Flow",
         "Public API",

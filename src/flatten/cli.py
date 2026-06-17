@@ -14,9 +14,11 @@ from flatten._cli_orchestration import (
     cmd_analyze,
     cmd_benchmark,
     cmd_evaluate,
+    cmd_expand,
     cmd_plan,
     cmd_report,
     cmd_rewrite,
+    cmd_specialize,
     cmd_trace,
     cmd_verify,
 )
@@ -33,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--json", action="store_const", dest="format", const="json")
     analyze.add_argument("--strict", action="store_true")
     analyze.set_defaults(func=cmd_analyze)
+
+    expand = subparsers.add_parser("expand")
+    expand.add_argument("path", type=Path)
+    expand.add_argument("--target", required=True)
+    expand.set_defaults(func=cmd_expand)
 
     trace = subparsers.add_parser("trace")
     trace.add_argument("path", type=Path)
@@ -98,6 +105,14 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--out-md", type=Path)
     benchmark.add_argument("--json", action="store_true")
     benchmark.set_defaults(func=cmd_benchmark)
+
+    specialize = subparsers.add_parser("specialize")
+    specialize.add_argument("path", type=Path)
+    specialize.add_argument("--entry", required=True)
+    specialize.add_argument("--target", required=True)
+    specialize.add_argument("--args-json", type=Path, required=True)
+    specialize.add_argument("--out", type=Path, required=True)
+    specialize.set_defaults(func=cmd_specialize)
     return parser
 
 

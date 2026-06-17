@@ -52,3 +52,5 @@ feat: 기능 구현
 - lint warning: xxx
 - test failure: yyy (known issue, tracked)
 ```
+
+## Imported Claude Cowork project instructions
