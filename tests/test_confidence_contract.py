@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 from flatten.confidence import confidence_score
-from flatten.contracts import ClosureStatus, ClosureVerdict
+from flatten.contracts import BlockerCode, ClosureStatus, ClosureVerdict, RewriteDecision
 
 
 def test_confidence_closed_open_and_no_known_impls_are_numeric():
@@ -32,6 +32,22 @@ def test_confidence_closed_open_and_no_known_impls_are_numeric():
     assert scores[1] == 0.0
     assert scores[2] == 0.0
     assert all(0.0 <= score <= 1.0 for score in scores)
+
+
+def test_rewrite_decision_prefers_structured_blocker_codes_over_message_text():
+    verdict = ClosureVerdict(
+        method_qualname="Worker.run",
+        status=ClosureStatus.UNSAFE,
+        blockers=("method changed at runtime",),
+        blocker_codes=(BlockerCode.UNSAFE_MONKEY_PATCH.value,),
+        evidence=("checked dynamic dispatch hazards",),
+    )
+
+    decision = RewriteDecision.from_verdict(verdict)
+
+    assert decision.reason_code == "UNSAFE_MONKEY_PATCH"
+    assert decision.blocker_codes == (BlockerCode.UNSAFE_MONKEY_PATCH.value,)
+    assert decision.to_json()["blocker_codes"] == [BlockerCode.UNSAFE_MONKEY_PATCH.value]
 
 
 def test_plan_json_confidence_is_always_number(tmp_path):

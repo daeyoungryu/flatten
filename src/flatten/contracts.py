@@ -17,6 +17,63 @@ class ClosureStatus(Enum):
     UNKNOWN = "unknown"
 
 
+class BlockerCode(Enum):
+    UNSAFE_NO_RECEIVER_TYPES = "UNSAFE_NO_RECEIVER_TYPES"
+    UNSAFE_DYNAMIC_GETATTR = "UNSAFE_DYNAMIC_GETATTR"
+    UNSAFE_DYNAMIC_GETATTRIBUTE = "UNSAFE_DYNAMIC_GETATTRIBUTE"
+    UNSAFE_MONKEY_PATCH = "UNSAFE_MONKEY_PATCH"
+    UNSAFE_MULTIPLE_INHERITANCE = "UNSAFE_MULTIPLE_INHERITANCE"
+    UNSAFE_DESCRIPTOR_OR_BINDING = "UNSAFE_DESCRIPTOR_OR_BINDING"
+    UNSAFE_CUSTOM_METACLASS = "UNSAFE_CUSTOM_METACLASS"
+    UNSAFE_SUPER_DEPENDENCY = "UNSAFE_SUPER_DEPENDENCY"
+    UNSAFE_ASYNC_OR_GENERATOR = "UNSAFE_ASYNC_OR_GENERATOR"
+    UNSAFE_EXCEPTION_BEHAVIOR = "UNSAFE_EXCEPTION_BEHAVIOR"
+    UNSAFE_ARGUMENT_SIDE_EFFECTS = "UNSAFE_ARGUMENT_SIDE_EFFECTS"
+    OPEN_CLOSURE_INCOMPLETE = "OPEN_CLOSURE_INCOMPLETE"
+    UNKNOWN_UNSUPPORTED = "UNKNOWN_UNSUPPORTED"
+
+
+_BLOCKER_MESSAGES: dict[str, str] = {
+    BlockerCode.UNSAFE_NO_RECEIVER_TYPES.value: (
+        "No observed receiver types are available for safe dispatch flattening."
+    ),
+    BlockerCode.UNSAFE_DYNAMIC_GETATTR.value: (
+        "Dynamic getattr call cannot be safely flattened."
+    ),
+    BlockerCode.UNSAFE_DYNAMIC_GETATTRIBUTE.value: (
+        "__getattribute__ override can change method resolution."
+    ),
+    BlockerCode.UNSAFE_MONKEY_PATCH.value: "Runtime method replacement was detected.",
+    BlockerCode.UNSAFE_MULTIPLE_INHERITANCE.value: (
+        "Multiple or diamond inheritance makes dispatch order unsafe to rewrite."
+    ),
+    BlockerCode.UNSAFE_DESCRIPTOR_OR_BINDING.value: (
+        "Descriptor or binding semantics cannot be flattened safely."
+    ),
+    BlockerCode.UNSAFE_CUSTOM_METACLASS.value: (
+        "Custom metaclass can alter dispatch semantics."
+    ),
+    BlockerCode.UNSAFE_SUPER_DEPENDENCY.value: (
+        "super() dependent method resolution is unsupported."
+    ),
+    BlockerCode.UNSAFE_ASYNC_OR_GENERATOR.value: (
+        "Async or generator methods are unsupported."
+    ),
+    BlockerCode.UNSAFE_EXCEPTION_BEHAVIOR.value: (
+        "Exception behavior may diverge after rewrite."
+    ),
+    BlockerCode.UNSAFE_ARGUMENT_SIDE_EFFECTS.value: (
+        "Argument or receiver side effects may be reordered by rewrite."
+    ),
+    BlockerCode.OPEN_CLOSURE_INCOMPLETE.value: (
+        "Closure is incomplete; unobserved implementations may exist."
+    ),
+    BlockerCode.UNKNOWN_UNSUPPORTED.value: (
+        "Closure status is unknown or unsupported."
+    ),
+}
+
+
 @dataclass(frozen=True)
 class CallSite:
     call_site_id: str
@@ -74,6 +131,7 @@ class ClosureVerdict:
     confidence: float = 0.0
     reasons: tuple[str, ...] = ()
     blockers: tuple[str, ...] = ()
+    blocker_codes: tuple[str, ...] = ()
     evidence: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
@@ -104,6 +162,7 @@ class RewriteDecision:
     confidence: float = 0.0
     reasons: tuple[str, ...] = ()
     blockers: tuple[str, ...] = ()
+    blocker_codes: tuple[str, ...] = ()
     evidence: tuple[str, ...] = ()
     reason_code: str = ""
     message: str = ""
@@ -130,11 +189,18 @@ class RewriteDecision:
         )
         reasons = verdict.reasons or verdict.evidence
         blockers = verdict.blockers
+        blocker_codes = verdict.blocker_codes
         if status is ClosureStatus.CLOSED and not verdict.evidence:
             blockers = (*blockers, "missing rewrite evidence")
+            blocker_codes = (*blocker_codes, BlockerCode.UNKNOWN_UNSUPPORTED.value)
         if not allowed and not blockers:
             blockers = (f"closure status is {status.value}",)
-        reason_code, message = _reason_code_for(status, allowed, blockers)
+        reason_code, message = _reason_code_for(
+            status,
+            allowed,
+            blockers,
+            blocker_codes,
+        )
         return cls(
             method_qualname=verdict.method_qualname,
             allowed=allowed,
@@ -142,6 +208,7 @@ class RewriteDecision:
             confidence=verdict.confidence,
             reasons=reasons,
             blockers=blockers,
+            blocker_codes=blocker_codes,
             evidence=verdict.evidence,
             reason_code=reason_code,
             message=message,
@@ -157,6 +224,7 @@ class RewriteDecision:
             "confidence": self.confidence,
             "reasons": list(self.reasons),
             "blockers": list(self.blockers),
+            "blocker_codes": list(self.blocker_codes),
             "evidence": list(self.evidence),
             "reason_code": self.reason_code,
             "message": self.message,
@@ -179,9 +247,16 @@ def _reason_code_for(
     status: ClosureStatus,
     allowed: bool,
     blockers: tuple[str, ...],
+    blocker_codes: tuple[str, ...] = (),
 ) -> tuple[str, str]:
     if allowed:
         return "ALLOWED_CLOSED", "Rewrite is allowed by positive closure evidence."
+    if blocker_codes:
+        code = blocker_codes[0]
+        return code, _BLOCKER_MESSAGES.get(
+            code,
+            "Rewrite is unsupported by the current safety policy.",
+        )
     text = " ".join(blockers).lower()
     if "no observed impl" in text or "no observed receiver" in text:
         return (

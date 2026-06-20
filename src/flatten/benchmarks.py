@@ -91,7 +91,14 @@ def _summary_to_markdown(summary: dict[str, Any]) -> str:
         ("Proof Coverage", "proof_coverage"),
         ("Closure Coverage", "closure_coverage"),
     ]
-    lines = ["# Benchmark Summary", "", "| KPI | Value |", "| --- | --- |"]
+    lines = [
+        "# Benchmark Summary",
+        "",
+        "Catalog-only report: no OSS source checkout was evaluated.",
+        "",
+        "| KPI | Value |",
+        "| --- | --- |",
+    ]
     for label, key in labels:
         value = summary.get(key)
         lines.append(f"| {label} | {'n/a' if value is None else value} |")

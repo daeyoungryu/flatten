@@ -51,7 +51,7 @@ def main() -> int:
         )
     else:
         rc_full = 0
-        print("\n(skipping full suite — pass --full to enable)")
+        print("\n(skipping full suite - pass --full to enable)")
 
     rc_ruff = run(
         [sys.executable, "-m", "ruff", "check", "src/flatten/"],
@@ -75,9 +75,9 @@ def main() -> int:
     overall = rc_reg | rc_full | rc_ruff | rc_mypy
     print()
     if overall == 0:
-        print("GATE PASSED — all checks green.")
+        print("GATE PASSED - all checks green.")
     else:
-        print("GATE FAILED — see errors above.", file=sys.stderr)
+        print("GATE FAILED - see errors above.", file=sys.stderr)
     return min(overall, 1)
 
 

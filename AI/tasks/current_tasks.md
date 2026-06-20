@@ -77,9 +77,11 @@ Last updated: 2026-06-15
   `docs/engineering/PROJECT_AUDIT.md`, `docs/SOUNDNESS.md`, README updates,
   `flatten-benchmark`, and CI artifact upload.
 
-- AST migration pass (2026-06-15): replaced all `dis` bytecode analysis
-  with `ast.walk` in `tracer.py` and `closure.py`; removed `import dis`;
-  added module-level `_ast_cache`; 220 passed, 1 skipped. whl rebuilt as
+- AST migration pass (2026-06-15): moved primary source analysis from
+  `dis` bytecode inspection to `ast.walk` in `tracer.py` and `closure.py`;
+  retained source-unavailable bytecode fallback paths for call-position and
+  compiled-method hazard detection; added module-level `_ast_cache`; 220
+  passed, 1 skipped. whl rebuilt as
   `dist/flatten_polymorph-0.1.1-py3-none-any.whl`.
 
 - v0.1.2 defect fix pass (2026-06-15): fixed P0 soundness (closure owner

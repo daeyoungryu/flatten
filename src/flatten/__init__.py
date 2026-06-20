@@ -5,6 +5,7 @@ __version__ = "0.2.1"
 from flatten.closure import ClosureChecker
 from flatten.collapse import CollapseTransformer
 from flatten.contracts import (
+    BlockerCode,
     CallSite,
     ClosureVerdict,
     OracleRecord,
@@ -25,6 +26,7 @@ __all__ = [
     "trace_calls",
     "OracleRecord",
     "ObservationRecord",
+    "BlockerCode",
     "CallSite",
     "discover_call_sites",
     "ClosureChecker",

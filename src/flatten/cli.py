@@ -12,7 +12,6 @@ from flatten._cli_orchestration import (
     _observation_from_trace,  # noqa: F401
     _verdicts_from_observations,  # noqa: F401
     cmd_analyze,
-    cmd_benchmark,
     cmd_evaluate,
     cmd_expand,
     cmd_plan,
@@ -22,6 +21,7 @@ from flatten._cli_orchestration import (
     cmd_trace,
     cmd_verify,
 )
+from flatten.benchmark_cli import cmd_benchmark_catalog
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -99,12 +99,22 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--json", action="store_true")
     evaluate.set_defaults(func=cmd_evaluate)
 
-    benchmark = subparsers.add_parser("benchmark")
-    benchmark.add_argument("--catalog", type=Path, required=True)
-    benchmark.add_argument("--out-json", type=Path)
-    benchmark.add_argument("--out-md", type=Path)
-    benchmark.add_argument("--json", action="store_true")
-    benchmark.set_defaults(func=cmd_benchmark)
+    def add_benchmark_catalog_parser(name: str, *, help_text: str) -> None:
+        benchmark = subparsers.add_parser(name, description=help_text)
+        benchmark.add_argument("--catalog", type=Path, required=True)
+        benchmark.add_argument("--out-json", type=Path)
+        benchmark.add_argument("--out-md", type=Path)
+        benchmark.add_argument("--json", action="store_true")
+        benchmark.set_defaults(func=cmd_benchmark_catalog)
+
+    add_benchmark_catalog_parser(
+        "benchmark-catalog",
+        help_text="Catalog-only benchmark KPI summary; does not evaluate OSS checkouts.",
+    )
+    add_benchmark_catalog_parser(
+        "benchmark",
+        help_text="Legacy alias for benchmark-catalog; does not evaluate OSS checkouts.",
+    )
 
     specialize = subparsers.add_parser("specialize")
     specialize.add_argument("path", type=Path)

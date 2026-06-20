@@ -209,14 +209,14 @@ python -m build
 ## Benchmark And Release Evidence
 
 The OSS benchmark catalog is tracked in `benchmarks/projects.csv` and currently
-contains 35 public Python projects. The local benchmark sanity command emits
-JSON and Markdown summaries:
+contains 35 public Python projects. The catalog sanity command emits JSON and
+Markdown summaries, but it does not check out or evaluate source code:
 
 ```powershell
-python -m flatten benchmark --catalog benchmarks/projects.csv --out-json benchmarks/summary.json --out-md benchmarks/summary.md
+python -m flatten benchmark-catalog --catalog benchmarks/projects.csv --out-json benchmarks/summary.json --out-md benchmarks/summary.md
 ```
 
-Current quantitative status:
+Catalog-only status:
 
 | KPI | Value |
 | --- | --- |
@@ -233,6 +233,21 @@ Current quantitative status:
 | Proof Coverage | n/a |
 | Closure Coverage | n/a |
 
-This is a catalog and gate status, not a completed 30-project empirical run.
+OSS Pilot Static Evaluation:
+
+| KPI | Value |
+| --- | --- |
+| Projects Evaluated | 3 |
+| Total Call Sites | 7983 |
+| Candidates | 7983 |
+| Rewritten | 0 |
+| Unknown | 7983 |
+| False Positives | 0 |
+| Behavior Mismatches | 0 |
+
+The pilot results are stored in `benchmarks/oss_pilot.json` and
+`benchmarks/oss_pilot.md`. They are pinned static source scans of Click,
+Requests, and attrs. They do not include runtime tracing, rewrite planning, or
+behavior verification, so they are not a completed 30-project empirical run.
 Release 0.2.0 remains blocked until the release criteria in
 `docs/research_evaluation.md` are satisfied.

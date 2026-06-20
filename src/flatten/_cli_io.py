@@ -66,6 +66,7 @@ def _verdict_to_json(verdict: ClosureVerdict) -> dict[str, Any]:
         "confidence": verdict.confidence,
         "reasons": list(verdict.reasons),
         "blockers": list(verdict.blockers),
+        "blocker_codes": list(verdict.blocker_codes),
         "evidence": list(verdict.evidence),
     }
 
@@ -95,6 +96,7 @@ def _decision_from_json(raw: dict[str, Any]) -> RewriteDecision:
         allowed=bool(raw.get("allowed", False)),
         status=status,
         blockers=tuple(str(item) for item in raw.get("blockers", [])),
+        blocker_codes=tuple(str(item) for item in raw.get("blocker_codes", [])),
         reasons=tuple(str(item) for item in raw.get("reasons", [])),
         evidence=tuple(str(item) for item in raw.get("evidence", [])),
         reason_code=str(raw.get("reason_code", "")),

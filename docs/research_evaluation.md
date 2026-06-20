@@ -22,8 +22,31 @@ checking out and running third-party projects.
 | Proof Coverage | n/a |
 | Closure Coverage | n/a |
 
-Status: the OSS suite is cataloged and CI-gated for schema sanity. It is not yet
-a completed empirical evaluation over checked-out OSS source trees.
+Status: the OSS suite is cataloged and CI-gated for schema sanity. This
+catalog-only status is not an empirical evaluation over checked-out OSS source
+trees.
+
+## OSS Pilot Static Evaluation
+
+`benchmarks/oss_pilot.json` records a first pinned static checkout pilot. It
+uses call-site discovery only; it does not run tracing, planning, rewriting,
+behavior verification, or mutation testing.
+
+| KPI | Current Value |
+| --- | --- |
+| Projects Evaluated | 3 |
+| Total Call Sites | 7983 |
+| Candidates | 7983 |
+| Rewritten | 0 |
+| Unknown | 7983 |
+| False Positives | 0 |
+| Behavior Mismatches | 0 |
+
+Pilot projects:
+
+- Click at `8a1b1a33d739be05b7e91251e3c0dde77c5e152f`;
+- Requests at `d64b9ad4bf1c14e21e0df3f0f4320fec81180e91`;
+- attrs at `005e2fbe1a93a958946ba04aad0d8cf6e6d17d6a`.
 
 ## Threats to Validity
 
@@ -80,7 +103,13 @@ opportunities where practical.
 Run the local benchmark sanity gate:
 
 ```powershell
-python -m flatten benchmark --catalog benchmarks/projects.csv --out-json benchmarks/summary.json --out-md benchmarks/summary.md
+python -m flatten benchmark-catalog --catalog benchmarks/projects.csv --out-json benchmarks/summary.json --out-md benchmarks/summary.md
+```
+
+Run the current 3-project static OSS pilot:
+
+```powershell
+python -m benchmarks.oss_pilot --projects Click attrs Requests --out-json benchmarks/oss_pilot.json --out-md benchmarks/oss_pilot.md
 ```
 
 Run the local quality gate:

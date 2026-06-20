@@ -4,8 +4,10 @@ import csv
 import json
 from pathlib import Path
 
+import pytest
+
 from flatten.benchmarks import load_benchmark_catalog, summarize_benchmark_catalog
-from flatten.cli import main
+from flatten.cli import build_parser, main
 
 
 def test_benchmark_catalog_contains_at_least_30_projects() -> None:
@@ -64,6 +66,49 @@ def test_benchmark_cli_writes_json_and_markdown_reports(tmp_path: Path) -> None:
     assert "Projects Evaluated" in out_md.read_text(encoding="utf-8")
 
 
+def test_benchmark_catalog_cli_writes_json_and_markdown_reports(tmp_path: Path) -> None:
+    out_json = tmp_path / "summary.json"
+    out_md = tmp_path / "summary.md"
+
+    assert (
+        main(
+            [
+                "benchmark-catalog",
+                "--catalog",
+                "benchmarks/projects.csv",
+                "--out-json",
+                out_json.as_posix(),
+                "--out-md",
+                out_md.as_posix(),
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(out_json.read_text(encoding="utf-8"))
+    assert payload["status"] == "catalog-only; no OSS source checkout evaluated"
+    assert "Catalog-only" in out_md.read_text(encoding="utf-8")
+
+
+def test_benchmark_help_labels_legacy_command_as_catalog_alias(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit) as exc:
+        parser.parse_args(["benchmark", "--help"])
+
+    assert exc.value.code == 0
+    assert "alias for benchmark-catalog" in capsys.readouterr().out
+
+
+def test_benchmark_catalog_handler_lives_outside_general_cli_orchestration() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        ["benchmark-catalog", "--catalog", "benchmarks/projects.csv"]
+    )
+
+    assert args.func.__module__ == "flatten.benchmark_cli"
+
+
 def test_benchmark_catalog_has_required_csv_columns() -> None:
     with Path("benchmarks/projects.csv").open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -87,3 +132,13 @@ def test_research_evaluation_and_release_gate_docs_exist() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     assert "Project Catalog Size" in readme
     assert "False Positives" in readme
+
+
+def test_readme_distinguishes_catalog_from_oss_pilot() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    pilot = json.loads(Path("benchmarks/oss_pilot.json").read_text(encoding="utf-8"))
+
+    assert "Catalog-only status" in readme
+    assert "OSS Pilot Static Evaluation" in readme
+    assert str(pilot["projects_evaluated"]) in readme
+    assert str(pilot["total_call_sites"]) in readme

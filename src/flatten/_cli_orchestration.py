@@ -24,11 +24,6 @@ from flatten._cli_io import (
     _verdict_to_json,
 )
 from flatten._utils import normalize_filename as _normalize_filename
-from flatten.benchmarks import (
-    load_benchmark_catalog,
-    summarize_benchmark_catalog,
-    write_benchmark_reports,
-)
 from flatten.closure import ClosureChecker, ClosureConfig
 from flatten.contracts import (
     CallSite,
@@ -688,26 +683,6 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
             if isinstance(item, dict)
         ]
     _json_print(evaluate_artifacts(call_sites, decisions).to_json())
-    return 0
-
-
-def cmd_benchmark(args: argparse.Namespace) -> int:
-    """Run benchmark catalog and write summary reports.
-
-    Args:
-        args: Parsed CLI args with ``catalog``, ``out_json``, ``out_md`` fields.
-
-    Returns:
-        Exit code 0.
-    """
-    projects = load_benchmark_catalog(args.catalog.resolve())
-    summary = summarize_benchmark_catalog(projects)
-    write_benchmark_reports(
-        summary,
-        out_json=args.out_json.resolve() if args.out_json else None,
-        out_md=args.out_md.resolve() if args.out_md else None,
-    )
-    _json_print(summary)
     return 0
 
 
