@@ -43,6 +43,9 @@ MANIFEST
 .DS_Store
 Thumbs.db
 .env
+.env.local
+.env.*.local
+!.env.example
 
 # cosmic-ray artifacts
 session.sqlite

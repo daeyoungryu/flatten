@@ -161,3 +161,23 @@ Use the project-local MCP contract as the source of truth: .mcp.json, AI/mcp/REA
 - Use SQLite MCP for structured project memory at AI/memory/sqlite/project_memory.sqlite.
 - Use Graphiti only when AI/mcp/graphiti.json is ctive-ready. If status is contract-ready-missing-env, do not start it or add placeholder secrets.
 - Hand implementation tasks to Codex with concrete files, tests, and acceptance criteria.
+
+## 개발 환경 실행
+
+```bash
+# 최초 설정
+cp .env.example .env
+# .env 파일에서 필요한 값 입력
+
+# 실행
+docker-compose up
+
+# 백그라운드 실행
+docker-compose up -d
+
+# 로그 확인
+docker-compose logs -f
+
+# 종료
+docker-compose down
+```
