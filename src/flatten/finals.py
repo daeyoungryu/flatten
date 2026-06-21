@@ -1,4 +1,4 @@
-﻿"""Runtime-aware final decorator for closure analysis."""
+"""Runtime-aware final decorator for closure analysis."""
 
 from __future__ import annotations
 

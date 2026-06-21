@@ -1,4 +1,4 @@
-﻿"""Command implementations for the flatten CLI (analyze, trace, plan, rewrite, verify)."""
+"""Command implementations for the flatten CLI (analyze, trace, plan, rewrite, verify)."""
 
 from __future__ import annotations
 

@@ -14,6 +14,10 @@ def test_distribution_name_is_normalized_and_unique():
     assert project["name"] == "flatten-polymorph"
 
 
+def test_pyproject_has_no_utf8_bom():
+    assert not Path("pyproject.toml").read_bytes().startswith(b"\xef\xbb\xbf")
+
+
 def test_wheel_filename_pattern_after_build(tmp_path):
     result = subprocess.run(
         [sys.executable, "-m", "build", "--wheel", "--outdir", str(tmp_path)],

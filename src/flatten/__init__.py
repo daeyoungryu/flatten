@@ -1,4 +1,4 @@
-﻿"""flatten — polymorphic dispatch flattener via runtime tracing + LibCST."""
+"""flatten — polymorphic dispatch flattener via runtime tracing + LibCST."""
 
 __version__ = "0.2.1"
 

@@ -1,4 +1,4 @@
-﻿"""Static class hierarchy extraction for safety reporting."""
+"""Static class hierarchy extraction for safety reporting."""
 
 from __future__ import annotations
 

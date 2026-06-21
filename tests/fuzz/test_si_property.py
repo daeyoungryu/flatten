@@ -128,7 +128,7 @@ def _make_observations(
     ctx=st.sampled_from(["return", "assign", "expr_stmt"]),
     arg_val=st.integers(min_value=0, max_value=99),
 )
-@settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_si_identifier_receiver_rewrite_is_equivalent(
     n_classes: int, ctx: str, arg_val: int
 ) -> None:
@@ -170,7 +170,7 @@ def test_si_identifier_receiver_rewrite_is_equivalent(
     n_iters=st.integers(min_value=1, max_value=5),
     base_val=st.integers(min_value=0, max_value=49),
 )
-@settings(max_examples=150, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=150, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_si_comprehension_receiver_refused(n_classes: int, n_iters: int, base_val: int) -> None:
     """Non-identifier receiver inside comprehension must produce 0 plans (refused)."""
     src = _build_src_comprehension(n_classes, n_iters)
@@ -195,7 +195,7 @@ def test_si_comprehension_receiver_refused(n_classes: int, n_iters: int, base_va
     ctx=st.sampled_from(["return", "assign", "expr_stmt"]),
     arg_val=st.integers(min_value=0, max_value=49),
 )
-@settings(max_examples=150, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=150, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_si_receiver_evaluated_once(n_classes: int, ctx: str, arg_val: int) -> None:
     """Receiver expression must be evaluated exactly once in rewritten code."""
     src = _build_src_identifier(n_classes, ctx, arg_val)

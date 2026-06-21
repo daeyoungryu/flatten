@@ -1,4 +1,4 @@
-﻿"""Module entry point for `python -m flatten`."""
+"""Module entry point for `python -m flatten`."""
 
 from __future__ import annotations
 
