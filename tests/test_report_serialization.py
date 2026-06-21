@@ -1,4 +1,4 @@
-import json
+﻿import json
 
 from flatten.contracts import ClosureVerdict
 from flatten.report import AnalysisReport

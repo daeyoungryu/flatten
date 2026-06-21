@@ -1,4 +1,4 @@
-# Safety Model
+﻿# Safety Model
 
 Runtime observation is evidence, not proof. Verification only replays observed
 inputs and compares behavior for those inputs. It cannot prove that unobserved

@@ -1,4 +1,4 @@
-"""Smoke test: import + basic function call."""
+﻿"""Smoke test: import + basic function call."""
 
 import json
 from pathlib import Path

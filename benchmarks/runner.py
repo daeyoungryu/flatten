@@ -1,4 +1,4 @@
-"""Executable safety benchmark runner."""
+﻿"""Executable safety benchmark runner."""
 
 from __future__ import annotations
 

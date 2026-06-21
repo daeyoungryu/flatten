@@ -1,4 +1,4 @@
-"""guarded_temp context coverage regression tests.
+﻿"""guarded_temp context coverage regression tests.
 
 The transformer must hoist the receiver into a temp variable for ALL statement
 contexts that support it (return, assign, expr_stmt), not only return.

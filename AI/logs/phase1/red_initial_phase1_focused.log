@@ -1,4 +1,4 @@
-Command:
+﻿Command:
 python -m pytest tests\test_soundness_unobserved_sibling.py tests\test_confidence_contract.py tests\test_relative_path_binding.py tests\test_planner_field_preservation.py -q
 
 Exit code: 1

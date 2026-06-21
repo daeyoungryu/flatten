@@ -1,4 +1,4 @@
-class DynamicBase:
+﻿class DynamicBase:
     def __setattr__(self, name: str, value: object) -> None:
         object.__setattr__(self, name, value)
 

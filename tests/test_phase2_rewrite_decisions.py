@@ -1,4 +1,4 @@
-import libcst as cst
+﻿import libcst as cst
 
 from flatten.closure import ClosureChecker
 from flatten.contracts import CallSite, ClosureStatus, ClosureVerdict

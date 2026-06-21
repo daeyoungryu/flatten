@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS project_context (
+﻿CREATE TABLE IF NOT EXISTS project_context (
     project TEXT PRIMARY KEY,
     purpose TEXT,
     current_status TEXT,

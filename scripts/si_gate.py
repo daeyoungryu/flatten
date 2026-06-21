@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """SI gate: run test_si_regressions.py and report pass/fail.
 
 Usage:

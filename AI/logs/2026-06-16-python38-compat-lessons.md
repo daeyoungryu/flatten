@@ -1,4 +1,4 @@
-# Python 3.8 compatibility lesson - 2026-06-16
+﻿# Python 3.8 compatibility lesson - 2026-06-16
 
 Tags: #python38 #compatibility #import-time #typing
 

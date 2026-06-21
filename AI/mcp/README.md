@@ -1,4 +1,4 @@
-# MCP Setup
+﻿# MCP Setup
 
 Role split:
 
@@ -12,6 +12,6 @@ Contracts in this folder:
 - filesystem.json
 - sqlite.json
 - obsidian.json
-- graphiti.json
+- memory_store.py
 
-SQLite, Obsidian, and Graphiti are recorded as contracts until their local MCP runtime entrypoints are verified.
+SQLite, Obsidian, and sqlite-vec memory are recorded as contracts until their local MCP runtime entrypoints are verified.

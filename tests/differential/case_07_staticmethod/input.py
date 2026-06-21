@@ -1,4 +1,4 @@
-class Base:
+﻿class Base:
     @staticmethod
     def run(self):
         return "base"

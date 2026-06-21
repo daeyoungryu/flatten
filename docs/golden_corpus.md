@@ -1,4 +1,4 @@
-# Golden Corpus
+﻿# Golden Corpus
 
 This corpus defines stable safe and unsafe examples used for release review.
 Each file is intentionally small so a failed verdict can be inspected by hand.

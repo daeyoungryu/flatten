@@ -1,4 +1,4 @@
-# Examples
+﻿# Examples
 
 Examples are executable scripts under `examples/`.
 

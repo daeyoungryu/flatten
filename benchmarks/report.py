@@ -1,4 +1,4 @@
-"""Markdown report rendering for benchmark results."""
+﻿"""Markdown report rendering for benchmark results."""
 
 from __future__ import annotations
 

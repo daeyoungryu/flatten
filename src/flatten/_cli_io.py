@@ -1,4 +1,4 @@
-"""I/O helpers for the flatten CLI: file reading, JSON serialization, module loading."""
+﻿"""I/O helpers for the flatten CLI: file reading, JSON serialization, module loading."""
 
 from __future__ import annotations
 

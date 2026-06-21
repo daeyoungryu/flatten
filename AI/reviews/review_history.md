@@ -1,4 +1,4 @@
-# Review History
+﻿# Review History
 > {{PROJECT_NAME}} | 담당: Claude(리뷰어)
 
 리뷰 방법론: `~/.claude/skills/review-method/SKILL.md` 참조

@@ -1,4 +1,4 @@
-# CLI
+﻿# CLI
 
 `python -m flatten` and the `flatten` console script expose the same commands.
 

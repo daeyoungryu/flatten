@@ -1,4 +1,4 @@
-# COORDINATION.md - flatten-polymorph 협업 창구
+﻿# COORDINATION.md - flatten-polymorph 협업 창구
 
 <!-- 경로(저장소 루트 기준): AI/collab/COORDINATION.md -->
 

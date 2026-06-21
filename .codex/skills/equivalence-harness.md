@@ -1,4 +1,4 @@
-# Equivalence Harness 스킬
+﻿# Equivalence Harness 스킬
 
 ## 언제 사용
 - 변환 전후 코드의 동등성 검증 시

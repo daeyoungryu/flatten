@@ -1,4 +1,4 @@
-# flatten — Claude Code 운영 규칙
+﻿# flatten — Claude Code 운영 규칙
 
 > **이식성 원칙:** 이 프로젝트를 다른 환경으로 포워딩하거나 독립 실행 시,
 > 이 CLAUDE.md 전체와 `AI/global_rules.md`(공통 규칙)를 함께 포함한다.
@@ -159,7 +159,7 @@ Use the project-local MCP contract as the source of truth: .mcp.json, AI/mcp/REA
 - Claude owns design, architecture review, and memory exploration.
 - Use Obsidian through seekstone at vault root C:\Users\Com\Documents\Obsidian Vault; keep project activity scoped to $(System.Collections.Hashtable.Obsidian).
 - Use SQLite MCP for structured project memory at AI/memory/sqlite/project_memory.sqlite.
-- Use Graphiti only when AI/mcp/graphiti.json is ctive-ready. If status is contract-ready-missing-env, do not start it or add placeholder secrets.
+- Use `memory_store.py` for semantic memory. The vector DB is `data/memory.db`, separate from application databases.
 - Hand implementation tasks to Codex with concrete files, tests, and acceptance criteria.
 
 ## 개발 환경 실행

@@ -1,4 +1,4 @@
-"""Behavior comparison API for original and rewritten callables."""
+﻿"""Behavior comparison API for original and rewritten callables."""
 
 from __future__ import annotations
 

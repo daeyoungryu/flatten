@@ -1,4 +1,4 @@
-# Planner — 기획자
+﻿# Planner — 기획자
 
 ## 역할 정의
 {{PROJECT_NAME}} 프로젝트의 **제품 로드맵 관리자**.

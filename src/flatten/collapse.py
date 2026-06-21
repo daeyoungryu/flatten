@@ -1,4 +1,4 @@
-"""LibCST transforms that collapse planned call sites."""
+﻿"""LibCST transforms that collapse planned call sites."""
 
 from __future__ import annotations
 

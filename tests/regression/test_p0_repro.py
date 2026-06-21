@@ -1,4 +1,4 @@
-"""P0 repro tests.
+﻿"""P0 repro tests.
 
 On flatten-polymorph 0.1.1, T1-T3 are RED and T4 is GREEN.
 After T1-T3 fixes, all tests in this file must be GREEN.

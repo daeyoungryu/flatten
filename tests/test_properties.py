@@ -1,4 +1,4 @@
-from hypothesis import given
+﻿from hypothesis import given
 from hypothesis import strategies as st
 
 from flatten.harness import assert_equivalent, compute_behavior_hash

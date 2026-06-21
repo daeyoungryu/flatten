@@ -1,4 +1,4 @@
-# SQLite Memory
+﻿# SQLite Memory
 
 Primary database for MCP:
 

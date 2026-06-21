@@ -1,4 +1,4 @@
-# Rewrite Policy
+﻿# Rewrite Policy
 
 `flatten-polymorph` rewrites only when the planner has positive closure
 evidence. Unknown and unsupported cases are rejected.

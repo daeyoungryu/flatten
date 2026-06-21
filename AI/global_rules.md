@@ -1,4 +1,4 @@
-# 전역 공통 규칙 — AI/global_rules.md
+﻿# 전역 공통 규칙 — AI/global_rules.md
 > 새 프로젝트 시작 시 이 파일을 프로젝트 CLAUDE.md에 포함하거나 복사한다.
 > 최종 갱신: 2026-06-10
 

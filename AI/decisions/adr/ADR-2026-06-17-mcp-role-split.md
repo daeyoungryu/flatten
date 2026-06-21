@@ -1,4 +1,4 @@
-# ADR-2026-06-17: Project-local MCP role split
+﻿# ADR-2026-06-17: Project-local MCP role split
 
 - Status: Accepted
 - Date: 2026-06-17
@@ -16,11 +16,11 @@ Use project-local MCP configuration and memory contracts:
 - `AI/mcp/` documents each server contract.
 - `AI/memory/sqlite/project_memory.sqlite` stores structured project memory.
 - `AI/obsidian/vault_link.md` records the Obsidian vault root and project folder.
-- `AI/memory/graphiti/` records Graphiti import/export handover paths.
+- `data/memory.db` records sqlite-vec memory import/export handover paths.
 
 Role ownership:
 
-- Claude owns design/review knowledge exploration across Obsidian, SQLite, and Graphiti.
+- Claude owns design/review knowledge exploration across Obsidian, SQLite, and sqlite-vec memory.
 - Codex owns source implementation through filesystem-scoped project access.
 
 ## Consequences
@@ -33,7 +33,7 @@ Positive:
 
 Trade-offs:
 
-- Graphiti activation depends on project `.env` completeness.
+- sqlite-vec memory activation depends on project `.env` completeness.
 - Obsidian MCP opens the vault root, so users should scope searches/edits to the project folder.
 - SQLite MCP exposes write tools; memory mutation should be intentional.
 
@@ -47,7 +47,7 @@ Active / ready servers:
 filesystem, sqlite, obsidian
 ```
 
-Graphiti status:
+sqlite-vec memory status:
 
 ```text
 contract-ready-missing-env

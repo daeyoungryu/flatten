@@ -1,4 +1,4 @@
-from flatten.contracts import ClosureStatus, ClosureVerdict, RewriteDecision
+﻿from flatten.contracts import ClosureStatus, ClosureVerdict, RewriteDecision
 from flatten.planner import RewritePlanner
 from flatten.proofs import ProofStatus, classify_rewrite_decision
 

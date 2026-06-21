@@ -1,10 +1,13 @@
-[mcp_servers.flatten-filesystem]
+﻿[mcp_servers.flatten-filesystem]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten"]
 
 [mcp_servers.flatten-sqlite]
 command = "npx"
-args = ["-y", "mcp-server-sqlite", "--db", "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten\\AI\\memory\\sqlite\\project_memory.sqlite"]
+args = ["-y", "mcp-server-sqlite"]
+
+[mcp_servers.flatten-sqlite.env]
+SQLITE_DB_PATH = "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten\\AI\\memory\\sqlite\\project_memory.sqlite"
 
 [mcp_servers.flatten-obsidian]
 command = "npx"
@@ -12,4 +15,5 @@ args = ["-y", "seekstone"]
 
 [mcp_servers.flatten-obsidian.env]
 SEEKSTONE_VAULT = "C:\\Users\\Com\\Documents\\Obsidian Vault"
+
 

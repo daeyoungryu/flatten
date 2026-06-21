@@ -1,4 +1,4 @@
-"""Runtime tracing for observed polymorphic calls.
+﻿"""Runtime tracing for observed polymorphic calls.
 
 Argument snapshot policy: by default only dispatch metadata is captured. Value
 snapshots are opt-in because deepcopy can be expensive and user-defined.

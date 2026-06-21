@@ -1,4 +1,4 @@
-============================= test session starts =============================
+ï»¿============================= test session starts =============================
 platform win32 -- Python 3.12.10, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Com\AppData\Local\Programs\Python\Python312\python.exe
 cachedir: .pytest_cache
 hypothesis profile 'default'
@@ -19,7 +19,7 @@ tests/regression/test_guarded_temp_statement_contexts.py::test_case_c_expr_stmt_
 _____________________ test_si_receiver_multi_eval_refused _____________________
 
     def test_si_receiver_multi_eval_refused() -> None:
-        """Non-identifier receiver with ¡Ã2 impls inside list comprehension ¡æ 0 plans.
+        """Non-identifier receiver with ï¿½ï¿½2 impls inside list comprehension ï¿½ï¿½ 0 plans.
     
         The receiver nxt(i) has side effects. A guarded rewrite would evaluate it
         multiple times, violating the SI evaluation-count invariant.
@@ -67,10 +67,10 @@ tests\regression\test_si_receiver_multi_eval.py:79: AssertionError
 ______________ test_collision_open_then_closed_gives_zero_plans _______________
 
     def test_collision_open_then_closed_gives_zero_plans() -> None:
-        """[verdict_open, verdict_closed] ¡æ 0 plans (conservative open wins).
+        """[verdict_open, verdict_closed] ï¿½ï¿½ 0 plans (conservative open wins).
     
-        With last-wins bug: closed dict entry overwrites open ¡æ 1 plan emitted.
-        Expected behavior: open status is more conservative ¡æ 0 plans.
+        With last-wins bug: closed dict entry overwrites open ï¿½ï¿½ 1 plan emitted.
+        Expected behavior: open status is more conservative ï¿½ï¿½ 0 plans.
         """
         A_cls, B_cls, sites, obs = _setup()
     

@@ -1,4 +1,4 @@
-class Top:
+﻿class Top:
     def run(self):
         return "top"
 

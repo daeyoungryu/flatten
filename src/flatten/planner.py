@@ -1,4 +1,4 @@
-"""Opt-in rewrite planning layer."""
+﻿"""Opt-in rewrite planning layer."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-# Testing Strategy
+﻿# Testing Strategy
 
 The test strategy favors safe rejection over optimistic rewriting. Observation
 is evidence, not proof, so tests assert that uncertain inputs remain refused.

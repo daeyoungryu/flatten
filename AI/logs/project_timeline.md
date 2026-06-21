@@ -1,4 +1,4 @@
-# Project Timeline
+﻿# Project Timeline
 > {{PROJECT_NAME}} | 주요 이벤트 기록
 
 | 날짜 | 이벤트 | 담당 |

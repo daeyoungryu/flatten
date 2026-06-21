@@ -1,4 +1,4 @@
-# Task Template
+﻿# Task Template
 
 > 새 태스크 작성 시 이 템플릿을 복사하여 `current_tasks.md`에 추가하세요.
 

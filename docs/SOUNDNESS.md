@@ -1,4 +1,4 @@
-# Soundness Report
+﻿# Soundness Report
 
 `flatten-polymorph` is conservative by default. Runtime observation may provide
 evidence, but it does not constitute proof. A rewrite is allowed only when

@@ -1,4 +1,4 @@
-# Closure Check 스킬
+﻿# Closure Check 스킬
 
 ## 언제 사용
 - 다형 호출이 닫힌 계층인지 열린 계층인지 판정 시

@@ -1,4 +1,4 @@
-# Claude — 설계자 / Wiki 관리자
+﻿# Claude — 설계자 / Wiki 관리자
 
 ## 역할 정의
 {{PROJECT_NAME}} 프로젝트의 **설계자이자 지식 관리자**.

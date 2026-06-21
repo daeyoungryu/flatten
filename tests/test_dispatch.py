@@ -1,4 +1,4 @@
-import libcst as cst
+﻿import libcst as cst
 
 from flatten.contracts import ClosureVerdict
 from flatten.dispatch import build_direct_call, build_isinstance_chain

@@ -1,4 +1,4 @@
-import libcst as cst
+﻿import libcst as cst
 
 from flatten.contracts import CallSite, ClosureStatus, ClosureVerdict, TransformPlan
 from flatten.planner import RewritePlanner

@@ -1,4 +1,4 @@
-# Codex 작업 지시서: flatten 17개 실패 테스트 수정
+﻿# Codex 작업 지시서: flatten 17개 실패 테스트 수정
 
 **발급자:** Claude (설계자)  
 **대상:** Codex (구현자)  

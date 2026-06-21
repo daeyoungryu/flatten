@@ -1,4 +1,4 @@
-"""Execution-path specialization helpers.
+﻿"""Execution-path specialization helpers.
 
 This module is intentionally a thin first step toward a specialized Python code
 generator. It keeps the existing Oracle/Closure/Planner assets usable while

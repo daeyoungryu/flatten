@@ -1,4 +1,4 @@
-class Base:
+﻿class Base:
     @classmethod
     def run(cls):
         return cls.__name__

@@ -1,4 +1,4 @@
-# Handoff to Claude Code — flatten
+﻿# Handoff to Claude Code — flatten
 > 작성: Claude Agent | 날짜: 2026-06-10 | 세션: ExecutionTracer + 인프라 정비
 
 ## 현재 상태 요약

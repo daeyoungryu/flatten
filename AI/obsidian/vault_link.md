@@ -1,4 +1,4 @@
-# Obsidian Vault Link
+﻿# Obsidian Vault Link
 
 Project: flatten
 

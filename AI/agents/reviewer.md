@@ -1,4 +1,4 @@
-# Reviewer — 코드 리뷰어
+﻿# Reviewer — 코드 리뷰어
 
 ## 역할 정의
 {{PROJECT_NAME}} 프로젝트의 **품질 게이트**.

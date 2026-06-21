@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # workflow-guard.sh — Claude Code PreToolUse hook (Bash/Git-Bash)
 # 차단 대상: git add . | git add -A | git push --force | git push -f
 # 차단 시: exit 2 + stderr 메시지 → Claude Code가 tool 실행 거부

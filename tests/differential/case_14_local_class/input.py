@@ -1,4 +1,4 @@
-def make_class():
+﻿def make_class():
     class Local:
         def run(self):
             return "local"

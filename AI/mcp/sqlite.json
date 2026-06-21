@@ -1,18 +1,19 @@
-{
+﻿{
     "name":  "flatten-sqlite",
     "type":  "sqlite",
     "status":  "active-ready",
     "command":  "npx",
     "args":  [
                  "-y",
-                 "mcp-server-sqlite",
-                 "--db",
-                 "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten\\AI\\memory\\sqlite\\project_memory.sqlite"
+                 "mcp-server-sqlite"
              ],
     "database":  "AI/memory/sqlite/project_memory.sqlite",
     "absolute_database":  "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten\\AI\\memory\\sqlite\\project_memory.sqlite",
     "schema":  "AI/memory/sqlite/schema.sql",
     "owner":  "claude-design-review-primary",
     "purpose":  "Structured project memory for design review, handover, decisions, and evaluation run history.",
-    "safety_note":  "This MCP exposes write tools. Use read/query by default; mutate memory only when explicitly requested or during sync."
+    "safety_note":  "This MCP exposes write tools. Use read/query by default; mutate memory only when explicitly requested or during sync.",
+    "env":  {
+                "SQLITE_DB_PATH":  "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten\\AI\\memory\\sqlite\\project_memory.sqlite"
+            }
 }

@@ -1,4 +1,4 @@
-# Codex 최종 작업 지시서: flatten 남은 10개 테스트 수정
+﻿# Codex 최종 작업 지시서: flatten 남은 10개 테스트 수정
 
 **발급자:** Claude (설계자)  
 **대상:** Codex (구현자)  

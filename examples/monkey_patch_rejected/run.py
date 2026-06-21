@@ -1,4 +1,4 @@
-from flatten.closure import ClosureChecker
+﻿from flatten.closure import ClosureChecker
 from flatten.planner import RewritePlanner
 
 

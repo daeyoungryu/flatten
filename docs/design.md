@@ -1,4 +1,4 @@
-# Design
+﻿# Design
 
 `flatten-polymorph` is organized as a pipeline:
 

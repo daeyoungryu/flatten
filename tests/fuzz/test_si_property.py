@@ -1,4 +1,4 @@
-"""Hypothesis property-based fuzz: SI invariant (Soundness Invariant).
+﻿"""Hypothesis property-based fuzz: SI invariant (Soundness Invariant).
 
 For any valid call-site rewrite the planner generates, the transformed code
 must be observationally equivalent to the original:

@@ -1,4 +1,4 @@
-# flatten — Codex 지침
+﻿# flatten — Codex 지침
 
 ## 한 줄 정의
 런타임 추적(sys.monitoring) + CST 변환(LibCST)으로 다형 호출을 단일 실행 경로로 펼친다.
@@ -62,8 +62,8 @@ feat: 기능 구현
 This project uses project-local MCP contracts. Prefer .mcp.json and AI/mcp/*.json over global MCP assumptions.
 
 - Codex role: implement source changes, run tests, and use the filesystem MCP as the primary working surface.
-- Claude role: design, architecture review, and knowledge exploration through Obsidian, SQLite, and Graphiti when available.
+- Claude role: design, architecture review, and knowledge exploration through Obsidian, SQLite, and sqlite-vec memory when available.
 - SQLite MCP: AI/memory/sqlite/project_memory.sqlite with schema in AI/memory/sqlite/schema.sql.
 - Obsidian MCP: seekstone with vault root C:\Users\Com\Documents\Obsidian Vault; scope work to $(System.Collections.Hashtable.Obsidian).
-- Graphiti MCP status: $(System.Collections.Hashtable.Graphiti). Do not activate Graphiti when env keys are missing; keep it contract-ready until the project .env provides the required Neo4j/OpenAI values.
+- sqlite-vec memory: use `memory_store.py` with the separate `data/memory.db`; keep it separate from app databases and use e5 `passage:`/`query:` prefixes.
 - Do not overwrite global MCP config as part of normal project work.

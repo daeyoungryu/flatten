@@ -1,4 +1,4 @@
-# Decision Log
+﻿# Decision Log
 
 ## DEC-001 | 2026-06-10 | Freeze Shared Contracts
 

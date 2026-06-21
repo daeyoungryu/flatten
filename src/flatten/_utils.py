@@ -1,4 +1,4 @@
-"""Shared internal utilities for flatten."""
+﻿"""Shared internal utilities for flatten."""
 
 from __future__ import annotations
 

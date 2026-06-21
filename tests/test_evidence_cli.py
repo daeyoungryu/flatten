@@ -1,4 +1,4 @@
-import json
+﻿import json
 
 from flatten.cli import main
 from flatten.evaluation import EvaluationCounts, compute_metrics
