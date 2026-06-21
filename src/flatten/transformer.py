@@ -1,4 +1,4 @@
-﻿"""Position-based LibCST rewrite application."""
+"""Position-based LibCST rewrite application."""
 
 from __future__ import annotations
 

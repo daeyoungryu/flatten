@@ -1,4 +1,4 @@
-﻿"""Ordinal confidence scoring for closed rewrite evidence.
+"""Ordinal confidence scoring for closed rewrite evidence.
 
 The returned value is not a calibrated probability. It is an ordinal score used
 only for CLOSED verdicts that already passed the safety policy.

@@ -1,4 +1,4 @@
-﻿name,package,repo_url,category
+name,package,repo_url,category
 FastAPI,fastapi,https://github.com/fastapi/fastapi,web
 Pydantic,pydantic,https://github.com/pydantic/pydantic,validation
 SQLAlchemy,sqlalchemy,https://github.com/sqlalchemy/sqlalchemy,database

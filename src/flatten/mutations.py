@@ -1,4 +1,4 @@
-﻿"""Source-level mutation generation for false-positive safety checks."""
+"""Source-level mutation generation for false-positive safety checks."""
 
 from __future__ import annotations
 

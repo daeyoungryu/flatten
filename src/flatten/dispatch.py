@@ -1,4 +1,4 @@
-﻿"""LibCST builders for flattening polymorphic dispatch."""
+"""LibCST builders for flattening polymorphic dispatch."""
 
 from __future__ import annotations
 

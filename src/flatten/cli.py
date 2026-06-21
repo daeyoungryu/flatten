@@ -1,4 +1,4 @@
-﻿"""Command line interface for flatten."""
+"""Command line interface for flatten."""
 
 from __future__ import annotations
 

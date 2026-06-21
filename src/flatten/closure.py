@@ -1,4 +1,4 @@
-﻿"""Closure analysis for observed polymorphic implementations."""
+"""Closure analysis for observed polymorphic implementations."""
 
 from __future__ import annotations
 
