@@ -1,4 +1,4 @@
-class Base:
+﻿class Base:
     async def run(self):
         return "async"
 

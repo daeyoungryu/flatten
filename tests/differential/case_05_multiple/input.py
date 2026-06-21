@@ -1,4 +1,4 @@
-class Left:
+﻿class Left:
     def run(self):
         return "left"
 

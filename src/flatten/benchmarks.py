@@ -1,4 +1,4 @@
-"""Benchmark catalog and KPI report helpers."""
+﻿"""Benchmark catalog and KPI report helpers."""
 
 from __future__ import annotations
 

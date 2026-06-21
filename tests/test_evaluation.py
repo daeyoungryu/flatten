@@ -1,4 +1,4 @@
-from flatten.contracts import ClosureStatus, RewriteDecision
+﻿from flatten.contracts import ClosureStatus, RewriteDecision
 from flatten.discovery import discover_call_sites
 from flatten.evaluation import (
     EvaluationCounts,

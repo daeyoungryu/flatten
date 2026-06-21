@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 
 from flatten.comparator import BehaviorComparator
 

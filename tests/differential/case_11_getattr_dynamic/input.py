@@ -1,4 +1,4 @@
-class Base:
+﻿class Base:
     def __getattr__(self, name):
         raise AttributeError(name)
 

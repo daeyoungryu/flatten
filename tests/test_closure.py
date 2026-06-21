@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 
 from flatten.closure import (
     ClosureChecker,

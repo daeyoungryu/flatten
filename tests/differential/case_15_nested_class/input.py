@@ -1,4 +1,4 @@
-class Outer:
+﻿class Outer:
     class Nested:
         def run(self):
             return "nested"

@@ -1,4 +1,4 @@
-"""Behavior hashing and equivalence checks for transformed functions."""
+﻿"""Behavior hashing and equivalence checks for transformed functions."""
 
 from __future__ import annotations
 

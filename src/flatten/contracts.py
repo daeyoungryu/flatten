@@ -1,4 +1,4 @@
-"""Shared data contracts for flatten's tracing and transformation pipeline."""
+﻿"""Shared data contracts for flatten's tracing and transformation pipeline."""
 
 from __future__ import annotations
 

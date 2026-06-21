@@ -1,4 +1,4 @@
-"""Verdict key collision: contradictory verdicts for the same method_qualname.
+﻿"""Verdict key collision: contradictory verdicts for the same method_qualname.
 
 When two ClosureVerdict objects share the same method_qualname but disagree on
 status (CLOSED vs OPEN), the planner must apply the conservative (less permissive)

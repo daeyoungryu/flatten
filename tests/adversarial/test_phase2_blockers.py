@@ -1,4 +1,4 @@
-from flatten.closure import ClosureChecker
+﻿from flatten.closure import ClosureChecker
 from flatten.contracts import ClosureStatus
 from flatten.finals import final
 from flatten.planner import RewritePlanner

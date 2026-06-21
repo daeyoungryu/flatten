@@ -1,4 +1,4 @@
-# Claim Test Map
+﻿# Claim Test Map
 
 This map links public claims to regression tests. A claim is not release-ready
 unless it has an executable test or a documented external limitation.

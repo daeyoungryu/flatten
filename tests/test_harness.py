@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 
 from flatten.harness import assert_equivalent, compute_behavior_hash
 

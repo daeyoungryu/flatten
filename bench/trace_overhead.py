@@ -1,4 +1,4 @@
-"""Tracer overhead benchmark — compares global vs. local-events tracing.
+﻿"""Tracer overhead benchmark — compares global vs. local-events tracing.
 
 Measures:
   - baseline: untraced Python method calls

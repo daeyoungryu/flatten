@@ -1,4 +1,4 @@
-import importlib.util
+﻿import importlib.util
 import json
 from pathlib import Path
 from typing import Any

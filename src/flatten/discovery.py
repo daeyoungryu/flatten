@@ -1,4 +1,4 @@
-"""Static call-site discovery for method dispatch candidates."""
+﻿"""Static call-site discovery for method dispatch candidates."""
 
 from __future__ import annotations
 

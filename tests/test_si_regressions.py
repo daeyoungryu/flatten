@@ -1,4 +1,4 @@
-"""SI regression tests: 7 RED (before fixes) + 1 META (always GREEN).
+﻿"""SI regression tests: 7 RED (before fixes) + 1 META (always GREEN).
 
 Gate is law: only fix src/flatten/ source code to make these GREEN.
 Never decorate tests with skip or xfail markers in this file.

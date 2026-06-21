@@ -1,4 +1,4 @@
-# Benchmark Summary
+﻿# Benchmark Summary
 
 | KPI | Value |
 | --- | --- |

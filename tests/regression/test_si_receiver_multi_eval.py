@@ -1,4 +1,4 @@
-"""SI regression: non-identifier receiver with side effects must not be re-evaluated.
+﻿"""SI regression: non-identifier receiver with side effects must not be re-evaluated.
 
 Invariant: when planner emits a plan, evaluation count of every sub-expression must
 be identical to the original. A comprehension context with a non-identifier receiver

@@ -1,4 +1,4 @@
-# Limitations
+﻿# Limitations
 
 - Runtime tracing currently maps CLI observations to static call sites using source discovery and method-name order as a Python 3.10-compatible fallback.
 - Guarded dispatch is emitted as an expression-level rewrite only when the receiver is a simple name.

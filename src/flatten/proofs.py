@@ -1,4 +1,4 @@
-"""Proof classification for rewrite authorization."""
+﻿"""Proof classification for rewrite authorization."""
 
 from __future__ import annotations
 

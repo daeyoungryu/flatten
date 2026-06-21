@@ -1,4 +1,4 @@
-# Benchmark Suite
+﻿# Benchmark Suite
 
 This directory contains the local safety benchmark suite for `flatten-polymorph`.
 It is separate from the older OSS project catalog in `projects.csv`: the catalog

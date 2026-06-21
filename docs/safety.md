@@ -1,4 +1,4 @@
-# Safety Model
+﻿# Safety Model
 
 ## CLOSED
 

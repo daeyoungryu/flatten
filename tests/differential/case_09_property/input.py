@@ -1,4 +1,4 @@
-class Base:
+﻿class Base:
     @property
     def run(self):
         return lambda: "base"

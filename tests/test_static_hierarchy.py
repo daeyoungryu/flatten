@@ -1,4 +1,4 @@
-import json
+﻿import json
 from argparse import Namespace
 
 from flatten.cli import cmd_analyze

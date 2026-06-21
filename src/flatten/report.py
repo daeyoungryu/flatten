@@ -1,4 +1,4 @@
-"""JSON and HTML reporting for flatten analysis."""
+﻿"""JSON and HTML reporting for flatten analysis."""
 
 from __future__ import annotations
 

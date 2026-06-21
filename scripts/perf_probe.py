@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Tracer memory probe: measures dispatch vs. non-dispatch record accumulation.
 
 Usage:

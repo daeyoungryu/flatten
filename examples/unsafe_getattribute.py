@@ -1,4 +1,4 @@
-class Dynamic:
+﻿class Dynamic:
     def __getattribute__(self, name: str):
         return super().__getattribute__(name)
 

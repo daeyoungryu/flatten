@@ -1,4 +1,4 @@
-"""CI evidence gate for benchmark outputs."""
+﻿"""CI evidence gate for benchmark outputs."""
 
 from __future__ import annotations
 

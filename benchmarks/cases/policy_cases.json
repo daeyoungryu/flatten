@@ -1,4 +1,4 @@
-[
+﻿[
   {"id":"simple_closed_hierarchy_001","category":"closed_hierarchy","description":"Basic closed class hierarchy with deterministic dispatch","expected_decision":"rewrite","expected_safety":"safe","expected_runtime_equivalence":"not_applicable","features":["inheritance","method_override","finite_subclasses"],"closure_status":"closed","evidence":["closed-world package scan"]},
   {"id":"final_class_001","category":"final_class","description":"Final receiver class with one observed implementation","expected_decision":"rewrite","expected_safety":"safe","expected_runtime_equivalence":"not_applicable","features":["final_class","direct_dispatch"],"closure_status":"closed","evidence":["typing.final class or method"]},
   {"id":"final_method_001","category":"final_method","description":"Final method on observed receiver","expected_decision":"rewrite","expected_safety":"safe","expected_runtime_equivalence":"not_applicable","features":["final_method","method_override"],"closure_status":"closed","evidence":["typing.final class or method"]},

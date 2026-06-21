@@ -1,4 +1,4 @@
-"""Phase 4 exception path regression: method calls that raise must still be observed."""
+﻿"""Phase 4 exception path regression: method calls that raise must still be observed."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-from flatten.closure import ClosureChecker
+﻿from flatten.closure import ClosureChecker
 
 
 def test_sibling_subclass_gap_is_reported_when_only_one_override_is_observed():

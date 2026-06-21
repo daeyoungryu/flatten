@@ -1,4 +1,4 @@
-class Worker:
+﻿class Worker:
     def run(self) -> str:
         return "original"
 

@@ -1,4 +1,4 @@
-# flatten-polymorph
+﻿# flatten-polymorph
 
 `flatten-polymorph` is an experimental Python 3.8+ library for turning positively closed polymorphic method calls into explicit direct calls or guarded dispatch expressions.
 

@@ -1,4 +1,4 @@
-# Research Evaluation
+﻿# Research Evaluation
 
 This document is the research-grade evaluation contract for `flatten-polymorph`.
 It separates implemented local gates from external OSS evaluation that requires

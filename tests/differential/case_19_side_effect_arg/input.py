@@ -1,4 +1,4 @@
-class Base:
+﻿class Base:
     def run(self, value):
         return value
 

@@ -1,4 +1,4 @@
-import json
+﻿import json
 
 import libcst as cst
 import pytest

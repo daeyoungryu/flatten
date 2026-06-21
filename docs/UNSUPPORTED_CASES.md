@@ -1,4 +1,4 @@
-# Unsupported Cases
+﻿# Unsupported Cases
 
 Unsupported or unsafe inputs are safe rejects. Observation is evidence, not
 proof, so unsupported cases must remain OPEN, UNSAFE, UNKNOWN, or UNSUPPORTED.

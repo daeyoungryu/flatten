@@ -1,4 +1,4 @@
-"""Deterministic benchmark metric calculations."""
+﻿"""Deterministic benchmark metric calculations."""
 
 from __future__ import annotations
 
