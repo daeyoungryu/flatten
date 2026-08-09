@@ -1,4 +1,4 @@
-﻿{
+{
     "mcpServers":  {
                        "flatten-filesystem":  {
                                                   "command":  "npx",
@@ -8,16 +8,6 @@
                                                                "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten"
                                                            ]
                                               },
-                       "flatten-sqlite":  {
-                                              "command":  "npx",
-                                              "args":  [
-                                                           "-y",
-                                                           "mcp-server-sqlite"
-                                                       ],
-                                              "env":  {
-                                                          "SQLITE_DB_PATH":  "C:\\Users\\Com\\Documents\\Claude\\Projects\\flatten\\AI\\memory\\sqlite\\project_memory.sqlite"
-                                                      }
-                                          },
                        "flatten-obsidian":  {
                                                 "command":  "npx",
                                                 "args":  [
