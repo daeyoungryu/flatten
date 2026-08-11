@@ -17,8 +17,9 @@ Full design rationale: `AI/context/capafy_audit_skill_design.md` and
 1. **Never run `flatten rewrite`, with or without `--apply`.** This skill
    is audit-only. If the user asks for an actual rewrite, tell them that's a
    separate flatten operation outside this skill's scope and stop.
-2. **Never run a `git` subcommand other than `git status`.** No commit, no
-   push, no checkout, no clean, no stash.
+2. **Never run a `git` subcommand other than the two read-only commands
+   this skill uses: `git status` and `git rev-parse --is-inside-work-tree`.**
+   No commit, no push, no checkout, no clean, no stash.
 3. **All output goes under `<repo>/.capafy-audit/<timestamp>/`.** Never pass
    `--out` pointing anywhere inside the source tree.
 4. **Never execute target code without asking first.** Step 3 below (trace)
@@ -89,7 +90,11 @@ Then render `.capafy-audit/<timestamp>/summary.md` from `report.json`:
 git status --porcelain            # capture as POST_SNAPSHOT
 ```
 
-If `POST_SNAPSHOT` differs from `PRE_SNAPSHOT`, this is a hard warning: show
+**Before comparing, drop every line referring to `.capafy-audit/` from both
+snapshots** — the audit's own output directory is untracked and would
+otherwise trip the diff on every run (false positive).
+
+If the filtered `POST_SNAPSHOT` differs from `PRE_SNAPSHOT`, this is a hard warning: show
 the diff to the user at the top of the summary, immediately. Do not bury it.
 This should only ever be triggered by side effects inside the traced entry
 point (step 3) — if it fires, say so explicitly.

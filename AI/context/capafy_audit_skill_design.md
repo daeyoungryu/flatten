@@ -38,11 +38,13 @@ full rationale and the rejected server-side-batch alternative.
 |---|---|
 | `flatten rewrite --apply` | Writes to source files — out of scope for an audit product |
 | `flatten rewrite` (dry-run) | Not needed for audit; keeps the command surface minimal and auditable |
+| `flatten expand` / `flatten verify` / `flatten specialize` | Not part of the audit pipeline; `verify`/`specialize` can execute or generate code — excluded to keep the surface minimal (whitelist, not blacklist) |
 | Any `git commit` / `git push` / `git checkout --` / `git clean` | Audit observes only; never mutates repository state |
 
 The Skill instructions enumerate this table explicitly as an allow/deny list.
-Any command containing `--apply`, or any `git` subcommand outside `git
-status`, must be refused.
+Any command containing `--apply`, any flatten subcommand outside §3.1, or any
+`git` subcommand outside the two read-only ones the skill itself uses
+(`git status`, `git rev-parse --is-inside-work-tree`), must be refused.
 
 ## 4. Pipeline
 
@@ -69,8 +71,11 @@ status`, must be refused.
 
 6. Postflight
    - Capture `git status --porcelain` snapshot (post)
-   - Diff pre/post snapshots; if non-empty, warn the user immediately and
-     surface the diff (do not silently continue)
+   - Filter lines referring to `.capafy-audit/` out of BOTH snapshots
+     before diffing (the audit's own untracked output dir would otherwise
+     trip the diff on every run — false positive)
+   - Diff filtered pre/post snapshots; if non-empty, warn the user
+     immediately and surface the diff (do not silently continue)
 ```
 
 Step 3 (runtime trace) is the only step that executes target code and is
@@ -94,6 +99,8 @@ isolation is out of scope). Guarantee mechanisms:
 4. **git status diff safety net** — pre/post `git status --porcelain`
    snapshots catch any unintended filesystem mutation caused by side effects
    inside the traced entry point, even ones the Skill itself didn't cause.
+   Lines referring to `.capafy-audit/` are filtered from both snapshots
+   before comparison, so the audit's own output never triggers the net.
 5. **Entry point guidance** — the Skill recommends pointing `trace` at an
    existing test-suite entry point (known, bounded side effects) over an
    arbitrary `main()`, and surfaces this recommendation to the user before

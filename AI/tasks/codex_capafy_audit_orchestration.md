@@ -22,7 +22,8 @@ SKILL.md 초안을 작성했으므로 이 태스크는 **구현만** 담당한�
 ## 절대 규칙 (SKILL.md와 동일 — 구현에서도 강제할 것)
 
 1. `flatten rewrite`는 어떤 형태로도 호출하지 않는다 (`--apply` 유무 무관).
-2. `git status` 외의 `git` 서브커맨드를 실행하지 않는다.
+2. read-only 2종(`git status`, `git rev-parse --is-inside-work-tree`) 외의
+   `git` 서브커맨드를 실행하지 않는다.
 3. 모든 출력은 `<repo>/.capafy-audit/<timestamp>/` 하위에만 쓴다. 소스
    트리 내부에는 아무것도 쓰지 않는다.
 4. trace 단계(runtime 실행)는 스크립트가 자동으로 실행하지 않는다 —
@@ -54,7 +55,9 @@ CLI 스크립트로 구현 (예: `python scripts/capafy_audit.py <scope> --entry
   코드에 존재시키지 말 것).
 - Reporting: `flatten report .capafy-audit/<timestamp>/plan.json`을
   `.capafy-audit/<timestamp>/report.json`으로 저장 후 `render_summary()` 호출.
-- Postflight: `git status --porcelain` POST 스냅샷, PRE와 diff 있으면
+- Postflight: `git status --porcelain` POST 스냅샷. **PRE/POST 양쪽에서
+  `.capafy-audit/` 관련 라인을 제거한 뒤** diff 비교(출력 디렉터리 자체가
+  untracked라 필터 없이는 매 실행 false positive 발생). 필터 후 diff 있으면
   stdout에 경고를 최상단에 출력하고 non-zero 계열 신호(exit code는 0
   유지하되 경고 플래그를 stdout JSON에 포함 — 감사 자체는 성공이므로 실패로
   취급하지 않음, 단 눈에 띄게 표시).
@@ -85,6 +88,8 @@ dataclass 정의를 참고할 것 (임의로 새 스키마를 만들지 말 것 
 - trace 단계가 `--yes-execute-trace` 없이는 호출되지 않는지 검증하는
   테스트.
 - git status 사전/사후 diff 감지 테스트 (mock 또는 임시 저장소로).
+- `.capafy-audit/` 라인이 스냅샷 diff에서 제외되는지(자기 출력으로 인한
+  false positive가 없는지) 검증하는 테스트.
 
 ## 완료 조건
 

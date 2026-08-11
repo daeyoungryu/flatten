@@ -505,3 +505,18 @@ Impact: `AI/decisions/adr/ADR-2026-08-11-capafy-audit-skill.md` (full ADR),
 `skills/capafy-audit/SKILL.md` (skill draft), and
 `AI/tasks/codex_capafy_audit_orchestration.md` (Codex handoff for the
 orchestration script, output-directory management, and summary.md renderer).
+
+---
+
+## [2026-08-11] Capafy audit Skill 설계 리뷰 반영 (설계 수정 2건)
+
+리뷰에서 발견된 설계 결함 2건을 SKILL.md/디자인스펙/Codex 작업지시서에 반영:
+(1) git status 안전망 false positive — `.capafy-audit/` 출력 디렉터리 자체가
+untracked라 필터 없이는 매 실행 경고 발생 → 스냅샷 diff 전 해당 라인 제외 규칙 추가.
+(2) 하드룰 자기모순 — "git status 외 금지" 규칙과 preflight의
+`git rev-parse --is-inside-work-tree` 사용이 충돌 → read-only 2종 허용으로 명문화.
+부수: forbidden 표에 `expand`/`verify`/`specialize` 명시(화이트리스트 명확화).
+
+Impact: `.claude/skills/capafy-audit/SKILL.md`,
+`AI/context/capafy_audit_skill_design.md`,
+`AI/tasks/codex_capafy_audit_orchestration.md`
