@@ -267,3 +267,15 @@ compatibility and stability:
   AST-based tests using `tmp_path` source files.
 - Result: 220 passed, 1 skipped. whl rebuilt as
   `dist/flatten_polymorph-0.1.1-py3-none-any.whl`.
+
+## Capafy Read-Only Audit Skill (2026-08-11, design stage)
+
+flatten was evaluated as a Capafy monetization channel candidate. Designed a
+read-only audit product as a local Claude Code Skill
+(`.claude/skills/capafy-audit/SKILL.md`) that wraps the existing
+`analyze` → `trace` → `plan` (dry-run) → `report` pipeline; `rewrite --apply`
+is never invoked. Full rationale in
+`AI/decisions/adr/ADR-2026-08-11-capafy-audit-skill.md` and
+`AI/context/capafy_audit_skill_design.md`. Orchestration script and
+summary.md renderer are handed off to Codex
+(`AI/tasks/codex_capafy_audit_orchestration.md`) — not yet implemented.

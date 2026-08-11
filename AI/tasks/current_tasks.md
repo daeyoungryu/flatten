@@ -109,3 +109,11 @@ Last updated: 2026-06-15
 - Remaining evidence-platform expansion: convert additional differential and
   golden fixtures into benchmark cases, and add repository-scale case execution
   once pinned OSS checkouts are available.
+- Capafy read-only audit Skill (2026-08-11): design + ADR + SKILL.md draft
+  complete (`AI/decisions/adr/ADR-2026-08-11-capafy-audit-skill.md`,
+  `AI/context/capafy_audit_skill_design.md`,
+  `.claude/skills/capafy-audit/SKILL.md`). Orchestration script,
+  output-directory management, and summary.md renderer not yet implemented —
+  handed off to Codex via
+  `AI/tasks/codex_capafy_audit_orchestration.md`. Branch:
+  `feature/capafy-audit-skill`.

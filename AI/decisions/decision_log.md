@@ -486,3 +486,22 @@ non-identifier receivers with ≥2 impls), `_most_conservative` verdict merge, a
 Return/Assign/AnnAssign/Expr contexts. `tests/regression/` has 5 new regression
 tests. `tests/fuzz/test_si_property.py` has 500-example Hypothesis property tests.
 `AI/reviews/0.2.0/` holds evidence artifacts. Result: 235 passed, 1 pre-existing failure.
+
+## DEC-039 | 2026-08-11 | Capafy Read-Only Audit Skill: Local Execution Model
+
+Decision: Design a Capafy-facing audit product as a local Claude Code Skill
+(`SKILL.md`) that wraps flatten's existing `analyze` + `trace` + `plan`
+(dry-run) + `report` pipeline. `rewrite --apply` is never invoked. No new
+server-side sandbox/upload infrastructure is built.
+
+Reason: `SKILL.md` is inherently a Claude Code session artifact, and trace
+execution targets the user's own code in the user's own environment — the
+same trust boundary as running their own test suite. Reusing flatten's
+existing dry-run/apply boundary avoids building new execution isolation
+infrastructure for this stage.
+
+Impact: `AI/decisions/adr/ADR-2026-08-11-capafy-audit-skill.md` (full ADR),
+`AI/context/capafy_audit_skill_design.md` (design spec), planned
+`skills/capafy-audit/SKILL.md` (skill draft), and
+`AI/tasks/codex_capafy_audit_orchestration.md` (Codex handoff for the
+orchestration script, output-directory management, and summary.md renderer).
