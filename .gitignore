@@ -68,3 +68,12 @@ _report.py
 
 # Local agent worktrees
 .worktrees/
+
+# 실행 산출물 (감사 A15) — 저장소 루트에 쌓이던 것들
+dump_out.txt
+dump_interim.txt
+survived_report.txt
+session.sqlite
+.capafy-audit/
+.health-pytest-tmp-*/
+.health-pytest-utf8-*/
