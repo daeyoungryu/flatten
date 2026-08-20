@@ -1,6 +1,6 @@
 ﻿# Current Tasks
 
-Last updated: 2026-06-15
+Last updated: 2026-08-13
 
 ## Completed
 
@@ -93,6 +93,17 @@ Last updated: 2026-06-15
   guarded_temp in if/while/assert unhoistable contexts), P2 tracer
   (dispatch_records property + OracleRecord.outcome sentinel). 8/8 SI gate
   tests pass. Branch: fix/si-hardening.
+- Capafy read-only audit orchestration (2026-08-13): added the isolated
+  `.capafy-audit/<timestamp>/` pipeline, explicit runtime trace gate,
+  pre/post Git-status safety net, JSON report mode, and Markdown summary.
+- Planner AST safety expansion (2026-08-13): conservatively rejects
+  alias-only concrete class bindings, function-local classes, and guarded-temp
+  rewrites that would reorder nested expression side effects.
+- Health audit repair (2026-08-13): fixed guarded-temp AST identity matching
+  for nested receiver calls by requiring the complete call-site range. The five
+  confirmed planning failures are covered by the guarded-temp regression and
+  staff-contract tests; audit evidence is in
+  `AI/reviews/2026-08-13-health-audit.md`.
 
 ## Remaining
 
@@ -109,11 +120,4 @@ Last updated: 2026-06-15
 - Remaining evidence-platform expansion: convert additional differential and
   golden fixtures into benchmark cases, and add repository-scale case execution
   once pinned OSS checkouts are available.
-- Capafy read-only audit Skill (2026-08-11): design + ADR + SKILL.md draft
-  complete (`AI/decisions/adr/ADR-2026-08-11-capafy-audit-skill.md`,
-  `AI/context/capafy_audit_skill_design.md`,
-  `.claude/skills/capafy-audit/SKILL.md`). Orchestration script,
-  output-directory management, and summary.md renderer not yet implemented —
-  handed off to Codex via
-  `AI/tasks/codex_capafy_audit_orchestration.md`. Branch:
-  `feature/capafy-audit-skill`.
+- Package-scale differential fixture expansion beyond the existing 20 cases.

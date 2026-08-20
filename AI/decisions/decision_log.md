@@ -520,3 +520,15 @@ untracked라 필터 없이는 매 실행 경고 발생 → 스냅샷 diff 전 �
 Impact: `.claude/skills/capafy-audit/SKILL.md`,
 `AI/context/capafy_audit_skill_design.md`,
 `AI/tasks/codex_capafy_audit_orchestration.md`
+
+## DEC-040 | 2026-08-13 | Guarded-temp Call Identity Requires Full Source Range
+
+Decision: Match guarded-temp safety candidates against the full `CallSite`
+span, including end line and column, before inspecting their AST parent.
+
+Reason: A nested receiver expression such as `factory().run()` and its inner
+`factory()` call share a start location. Start-only matching saw two
+candidates and conservatively suppressed valid whole-statement rewrites.
+
+Impact: Exact dispatch calls are accepted in return, assignment, and expression
+statement contexts; ambiguous or malformed spans still refuse planning.

@@ -221,3 +221,14 @@ All shared records live in `src/flatten/contracts.py` to avoid circular imports:
 `_ast_cache: dict[str, ast.Module]` (module-level in `tracer.py`) avoids
 re-parsing the same source file within a session. `closure.py` uses
 `inspect.getsource` + `textwrap.dedent` + `ast.parse` per method.
+
+## Guarded-temp AST Identity (2026-08-13)
+
+`EvaluationSafety._guarded_temp_preserves_evaluation_order()` maps AST parents
+only after locating the dispatch `ast.Call` by the complete `CallSite` range:
+`line`, `column`, `end_line`, and `end_column`. A start position is not a
+unique identity for nested calls: the outer `factory().run()` and inner
+`factory()` share it. If the exact call cannot be identified, planning remains
+conservatively refused. The selected call is permitted only as the complete
+value of a return, assignment, annotated assignment, or expression statement;
+all other contexts preserve the refusal path.

@@ -1,6 +1,6 @@
 ﻿# flatten Project Summary
 
-Last updated: 2026-06-13
+Last updated: 2026-08-13
 
 ## Overview
 
@@ -268,7 +268,7 @@ compatibility and stability:
 - Result: 220 passed, 1 skipped. whl rebuilt as
   `dist/flatten_polymorph-0.1.1-py3-none-any.whl`.
 
-## Capafy Read-Only Audit Skill (2026-08-11, design stage)
+## Capafy Read-Only Audit Skill (2026-08-13)
 
 flatten was evaluated as a Capafy monetization channel candidate. Designed a
 read-only audit product as a local Claude Code Skill
@@ -277,5 +277,30 @@ read-only audit product as a local Claude Code Skill
 is never invoked. Full rationale in
 `AI/decisions/adr/ADR-2026-08-11-capafy-audit-skill.md` and
 `AI/context/capafy_audit_skill_design.md`. Orchestration script and
-summary.md renderer are handed off to Codex
-(`AI/tasks/codex_capafy_audit_orchestration.md`) — not yet implemented.
+summary renderer are implemented in `scripts/capafy_audit.py` and
+`scripts/capafy_audit_report.py`. Static analysis runs by default; runtime
+trace and all dependent planning/reporting require the explicit
+`--yes-execute-trace` gate. Every generated artifact is confined to
+`.capafy-audit/<timestamp>/`, and filtered pre/post Git status snapshots flag
+target-code mutations without treating the audit directory as a change.
+
+The planner now adds conservative AST-level rejection for concrete classes
+available only through import aliases, function-local implementation classes,
+and nested guarded-temp sites whose receiver hoist could reorder side effects.
+JSON report mode preserves the complete plan audit trail and validates the
+shape of report collections before rendering.
+
+## Health Audit Repair (2026-08-13)
+
+Guarded-temp planning now identifies the selected dispatch `ast.Call` with the
+complete discovered source range (start and end), rather than its start
+position alone. This distinguishes `factory().run()` from its nested
+`factory()` call, which begins at the same column. Return, assignment, and
+expression-statement guarded-temp rewrites again plan and hoist exactly one
+receiver evaluation; nested expressions with preceding side effects remain
+refused. Focused regression evidence is 8 passed.
+
+The full suite reached 269 passed with one packaging test blocked because the
+isolated build cannot download `hatchling` in this restricted environment.
+Ruff and strict source mypy pass. Full details and environment-only blockers
+are in `AI/reviews/2026-08-13-health-audit.md`.

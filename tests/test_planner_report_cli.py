@@ -139,6 +139,34 @@ def test_cli_report_renders_verdict_signals(tmp_path, capsys):
     assert "unobserved subclass" in captured.out
 
 
+def test_cli_report_json_preserves_plan_audit_fields(tmp_path, capsys):
+    plan = tmp_path / "plan.json"
+    payload = {
+        "summary": "custom summary",
+        "call_sites": [{"call_site_id": "case.py:2:4-2:13"}],
+        "verdicts": [{"status": "unsafe", "signal": "UNSAFE"}],
+        "rewrite_plans": [{"confidence": 0.75}],
+        "source_hash": "abc123",
+    }
+    plan.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert main(["report", plan.as_posix(), "--json"]) == 0
+
+    assert json.loads(capsys.readouterr().out) == payload
+
+
+def test_cli_report_rejects_malformed_audit_collections(tmp_path, capsys):
+    plan = tmp_path / "plan.json"
+    plan.write_text(
+        json.dumps({"call_sites": {}, "verdicts": [], "rewrite_plans": []}),
+        encoding="utf-8",
+    )
+
+    assert main(["report", plan.as_posix(), "--json"]) == 1
+
+    assert "call_sites must be a list" in capsys.readouterr().err
+
+
 def test_load_cases_rejects_invalid_shapes(tmp_path):
     cases = tmp_path / "cases.json"
     cases.write_text(json.dumps({"args": []}), encoding="utf-8")
