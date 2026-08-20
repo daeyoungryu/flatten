@@ -11,6 +11,27 @@ from flatten.contracts import ClosureVerdict
 from flatten.evaluation import EvaluationMetrics
 
 
+def validate_plan_report_payload(payload: Any) -> dict[str, Any]:
+    """Validate the collection shapes used by report and audit consumers.
+
+    Older plan files may omit a collection, so missing fields remain compatible.
+    Present collections must be lists of objects; this prevents malformed audit
+    trails from being silently rendered as plausible reports.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("report payload must be a JSON object")
+    for field in ("call_sites", "verdicts", "rewrite_plans", "rewrite_decisions"):
+        value = payload.get(field, [])
+        if not isinstance(value, list):
+            raise ValueError(f"{field} must be a list")
+        if not all(isinstance(item, dict) for item in value):
+            raise ValueError(f"{field} entries must be objects")
+    source_hash = payload.get("source_hash")
+    if source_hash is not None and not isinstance(source_hash, str):
+        raise ValueError("source_hash must be a string")
+    return payload
+
+
 def _type_name(cls: type) -> str:
     return f"{cls.__module__}.{cls.__qualname__}"
 

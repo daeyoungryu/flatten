@@ -65,6 +65,7 @@ class EvaluationSafety:
         self, site: CallSite, receiver_types: list[str], source: str
     ) -> None:
         self._site = site
+        self._receiver_types = receiver_types
         self._n_impls = len(receiver_types)
         self._source = source
 
@@ -83,6 +84,10 @@ class EvaluationSafety:
         SE (Single Evaluation): non-identifier receiver + ≥2 impls in a context
         where the transformer cannot hoist a temp assignment → refuse.
         """
+        if _has_local_class_receiver(self._receiver_types):
+            return True
+        if _has_alias_only_class_binding(self._source, self._receiver_types):
+            return True
         if self._site.receiver_expr.isidentifier():
             if self._n_impls == 1:
                 # Refuse only when receiver is an untyped function parameter (RP).
@@ -94,7 +99,9 @@ class EvaluationSafety:
         if self._n_impls <= 1:
             return False
         # Non-identifier + ≥2 impls: check whether temp hoisting is possible.
-        return _is_call_site_in_unhoistable_context(self._source, self._site)
+        return _is_call_site_in_unhoistable_context(
+            self._source, self._site
+        ) or not _guarded_temp_preserves_evaluation_order(self._source, self._site)
 
     def strategy(self) -> str:
         if self._n_impls == 1:
@@ -336,6 +343,77 @@ def _is_receiver_a_function_parameter(source: str, site: CallSite) -> bool:
         + ([args.kwarg.arg] if args.kwarg else [])
     )
     return receiver in param_names
+
+
+def _has_local_class_receiver(receiver_types: list[str]) -> bool:
+    """Reject function-local classes whose generated bare name is not stable."""
+    return any(".<locals>." in receiver_type for receiver_type in receiver_types)
+
+
+def _has_alias_only_class_binding(source: str, receiver_types: list[str]) -> bool:
+    """Reject a class imported only under an alias.
+
+    Replacement expressions currently use the concrete class's bare ``__name__``.
+    If that class is imported solely as another name, emitting the bare name would
+    produce a runtime NameError. This check refuses instead of guessing an import.
+    """
+    import ast as _ast
+
+    try:
+        tree = _ast.parse(source)
+    except SyntaxError:
+        return True
+    wanted = {name.rsplit(".", 1)[-1] for name in receiver_types}
+    exact_bindings: set[str] = set()
+    aliased_originals: set[str] = set()
+    for node in _ast.walk(tree):
+        if isinstance(node, _ast.ClassDef):
+            exact_bindings.add(node.name)
+        elif isinstance(node, _ast.ImportFrom):
+            for alias in node.names:
+                if alias.asname and alias.asname != alias.name:
+                    aliased_originals.add(alias.name)
+                else:
+                    exact_bindings.add(alias.name)
+    return bool((wanted & aliased_originals) - exact_bindings)
+
+
+def _guarded_temp_preserves_evaluation_order(source: str, site: CallSite) -> bool:
+    """Allow hoisting only when the dispatch call is the statement's whole value.
+
+    Hoisting a nested call before its statement can move receiver evaluation ahead
+    of earlier operands or arguments. Whole-value return/assignment/expression
+    statements have no preceding sibling expression, so the existing transformer
+    preserves Python's evaluation order there.
+    """
+    import ast as _ast
+
+    try:
+        tree = _ast.parse(source)
+    except SyntaxError:
+        return False
+    parents: dict[_ast.AST, _ast.AST] = {}
+    for ancestor in _ast.walk(tree):
+        for child in _ast.iter_child_nodes(ancestor):
+            parents[child] = ancestor
+    candidates = [
+        node
+        for node in _ast.walk(tree)
+        if isinstance(node, _ast.Call)
+        and node.lineno == site.line
+        and node.col_offset == site.column
+        and node.end_lineno == site.end_line
+        and node.end_col_offset == site.end_column
+    ]
+    if len(candidates) != 1:
+        return False
+    call = candidates[0]
+    parent = parents.get(call)
+    if isinstance(parent, (_ast.Return, _ast.Expr)):
+        return parent.value is call
+    if isinstance(parent, (_ast.Assign, _ast.AnnAssign)):
+        return parent.value is call
+    return False
 
 
 def _is_call_site_in_unhoistable_context(source: str, site: CallSite) -> bool:

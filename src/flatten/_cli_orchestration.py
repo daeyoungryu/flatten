@@ -49,7 +49,7 @@ from flatten.observations import (
     type_ref,
 )
 from flatten.planner import RewritePlanner
-from flatten.report import AnalysisReport
+from flatten.report import AnalysisReport, validate_plan_report_payload
 from flatten.specialize import expand_target, specialize_source
 from flatten.static import analyze_class_hierarchy
 from flatten.tracer import Tracer
@@ -655,7 +655,10 @@ def cmd_report(args: argparse.Namespace) -> int:
         Exit code 0.
     """
     args.plan = args.plan.resolve()
-    payload = json.loads(_read(args.plan))
+    payload = validate_plan_report_payload(json.loads(_read(args.plan)))
+    if args.json:
+        _json_print(payload)
+        return 0
     verdicts = payload.get("verdicts", [])
     plans = payload.get("rewrite_plans", [])
     print(payload.get("summary", "flatten plan report"))
