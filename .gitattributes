@@ -1,3 +1,22 @@
 ﻿* text=auto
 *.ps1 text eol=crlf
 *.sh text eol=lf
+
+# ─── 바이너리 보호 (2026-08-20 추가) ───────────────────────────────────
+# 사고: dispatch/AI/memory/sqlite/project_memory.sqlite 가 텍스트로 라운드트립되며
+# BOM 3바이트 + U+FFFD 25개가 박혀 "file is not a database" 상태로 손상됐다.
+# 당시 워크스페이스의 어떤 .gitattributes 도 .sqlite/.db 를 보호하지 않았다.
+*.sqlite  binary
+*.sqlite3 binary
+*.db      binary
+*.bin     binary
+*.mp4     binary
+*.mp3     binary
+*.wav     binary
+*.zip     binary
+*.pdf     binary
+*.xlsx    binary
+*.docx    binary
+*.exe     binary
+*.dll     binary
+*.so      binary
