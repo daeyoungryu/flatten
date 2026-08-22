@@ -70,6 +70,9 @@ exclude = [
     # this exclusion is what lets the *package* be checked at all. Same treatment
     # the other ad-hoc tooling here already gets (_parse.py, _report.py).
     "^scripts/",
+    # release_gate.ps1 drops a throwaway venv here when TEMP is on another
+    # volume. Runtime artefact, never source.
+    "^\\.release-gate-tmp/",
     "^_parse\\.py$",
     "^_report\\.py$",
 ]

@@ -77,3 +77,7 @@ session.sqlite
 .capafy-audit/
 .health-pytest-tmp-*/
 .health-pytest-utf8-*/
+
+# release_gate.ps1 falls back to this when TEMP is on another volume
+# (Windows CI: checkout on D:, TEMP on C:). Runtime only, never committed.
+.release-gate-tmp/
