@@ -389,7 +389,11 @@ def _equivalence_sources(scenario: str) -> tuple[str, str]:
 def _load_baseline(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
-    return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
+    # The type argument to `cast` is a real runtime expression -- unlike an
+    # annotation, `from __future__ import annotations` does not defer it, so a
+    # bare `dict[str, Any]` here raises TypeError on 3.8, which the CI matrix
+    # still covers. A string is the documented form and mypy reads it the same.
+    return cast("dict[str, Any]", json.loads(path.read_text(encoding="utf-8")))
 
 
 if __name__ == "__main__":
