@@ -34,7 +34,29 @@ Assert-LastExitCode "pip install build"
 Assert-LastExitCode "build"
 
 $repo = (Get-Location).Path
-$venv = Join-Path ([System.IO.Path]::GetTempPath()) ("flatten-release-gate-" + [System.Guid]::NewGuid())
+
+# The venv must sit on the same volume as the repo.
+#
+# This script runs `mypy --strict -p flatten -p flatten_polymorph` from the repo
+# root, so mypy reads pyproject.toml and sees a non-empty `exclude` list. For
+# every module it discovers it then calls os.path.relpath(module, cwd) inside
+# modulefinder.matches_exclude -- and on Windows relpath raises
+# "ValueError: path is on mount 'C:', start on mount 'D:'" when the two are on
+# different drives. GitHub's windows-latest runner checks out to D:\... while
+# GetPathRoot(GetTempPath()) is C:\, so the packages under test lived on one
+# volume and the working directory on another, and mypy died before checking
+# anything. All five windows release-gate cells failed this way; ubuntu passed,
+# because a single-root filesystem cannot produce the condition.
+#
+# Only relocate when the roots actually differ, so the usual case (Linux, and a
+# Windows dev box whose TEMP is on the system drive) keeps using TEMP as before.
+$tempRoot = [System.IO.Path]::GetTempPath()
+if ([System.IO.Path]::GetPathRoot($tempRoot) -ne [System.IO.Path]::GetPathRoot($repo)) {
+    $tempRoot = Join-Path $repo ".release-gate-tmp"
+    New-Item -ItemType Directory -Force -Path $tempRoot | Out-Null
+    Write-Host ("release gate: TEMP is on another volume; using {0}" -f $tempRoot)
+}
+$venv = Join-Path $tempRoot ("flatten-release-gate-" + [System.Guid]::NewGuid())
 & $Python -m venv $venv
 Assert-LastExitCode "venv"
 
