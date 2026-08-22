@@ -8,6 +8,8 @@ A (최상위)
         └── E (최하위)
 """
 
+from __future__ import annotations
+
 
 class A:
     def process(self, x: int) -> str:

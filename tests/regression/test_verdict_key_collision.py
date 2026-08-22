@@ -8,6 +8,8 @@ Current bug: plan_from_observations uses dict comprehension (last-wins), so
 [verdict_open, verdict_closed] incorrectly produces 1 plan.
 """
 
+from __future__ import annotations
+
 from flatten.contracts import ClosureStatus, ClosureVerdict
 from flatten.discovery import discover_call_sites
 from flatten.observations import FunctionRef, ObservationRecord, TypeRef

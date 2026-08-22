@@ -1,4 +1,7 @@
-﻿class Worker:
+﻿from __future__ import annotations
+
+
+class Worker:
     def run(self, value: int) -> int:
         return value + 1
 
