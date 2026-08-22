@@ -117,7 +117,10 @@ def compare_to_baseline(metrics: dict[str, Any], baseline: dict[str, Any] | None
     for key in ("precision", "recall"):
         old = baseline.get(key)
         new = metrics.get(key)
-        if isinstance(old, int | float) and isinstance(new, int | float) and new < old:
+        # A tuple, not `int | float`. `from __future__ import annotations` defers
+        # *annotations*; this is a runtime expression, and PEP 604 unions only
+        # became runtime-constructible in 3.10. The CI matrix starts at 3.8.
+        if isinstance(old, (int, float)) and isinstance(new, (int, float)) and new < old:
             warnings.append(f"{key} decreased from {old} to {new}")
     return {
         "status": "failed" if failures else "passed",

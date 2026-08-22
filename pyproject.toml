@@ -38,6 +38,9 @@ flatten = "flatten.cli:main"
 
 [project.optional-dependencies]
 dev = [
+    # tests/test_packaging.py runs `python -m build`; without this the test fails
+    # with "No module named build" on any interpreter that has no other source of it.
+    "build>=1.0",
     "hypothesis>=6.0",
     "mutmut>=3.0",
     "mypy>=1.8",
@@ -60,6 +63,13 @@ strict = true
 exclude = [
     "^examples/",
     "^tests/",
+    # scripts/capafy_audit.py imports its sibling under two names deliberately --
+    # `scripts.capafy_audit_report` when the repo root is on the path, and the bare
+    # `capafy_audit_report` when the script is run from inside scripts/. mypy maps
+    # the one file to two modules and aborts discovery before checking anything, so
+    # this exclusion is what lets the *package* be checked at all. Same treatment
+    # the other ad-hoc tooling here already gets (_parse.py, _report.py).
+    "^scripts/",
     "^_parse\\.py$",
     "^_report\\.py$",
 ]

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -29,7 +30,7 @@ class _Target:
         return x + 1
 
 
-def _measure(fn, n: int) -> float:
+def _measure(fn: Callable[[], object], n: int) -> float:
     """Return microseconds per call for n calls of fn()."""
     t0 = time.perf_counter()
     for _ in range(n):
