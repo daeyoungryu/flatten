@@ -1,4 +1,6 @@
-﻿import libcst as cst
+﻿from __future__ import annotations
+
+import libcst as cst
 from hypothesis import given
 from hypothesis import strategies as st
 

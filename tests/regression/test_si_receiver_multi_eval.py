@@ -5,6 +5,8 @@ be identical to the original. A comprehension context with a non-identifier rece
 (nxt(i)) and ≥2 implementations cannot be safely rewritten — REFUSE is required.
 """
 
+from __future__ import annotations
+
 import textwrap
 
 from flatten.closure import ClosureChecker, ClosureConfig
