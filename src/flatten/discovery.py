@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import libcst as cst
 from libcst.metadata import MetadataWrapper, PositionProvider
 
+from flatten._utils import normalize_filename
 from flatten.contracts import CallSite
 
 
@@ -50,8 +49,17 @@ class _CallSiteVisitor(cst.CSTVisitor):
 
 def discover_call_sites(source: str, *, filename: str = "<memory>") -> list[CallSite]:
     """Return position-identified ``obj.method(...)`` call candidates."""
-    if filename != "<memory>":
-        filename = str(Path(filename).resolve()).replace("\\", "/")
+    # `normalize_filename` rather than a resolve() here. The old guard special-cased
+    # exactly one virtual name, the default "<memory>", so every *other* angle-bracket
+    # filename a caller supplies -- "<fuzz>" from the property tests, "<p1>" from the
+    # SI regressions, CPython's own "<string>" -- reached Path.resolve(). On Windows
+    # under Python <= 3.9 that raises OSError [WinError 123]: `<` and `>` are illegal
+    # in a path, and resolve() called _getfinalpathname on it. 3.10 rewrote resolve()
+    # to stop raising, which is why this only ever went red on two matrix cells.
+    # `normalize_filename` already guards the whole `<...>` class and is the same
+    # function tracer.py and _cli_orchestration.py use, so this also removes the
+    # third private copy of the rule.
+    filename = normalize_filename(filename)
     module = cst.parse_module(source)
     wrapper = MetadataWrapper(module)
     visitor = _CallSiteVisitor(filename, module)
