@@ -119,6 +119,34 @@ def test_ci_runs_required_quality_gates():
     assert "python -c \"import flatten\"" in commands
     assert "python -m pytest -q" in commands
     assert "--cov=flatten" in commands
-    assert "--cov-fail-under=90" in commands
     assert "python -m ruff check ." in commands
     assert "python -m mypy ." in commands
+
+
+def test_the_coverage_gate_still_has_teeth():
+    """A threshold must exist and must never be ratcheted *down* unnoticed.
+
+    This used to assert the literal string "--cov-fail-under=90" in the
+    workflow. That pinned three things at once -- that a gate exists, where it
+    is configured, and its exact value -- so moving the number to
+    pyproject.toml (single source of truth, next to the reasoning) broke it,
+    and so would any legitimate ratchet upward.
+
+    What is actually worth defending is narrower: the gate exists, and it does
+    not go below the level already reached. A floor breaks when someone deletes
+    the gate or lowers it; it stays quiet when someone raises it, which is the
+    direction we want to be easy.
+    """
+    try:
+        import tomllib
+    except ImportError:  # Python < 3.11
+        import tomli as tomllib  # type: ignore[no-redef]
+
+    config = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    report = config["tool"]["coverage"]["report"]
+    assert "fail_under" in report, "the coverage gate was removed"
+    assert isinstance(report["fail_under"], (int, float))
+    assert report["fail_under"] >= 82, (
+        "the coverage gate was lowered below the level already reached (82%): "
+        f"got {report['fail_under']}"
+    )
