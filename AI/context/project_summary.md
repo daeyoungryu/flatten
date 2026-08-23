@@ -148,6 +148,35 @@ External Phase 3 release pass:
 - `check-wheel-contents` passes with W009 ignored for the intentional
   `flatten` plus `flatten_polymorph` top-level package relationship.
 
+## Known Issues
+
+> 2026-08-23 추가 (Claude). 아래 항목은 이 문서와 `docs/ARCHITECTURE.md` 안에 이미
+> 서술돼 있던 제약을 한곳에 모은 것이다. 새로 판단해 추가한 내용은 없다.
+
+External blockers:
+
+- Hosted GitHub Actions requires access to GitHub Actions or an installed /
+  authenticated `gh` CLI.
+- Mutation testing requires Linux/WSL: native Windows is unsupported by `mutmut`.
+
+Intentional refusals (planner declines to rewrite):
+
+- `direct` strategy is refused when the receiver is an identifier that names a
+  function parameter (`_is_receiver_a_function_parameter()`).
+- Rewrites are refused in `if` / `while` conditions and `assert` statements,
+  where LibCST cannot hoist a temp receiver assignment
+  (`_is_call_site_in_unhoistable_context()`).
+- Guarded dispatch is refused for complex receivers (DEC-009).
+- CLOSED is refused when unobserved sibling subclasses exist under the declaring
+  MRO owner (D1 closure soundness).
+
+Safety limits, false positive / negative risks, and unsupported Python features
+are documented in `docs/ARCHITECTURE.md`.
+
+<!-- TODO: 확인 필요 — 위는 코드가 명시적으로 거부하는 경우와 환경 블로커다.
+     "고쳐야 하는데 아직 못 고친 것"으로 분류된 미해결 결함 목록은 이 저장소에 없다.
+     있다면 여기에 채워야 한다. -->
+
 ## Verification
 
 Use:
