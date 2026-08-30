@@ -6,41 +6,18 @@
 
 ## AI 조직 운영 원칙
 
-이 프로젝트는 AI 기반 개발 조직 구조를 따른다.
+역할 체계·AI 폴더 구조·세션 시작 시 읽는 순서·변경 후 갱신 순서·Codex 작업 지시 형식은
+`Projects\CLAUDE.md` 가 정본이다. **여기서 중복 정의하지 않는다.**
+게이트 운영 규약은 `Projects\docs\gate_protocol.md` 가 정본이다.
 
-### 역할 체계
-사용자 → Claude(설계자/Wiki관리자) → Codex(구현자) → Claude(리뷰어) → Git
+사용자 → Claude(설계) → Codex(설계 검증) → 합의 → Claude(구현) → Codex(구현 검증) → 합의 → Git
 
-### AI 폴더 구조
-```
-AI/
-├── agents/        # 각 AI 역할 정의
-├── context/       # 프로젝트 컨텍스트 Living Document
-├── decisions/     # 설계 의사결정 로그 (ADR)
-├── patterns/      # 코딩 컨벤션 (진실원)
-├── tasks/         # 작업 지시서 + handoff_to_cc.md
-├── reviews/       # 리뷰 누적 기록
-├── logs/          # 프로젝트 타임라인 + lessons.db + lessons 노트
-└── global_rules.md  # Cowork 공통 제약 규칙 (다른 프로젝트에 복사)
-```
+**설계와 구현은 Claude 가 직접 한다. Codex 는 두 게이트의 검증자로만 붙는다.**
 
-### 세션 시작 시 읽는 순서
-1. `AI/global_rules.md` — Cowork 환경 제약 (파일 절단·pyc·git lock 등)
-2. `AI/tasks/handoff_to_cc.md` — 이전 세션 브리핑
-3. `AI/tasks/current_tasks.md` — 현재 우선순위
-4. `AI/decisions/decision_log.md` — 결정 맥락
-5. `AI/patterns/patterns.md` — 코딩 컨벤션
-
-### 변경 후 갱신 순서
-1. `AI/context/project_summary.md`
-2. `AI/context/architecture.md`
-3. `AI/decisions/decision_log.md`
-4. `AI/tasks/current_tasks.md`
-
-### Codex 작업 지시
-`AI/tasks/task_template.md` 형식으로 지시서 작성 후 전달
-
----
+> 2026-08-31 삭제. 이 자리에 `사용자 → Claude(설계자/Wiki관리자) → Codex(구현자) → Claude(리뷰어) → Git`
+> 과 AI 폴더 구조·갱신 순서 사본이 남아 있었는데, `Projects\CLAUDE.md` 가 2026-08-23 에
+> 그 배치를 폐기한 뒤였다. CLAUDE.md 는 git 저장소 경계를 넘어 로드되므로 두 파일이 매
+> 세션 함께 실리고, 어느 쪽을 집을지가 세션마다 달라졌다. 규칙은 한 곳에만 둔다.
 
 ## 프로젝트 특화 규칙 — flatten
 
