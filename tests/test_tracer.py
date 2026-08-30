@@ -346,7 +346,7 @@ def test_caller_position_uses_ast_column_lookup(tmp_path, monkeypatch):
     # Source with a single call on line 1: 'foo(1, 2)' starts at col 9.
     src = "result = foo(1, 2)\n"
     src_file = tmp_path / "sample.py"
-    src_file.write_text(src)
+    src_file.write_text(src, encoding="utf-8")
 
     # Reset the module-level AST cache so the temp file is freshly parsed.
     monkeypatch.setattr(tracer_module, "_ast_cache", {})
@@ -365,7 +365,7 @@ def test_caller_position_uses_ast_column_lookup(tmp_path, monkeypatch):
 def test_caller_position_picks_leftmost_call_on_line(tmp_path, monkeypatch):
     src = "x = a() + b()\n"
     src_file = tmp_path / "multi.py"
-    src_file.write_text(src)
+    src_file.write_text(src, encoding="utf-8")
     monkeypatch.setattr(tracer_module, "_ast_cache", {})
     frame = types.SimpleNamespace(
         f_lineno=1,

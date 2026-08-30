@@ -81,7 +81,7 @@ def main() -> int:
     import json
     out = Path(__file__).parent.parent / "AI" / "reviews" / "0.2.0" / "trace_overhead.json"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(result, indent=2))
+    out.write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(f"wrote {out}")
     return 0 if ok else 1
 
