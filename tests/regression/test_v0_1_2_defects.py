@@ -53,7 +53,7 @@ def test_p0_rewrite_preserves_behavior_on_unobserved_sibling(tmp_path):
     """기본 파이프라인이 형제 타입(Cat) 입력에서 동작을 바꾸면 안 된다.
     현재(v0.1.2): compute(Cat()) 원본 'meow' -> 재작성 'woof' (RED)."""
     src = tmp_path / "zoofix.py"
-    src.write_text(FIXTURE)
+    src.write_text(FIXTURE, encoding="utf-8")
     obs, plan, rew = tmp_path / "obs.json", tmp_path / "plan.json", tmp_path / "rew.py"
 
     r = _cli(["trace", "zoofix.py", "--entry", "zoofix:main", "--out", str(obs)], tmp_path)

@@ -189,7 +189,7 @@ def test_t4_recursion_entry_callsite_is_observed(tmp_path: Path) -> None:
     assert r.returncode == 0, r.stderr
     records = json.loads(obs.read_text(encoding="utf-8"))
     entry_line = next(
-        i + 1 for i, line in enumerate(src.read_text().splitlines())
+        i + 1 for i, line in enumerate(src.read_text(encoding="utf-8").splitlines())
         if "Worker().run(3)" in line
     )
     bound_lines = {rec["call_site_id"] for rec in records if rec["call_site_id"]}
