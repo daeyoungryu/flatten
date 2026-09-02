@@ -532,3 +532,13 @@ candidates and conservatively suppressed valid whole-statement rewrites.
 
 Impact: Exact dispatch calls are accepted in return, assignment, and expression
 statement contexts; ambiguous or malformed spans still refuse planning.
+
+## 2026-08-31 — 텍스트 입출력에 인코딩 명시
+
+- Windows 한국어 로케일 기본 인코딩이 cp949 라, `encoding=` 없는 `read_text()`/`write_text()` 는
+  비ASCII 가 지나가는 순간 터진다. 다른 저장소(Orchestrator)에서 실제로 평가기가 죽었다.
+- 여기 5곳은 전부 tmp 파일 경로라 지금은 ASCII 만 지나간다. 그래도 명시한다 — 내용이 바뀌면
+  조용히 깨지고, 그때는 원인을 찾기 어렵다.
+- 읽기도 `utf-8` 로 뒀다. 이 경로들은 테스트가 스스로 쓴 파일을 도로 읽으므로 BOM 이 올 수 없다.
+  BOM 이 오는 경로에만 `utf-8-sig` 를 쓴다(무조건 붙이지 않는다).
+- 전체 스위트 274 passed.
