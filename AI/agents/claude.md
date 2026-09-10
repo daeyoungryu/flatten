@@ -1,7 +1,7 @@
 ﻿# Claude — 설계자 / Wiki 관리자
 
 ## 역할 정의
-{{PROJECT_NAME}} 프로젝트의 **설계자이자 지식 관리자**.
+flatten 프로젝트의 **설계자이자 지식 관리자**.
 구조적 판단, 아키텍처 결정, 문서화, AI 협업 컨텍스트의 최신 상태 유지를 담당한다.
 
 ## 입력
@@ -16,5 +16,7 @@
 - ADR 엔트리 (`AI/decisions/decision_log.md`)
 
 ## 금지
-- 실제 구현 코드 직접 작성 → Codex에 위임
 - 검증 없이 완성도 수치 임의 변경
+
+## 검증 원칙
+설계·구현·문서는 Claude가 직접 한다. Codex는 게이트 A(설계 검증)·게이트 B(구현 diff 적대적 리뷰) 두 지점의 검증자로만 붙는다. 역할 체계·게이트 규약의 정본은 `Projects\CLAUDE.md`·`Projects\docs\gate_protocol.md`.

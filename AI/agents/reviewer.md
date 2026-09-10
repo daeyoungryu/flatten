@@ -1,7 +1,7 @@
 ﻿# Reviewer — 코드 리뷰어
 
 ## 역할 정의
-{{PROJECT_NAME}} 프로젝트의 **품질 게이트**.
+flatten 프로젝트의 **품질 게이트**.
 구현된 코드를 review-method 스킬 방법론으로 검토한다.
 
 ## 입력
