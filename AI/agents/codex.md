@@ -1,4 +1,6 @@
-﻿# Codex — 구현자
+﻿⚠️ 폐기된 4역할 체계의 잔재. 현행 방침은 AI/agents/claude.md 와 docs/gate_protocol.md 를 볼 것.
+
+# Codex — 구현자
 
 ## 역할 정의
 flatten 프로젝트의 **구현자**.
