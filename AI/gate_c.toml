@@ -1,0 +1,15 @@
+# 게이트 C 검사 계획 — flatten
+schema = 1
+inputs_exclude = []
+# hypothesis 가 실행 중 임시 파일을 저장소 안에 쓴다.
+# 선언하지 않으면 매번 "실행 중 입력이 변했다"로 영구 실패한다(2026-09-12 실측).
+outputs = [".hypothesis/**"]
+
+# CI 는 ruff·mypy 도 돌리지만 계획에는 넣지 않았다 — 린트/타입 실패는 이번 변경과
+# 무관한 기존 문제로도 나서 정상 작업을 막는 쪽으로 기운다.
+# 2026-09-12 실측: 274 (약 62초. 이 저장소는 검사가 가장 무겁다).
+[[step]]
+kind = "test"
+cwd = "."
+cmd = ["python", "-m", "pytest", "-q"]
+min_units = 274
