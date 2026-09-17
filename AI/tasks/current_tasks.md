@@ -110,6 +110,12 @@ Last updated: 2026-08-13
 - No requested v0.1.1 defect item remains.
 - Blocked external validation: hosted GitHub Actions needs GitHub Actions
   access or an installed/authenticated `gh` CLI.
+  ⚠️ 2026-09-17 실측으로 정정: 이 문서(2026-08-13)보다 나중인
+  `AI/context/project_summary.md` 의 2026-08-23 기록은 "CI is now green at 80/80"
+  이라고 적고 있고, 그 사이 커밋 `faedbbe`("초록인 적 없던 CI 를 고쳤다")·`b008a62`
+  ("게이트를 측정이 유효한 곳에서만")가 실제로 hosted GitHub Actions 를 고쳤다는
+  근거다. 이 블로커는 해소된 것으로 보인다 — 다만 이 세션에는 `gh` CLI 가 없어
+  실제 워크플로 실행 상태(초록/빨강)를 직접 재확인하지는 못했다.
 - Blocked external validation: mutation testing needs Linux/WSL because native
   Windows is unsupported by `mutmut`; this machine has no WSL distribution.
 - Remaining evidence-platform expansion: repository-scale mode, real-world
