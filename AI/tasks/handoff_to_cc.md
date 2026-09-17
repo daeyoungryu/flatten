@@ -1,6 +1,14 @@
 ﻿# Handoff to Claude Code — flatten
 > 작성: Claude Agent | 날짜: 2026-06-10 | 세션: ExecutionTracer + 인프라 정비
 
+> ⚠️ 2026-09-17 실측으로 정정: 이 핸드오프는 프로젝트 두 번째 커밋(`8505a1f`) 직후에 쓰였고
+> 그 뒤 갱신되지 않았다 — `AI/tasks/current_tasks.md` 는 2026-08-13 까지 계속 갱신됐지만
+> 이 파일은 아니다. 아래 "테스트 31 passed"·"미push 커밋 2개"는 지금은 사실이 아니다
+> (`git log origin/main..main` 실측 0 — main 은 origin 과 동기 상태, 테스트는
+> `current_tasks.md` 의 이후 기록대로 220개 이상으로 늘었다). **세션 브리핑은 이 파일이
+> 아니라 `AI/context/project_summary.md`(최신: 2026-08-23 사용자 확인 기록)와
+> `AI/tasks/current_tasks.md` 를 볼 것.**
+
 ## 현재 상태 요약
 
 **테스트:** 31 passed (전체 통과)
