@@ -120,5 +120,5 @@ A 대비 (rep1 / rep2):
 
 ## 6. 파일
 
-- 원자료: `%TEMP%\tokbench\raw_v2\` (런별 `.stream.jsonl`/`.session.jsonl`/`.answer.txt`/`.diff.patch`, `runs.jsonl`), 1차 `raw\`.
+- 원자료(보관): `C:\Users\Com\Documents\Claude\archive\tokbench_raw_v2_2026-09-25.zip` (11.4MB, 365개 파일: 런별 `.stream.jsonl`/`.session.jsonl`/`.answer.txt`/`.diff.patch`, `runs.jsonl`). 임시 측정 환경 `%TEMP%\tokbench\` 는 2026-09-26 에 휴지통으로 이동했다(1차 `raw\` 원자료 포함).
 - 이 저장소: `docs/bench-data/` — `2026-09-25-runs-v2.jsonl`(60런 지표), `2026-09-25-v2-analysis.md`(과제별 전체 표), `bench2.py`·`analyze2.py`(2차 드라이버·분석기), 1차용 `bench.py`·`analyze.py`, `runs-v1-aborted.jsonl`.
