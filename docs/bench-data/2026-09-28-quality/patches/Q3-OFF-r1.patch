@@ -1,0 +1,148 @@
+diff --git a/src/flatten/harness.py b/src/flatten/harness.py
+index 5ee0712..50481ae 100644
+--- a/src/flatten/harness.py
++++ b/src/flatten/harness.py
+@@ -68,6 +68,20 @@ def hash_return(val: Any) -> str:
+     return _digest(val)
+ 
+ 
++def _collect_effects(
++    stdout_buf: StringIO,
++    stderr_buf: StringIO,
++    effect_collectors: dict[str, EffectCollector] | None,
++) -> dict[str, Any]:
++    effects: dict[str, Any] = {
++        "stdout": stdout_buf.getvalue(),
++        "stderr": stderr_buf.getvalue(),
++    }
++    for name, collector in (effect_collectors or {}).items():
++        effects[name] = collector()
++    return effects
++
++
+ def capture_behavior(
+     func: Callable[..., Any],
+     *args: Any,
+@@ -76,26 +90,23 @@ def capture_behavior(
+ ) -> BehaviorObservation:
+     stdout_buf = StringIO()
+     stderr_buf = StringIO()
+-    effects: dict[str, Any] = {}
++    result: Any = None
++    exc: Exception | None = None
+     try:
+         with redirect_stdout(stdout_buf), redirect_stderr(stderr_buf):
+             result = func(*args, **kwargs)
+-        effects["stdout"] = stdout_buf.getvalue()
+-        effects["stderr"] = stderr_buf.getvalue()
+-        for name, collector in (effect_collectors or {}).items():
+-            effects[name] = collector()
+-        return BehaviorObservation("return", value=result, effects=effects)
+-    except Exception as exc:
+-        effects["stdout"] = stdout_buf.getvalue()
+-        effects["stderr"] = stderr_buf.getvalue()
+-        for name, collector in (effect_collectors or {}).items():
+-            effects[name] = collector()
++    except Exception as caught:
++        exc = caught
++
++    effects = _collect_effects(stdout_buf, stderr_buf, effect_collectors)
++    if exc is not None:
+         return BehaviorObservation(
+             "raise",
+             exception_type=exc.__class__.__qualname__,
+             exception_message=str(exc),
+             effects=effects,
+         )
++    return BehaviorObservation("return", value=result, effects=effects)
+ 
+ 
+ def capture_side_effects(func: Callable[..., Any], *args: Any, **kwargs: Any) -> tuple[Any, str]:
+diff --git a/tests/test_harness.py b/tests/test_harness.py
+index d1b56ba..83d62aa 100644
+--- a/tests/test_harness.py
++++ b/tests/test_harness.py
+@@ -1,6 +1,6 @@
+ ﻿import pytest
+ 
+-from flatten.harness import assert_equivalent, compute_behavior_hash
++from flatten.harness import assert_equivalent, capture_behavior, compute_behavior_hash
+ 
+ 
+ def test_compute_behavior_hash_is_stable_for_same_behavior():
+@@ -76,6 +76,75 @@ def test_assert_equivalent_compares_exceptions_by_type_and_message():
+     assert_equivalent(original, transformed, [((), {})])
+ 
+ 
++def test_capture_behavior_effects_key_order_on_return():
++    calls = []
++
++    def collector_a():
++        calls.append("a")
++        return "a-value"
++
++    def collector_b():
++        calls.append("b")
++        return "b-value"
++
++    observation = capture_behavior(
++        lambda: "ok",
++        effect_collectors={"custom_a": collector_a, "custom_b": collector_b},
++    )
++
++    assert observation.outcome == "return"
++    assert observation.value == "ok"
++    assert list(observation.effects.keys()) == ["stdout", "stderr", "custom_a", "custom_b"]
++    assert observation.effects["custom_a"] == "a-value"
++    assert observation.effects["custom_b"] == "b-value"
++    assert calls == ["a", "b"]
++
++
++def test_capture_behavior_effects_key_order_on_raise():
++    calls = []
++
++    def collector_a():
++        calls.append("a")
++        return "a-value"
++
++    def collector_b():
++        calls.append("b")
++        return "b-value"
++
++    def raises():
++        raise ValueError("boom")
++
++    observation = capture_behavior(
++        raises,
++        effect_collectors={"custom_a": collector_a, "custom_b": collector_b},
++    )
++
++    assert observation.outcome == "raise"
++    assert observation.exception_type == "ValueError"
++    assert observation.exception_message == "boom"
++    assert list(observation.effects.keys()) == ["stdout", "stderr", "custom_a", "custom_b"]
++    assert calls == ["a", "b"]
++
++
++def test_capture_behavior_collectors_called_exactly_once():
++    call_count = {"n": 0}
++
++    def collector():
++        call_count["n"] += 1
++        return call_count["n"]
++
++    capture_behavior(lambda: None, effect_collectors={"count": collector})
++    assert call_count["n"] == 1
++
++    call_count["n"] = 0
++
++    def raises():
++        raise RuntimeError("x")
++
++    capture_behavior(raises, effect_collectors={"count": collector})
++    assert call_count["n"] == 1
++
++
+ def test_assert_equivalent_accepts_custom_equivalence_function():
+     def original():
+         return {"items": [1, 2]}

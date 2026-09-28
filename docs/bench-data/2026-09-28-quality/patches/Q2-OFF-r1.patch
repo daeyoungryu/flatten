@@ -1,0 +1,168 @@
+diff --git a/src/flatten/comparator.py b/src/flatten/comparator.py
+index 4c40fea..50e4bdb 100644
+--- a/src/flatten/comparator.py
++++ b/src/flatten/comparator.py
+@@ -26,6 +26,7 @@ class BehaviorComparisonResult:
+     equivalent: bool
+     cases: int
+     mismatches: list[BehaviorMismatch]
++    truncated: bool = False
+ 
+     def to_json(self) -> dict[str, Any]:
+         """Serialize to a JSON-compatible dict."""
+@@ -33,6 +34,7 @@ class BehaviorComparisonResult:
+             "equivalent": self.equivalent,
+             "cases": self.cases,
+             "mismatches": [mismatch.__dict__ for mismatch in self.mismatches],
++            "truncated": self.truncated,
+         }
+ 
+ 
+@@ -44,16 +46,25 @@ class BehaviorComparator:
+         original: Callable[..., Any],
+         transformed: Callable[..., Any],
+         cases: list[tuple[tuple[Any, ...], dict[str, Any]]],
++        *,
++        max_mismatches: int | None = None,
+     ) -> BehaviorComparisonResult:
++        if max_mismatches is not None and max_mismatches < 1:
++            raise ValueError("max_mismatches must be >= 1")
+         mismatches: list[BehaviorMismatch] = []
++        truncated = False
+         for index, (args, kwargs) in enumerate(cases):
+             left = capture_behavior(original, *args, **kwargs)
+             right = capture_behavior(transformed, *args, **kwargs)
+             mismatches.extend(_compare_observation(index, left, right))
++            if max_mismatches is not None and len(mismatches) >= max_mismatches:
++                truncated = index < len(cases) - 1
++                break
+         return BehaviorComparisonResult(
+             equivalent=not mismatches,
+             cases=len(cases),
+             mismatches=mismatches,
++            truncated=truncated,
+         )
+ 
+ 
+diff --git a/tests/test_comparator.py b/tests/test_comparator.py
+index 2517928..f88e287 100644
+--- a/tests/test_comparator.py
++++ b/tests/test_comparator.py
+@@ -1,5 +1,7 @@
+ ﻿import sys
+ 
++import pytest
++
+ from flatten.comparator import BehaviorComparator
+ 
+ 
+@@ -33,3 +35,109 @@ def test_behavior_comparator_reports_exception_message_mismatch():
+     assert result.mismatches[0].field == "exception"
+     assert "left" in result.mismatches[0].original
+     assert "right" in result.mismatches[0].transformed
++
++
++def _mismatching_pair(n):
++    def left(value):
++        return value
++
++    def right(value):
++        return -value
++
++    return left, right
++
++
++def test_compare_default_truncated_is_false():
++    left, right = _mismatching_pair(1)
++    result = BehaviorComparator().compare(left, right, [((1,), {}), ((2,), {})])
++
++    assert result.truncated is False
++    assert result.cases == 2
++    assert len(result.mismatches) == 2
++
++
++def test_compare_max_mismatches_none_matches_current_behavior():
++    left, right = _mismatching_pair(1)
++    cases = [((1,), {}), ((2,), {}), ((3,), {})]
++
++    default_result = BehaviorComparator().compare(left, right, cases)
++    explicit_none_result = BehaviorComparator().compare(left, right, cases, max_mismatches=None)
++
++    assert explicit_none_result.equivalent == default_result.equivalent
++    assert explicit_none_result.cases == default_result.cases
++    assert explicit_none_result.mismatches == default_result.mismatches
++    assert explicit_none_result.truncated is False
++
++
++def test_compare_stops_early_once_max_mismatches_reached():
++    left, right = _mismatching_pair(1)
++    cases = [((1,), {}), ((2,), {}), ((3,), {}), ((4,), {})]
++
++    result = BehaviorComparator().compare(left, right, cases, max_mismatches=2)
++
++    assert result.cases == 4
++    assert len(result.mismatches) == 2
++    assert [m.case_index for m in result.mismatches] == [0, 1]
++    assert result.truncated is True
++
++
++def test_compare_not_truncated_when_limit_reached_on_last_case():
++    left, right = _mismatching_pair(1)
++    cases = [((1,), {}), ((2,), {})]
++
++    result = BehaviorComparator().compare(left, right, cases, max_mismatches=2)
++
++    assert result.cases == 2
++    assert len(result.mismatches) == 2
++    assert result.truncated is False
++
++
++def test_compare_does_not_cut_mismatches_within_a_single_case():
++    def left(value):
++        print("out")
++        raise ValueError("left")
++
++    def right(value):
++        print("different")
++        raise ValueError("right")
++
++    cases = [((1,), {}), ((2,), {})]
++
++    result = BehaviorComparator().compare(left, right, cases, max_mismatches=1)
++
++    assert result.cases == 2
++    # the first case alone produces >=2 mismatches (effects + exception),
++    # none of which should be cut off even though max_mismatches is 1
++    assert len(result.mismatches) >= 2
++    assert all(m.case_index == 0 for m in result.mismatches)
++    assert result.truncated is True
++
++
++def test_compare_max_mismatches_zero_raises_value_error():
++    left, right = _mismatching_pair(1)
++
++    with pytest.raises(ValueError):
++        BehaviorComparator().compare(left, right, [((1,), {})], max_mismatches=0)
++
++
++def test_compare_max_mismatches_negative_raises_value_error():
++    left, right = _mismatching_pair(1)
++
++    with pytest.raises(ValueError):
++        BehaviorComparator().compare(left, right, [((1,), {})], max_mismatches=-1)
++
++
++def test_to_json_includes_truncated_key():
++    left, right = _mismatching_pair(1)
++    result = BehaviorComparator().compare(left, right, [((1,), {})])
++
++    assert result.to_json()["truncated"] is False
++
++
++def test_to_json_includes_truncated_true_when_stopped_early():
++    left, right = _mismatching_pair(1)
++    cases = [((1,), {}), ((2,), {})]
++
++    result = BehaviorComparator().compare(left, right, cases, max_mismatches=1)
++
++    assert result.to_json()["truncated"] is True
