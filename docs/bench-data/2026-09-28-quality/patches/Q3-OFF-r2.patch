@@ -1,0 +1,114 @@
+diff --git a/src/flatten/harness.py b/src/flatten/harness.py
+index 5ee0712..e1d06e8 100644
+--- a/src/flatten/harness.py
++++ b/src/flatten/harness.py
+@@ -68,6 +68,20 @@ def hash_return(val: Any) -> str:
+     return _digest(val)
+ 
+ 
++def _capture_effects(
++    stdout_buf: StringIO,
++    stderr_buf: StringIO,
++    effect_collectors: dict[str, EffectCollector] | None,
++) -> dict[str, Any]:
++    effects: dict[str, Any] = {
++        "stdout": stdout_buf.getvalue(),
++        "stderr": stderr_buf.getvalue(),
++    }
++    for name, collector in (effect_collectors or {}).items():
++        effects[name] = collector()
++    return effects
++
++
+ def capture_behavior(
+     func: Callable[..., Any],
+     *args: Any,
+@@ -76,20 +90,13 @@ def capture_behavior(
+ ) -> BehaviorObservation:
+     stdout_buf = StringIO()
+     stderr_buf = StringIO()
+-    effects: dict[str, Any] = {}
+     try:
+         with redirect_stdout(stdout_buf), redirect_stderr(stderr_buf):
+             result = func(*args, **kwargs)
+-        effects["stdout"] = stdout_buf.getvalue()
+-        effects["stderr"] = stderr_buf.getvalue()
+-        for name, collector in (effect_collectors or {}).items():
+-            effects[name] = collector()
++        effects = _capture_effects(stdout_buf, stderr_buf, effect_collectors)
+         return BehaviorObservation("return", value=result, effects=effects)
+     except Exception as exc:
+-        effects["stdout"] = stdout_buf.getvalue()
+-        effects["stderr"] = stderr_buf.getvalue()
+-        for name, collector in (effect_collectors or {}).items():
+-            effects[name] = collector()
++        effects = _capture_effects(stdout_buf, stderr_buf, effect_collectors)
+         return BehaviorObservation(
+             "raise",
+             exception_type=exc.__class__.__qualname__,
+diff --git a/tests/test_harness.py b/tests/test_harness.py
+index d1b56ba..b069ddc 100644
+--- a/tests/test_harness.py
++++ b/tests/test_harness.py
+@@ -1,6 +1,6 @@
+ ﻿import pytest
+ 
+-from flatten.harness import assert_equivalent, compute_behavior_hash
++from flatten.harness import assert_equivalent, capture_behavior, compute_behavior_hash
+ 
+ 
+ def test_compute_behavior_hash_is_stable_for_same_behavior():
+@@ -76,6 +76,53 @@ def test_assert_equivalent_compares_exceptions_by_type_and_message():
+     assert_equivalent(original, transformed, [((), {})])
+ 
+ 
++def test_capture_behavior_return_path_collects_effects_in_order():
++    def func(value):
++        print("out", end="")
++        return value
++
++    observation = capture_behavior(
++        func,
++        1,
++        effect_collectors={"counter": lambda: "counter-value"},
++    )
++
++    assert observation.outcome == "return"
++    assert observation.value == 1
++    assert list(observation.effects.keys()) == ["stdout", "stderr", "counter"]
++    assert observation.effects["stdout"] == "out"
++    assert observation.effects["counter"] == "counter-value"
++
++
++def test_capture_behavior_raise_path_collects_effects_in_order():
++    def func():
++        print("out", end="")
++        raise ValueError("boom")
++
++    observation = capture_behavior(
++        func,
++        effect_collectors={"counter": lambda: "counter-value"},
++    )
++
++    assert observation.outcome == "raise"
++    assert observation.exception_type == "ValueError"
++    assert observation.exception_message == "boom"
++    assert list(observation.effects.keys()) == ["stdout", "stderr", "counter"]
++    assert observation.effects["stdout"] == "out"
++    assert observation.effects["counter"] == "counter-value"
++
++
++def test_capture_behavior_collector_error_after_successful_call_propagates():
++    def func():
++        return "ok"
++
++    def failing_collector():
++        raise RuntimeError("collector failed")
++
++    with pytest.raises(RuntimeError, match="collector failed"):
++        capture_behavior(func, effect_collectors={"bad": failing_collector})
++
++
+ def test_assert_equivalent_accepts_custom_equivalence_function():
+     def original():
+         return {"items": [1, 2]}

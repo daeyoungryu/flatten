@@ -1,0 +1,105 @@
+diff --git a/src/flatten/harness.py b/src/flatten/harness.py
+index 5ee0712..affb68d 100644
+--- a/src/flatten/harness.py
++++ b/src/flatten/harness.py
+@@ -68,6 +68,20 @@ def hash_return(val: Any) -> str:
+     return _digest(val)
+ 
+ 
++def _collect_effects(
++    stdout_buf: StringIO,
++    stderr_buf: StringIO,
++    effect_collectors: dict[str, EffectCollector] | None,
++) -> dict[str, Any]:
++    effects: dict[str, Any] = {
++        "stdout": stdout_buf.getvalue(),
++        "stderr": stderr_buf.getvalue(),
++    }
++    for name, collector in (effect_collectors or {}).items():
++        effects[name] = collector()
++    return effects
++
++
+ def capture_behavior(
+     func: Callable[..., Any],
+     *args: Any,
+@@ -76,26 +90,21 @@ def capture_behavior(
+ ) -> BehaviorObservation:
+     stdout_buf = StringIO()
+     stderr_buf = StringIO()
+-    effects: dict[str, Any] = {}
+     try:
+         with redirect_stdout(stdout_buf), redirect_stderr(stderr_buf):
+             result = func(*args, **kwargs)
+-        effects["stdout"] = stdout_buf.getvalue()
+-        effects["stderr"] = stderr_buf.getvalue()
+-        for name, collector in (effect_collectors or {}).items():
+-            effects[name] = collector()
+-        return BehaviorObservation("return", value=result, effects=effects)
+     except Exception as exc:
+-        effects["stdout"] = stdout_buf.getvalue()
+-        effects["stderr"] = stderr_buf.getvalue()
+-        for name, collector in (effect_collectors or {}).items():
+-            effects[name] = collector()
+         return BehaviorObservation(
+             "raise",
+             exception_type=exc.__class__.__qualname__,
+             exception_message=str(exc),
+-            effects=effects,
++            effects=_collect_effects(stdout_buf, stderr_buf, effect_collectors),
+         )
++    return BehaviorObservation(
++        "return",
++        value=result,
++        effects=_collect_effects(stdout_buf, stderr_buf, effect_collectors),
++    )
+ 
+ 
+ def capture_side_effects(func: Callable[..., Any], *args: Any, **kwargs: Any) -> tuple[Any, str]:
+diff --git a/tests/test_harness.py b/tests/test_harness.py
+index d1b56ba..a3e4ea8 100644
+--- a/tests/test_harness.py
++++ b/tests/test_harness.py
+@@ -1,6 +1,6 @@
+ ﻿import pytest
+ 
+-from flatten.harness import assert_equivalent, compute_behavior_hash
++from flatten.harness import assert_equivalent, capture_behavior, compute_behavior_hash
+ 
+ 
+ def test_compute_behavior_hash_is_stable_for_same_behavior():
+@@ -76,6 +76,34 @@ def test_assert_equivalent_compares_exceptions_by_type_and_message():
+     assert_equivalent(original, transformed, [((), {})])
+ 
+ 
++def test_capture_behavior_collects_effects_on_return_and_raise_alike():
++    calls = []
++
++    def collector():
++        calls.append(1)
++        return len(calls)
++
++    def ok():
++        print("out", end="")
++        return 1
++
++    def boom():
++        print("out", end="")
++        raise ValueError("bad")
++
++    ok_obs = capture_behavior(ok, effect_collectors={"count": collector})
++    assert ok_obs.outcome == "return"
++    assert list(ok_obs.effects.keys()) == ["stdout", "stderr", "count"]
++    assert ok_obs.effects["stdout"] == "out"
++    assert ok_obs.effects["count"] == 1
++
++    raise_obs = capture_behavior(boom, effect_collectors={"count": collector})
++    assert raise_obs.outcome == "raise"
++    assert list(raise_obs.effects.keys()) == ["stdout", "stderr", "count"]
++    assert raise_obs.effects["stdout"] == "out"
++    assert raise_obs.effects["count"] == 2
++
++
+ def test_assert_equivalent_accepts_custom_equivalence_function():
+     def original():
+         return {"items": [1, 2]}
