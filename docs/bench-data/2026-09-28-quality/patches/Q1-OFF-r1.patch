@@ -1,0 +1,41 @@
+diff --git a/src/flatten/comparator.py b/src/flatten/comparator.py
+index 87d5eaa..4c40fea 100644
+--- a/src/flatten/comparator.py
++++ b/src/flatten/comparator.py
+@@ -49,7 +49,7 @@ class BehaviorComparator:
+         for index, (args, kwargs) in enumerate(cases):
+             left = capture_behavior(original, *args, **kwargs)
+             right = capture_behavior(transformed, *args, **kwargs)
+-            mismatches = _compare_observation(index, left, right)
++            mismatches.extend(_compare_observation(index, left, right))
+         return BehaviorComparisonResult(
+             equivalent=not mismatches,
+             cases=len(cases),
+diff --git a/tests/test_comparator.py b/tests/test_comparator.py
+index 2517928..7ba1957 100644
+--- a/tests/test_comparator.py
++++ b/tests/test_comparator.py
+@@ -20,6 +20,23 @@ def test_behavior_comparator_reports_equivalent_return_and_streams():
+     assert result.mismatches == []
+ 
+ 
++def test_behavior_comparator_keeps_mismatches_from_earlier_cases():
++    def left(value):
++        return value
++
++    def right(value):
++        return value + 1 if value == 1 else value
++
++    result = BehaviorComparator().compare(
++        left, right, [((1,), {}), ((2,), {})]
++    )
++
++    assert result.equivalent is False
++    assert len(result.mismatches) == 1
++    assert result.mismatches[0].case_index == 0
++    assert result.mismatches[0].field == "return"
++
++
+ def test_behavior_comparator_reports_exception_message_mismatch():
+     def left():
+         raise ValueError("left")
