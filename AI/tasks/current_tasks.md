@@ -1,6 +1,6 @@
 ﻿# Current Tasks
 
-Last updated: 2026-08-13
+Last updated: 2026-09-17 (본문 최신 항목 기준)
 
 ## Completed
 
