@@ -12,6 +12,5 @@ Contracts in this folder:
 - filesystem.json
 - sqlite.json
 - obsidian.json
-- memory_store.py
 
-SQLite, Obsidian, and sqlite-vec memory are recorded as contracts until their local MCP runtime entrypoints are verified.
+SQLite and Obsidian are recorded as contracts until their local MCP runtime entrypoints are verified. (sqlite-vec memory / `memory_store.py` do not exist in this repository — 2026-10-07 실측.)

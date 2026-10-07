@@ -62,8 +62,8 @@ feat: 기능 구현
 This project uses project-local MCP contracts. Prefer .mcp.json and AI/mcp/*.json over global MCP assumptions.
 
 - Codex role: implement source changes, run tests, and use the filesystem MCP as the primary working surface.
-- Claude role: design, architecture review, and knowledge exploration through Obsidian, SQLite, and sqlite-vec memory when available.
-- SQLite MCP: AI/memory/sqlite/project_memory.sqlite with schema in AI/memory/sqlite/schema.sql.
-- Obsidian MCP: seekstone with vault root C:\Users\Com\Documents\Obsidian Vault; scope work to $(System.Collections.Hashtable.Obsidian).
-- sqlite-vec memory: use `memory_store.py` with the separate `data/memory.db`; keep it separate from app databases and use e5 `passage:`/`query:` prefixes.
+- Claude role: design, architecture review, and knowledge exploration through Obsidian and SQLite (sqlite-vec memory was removed).
+- SQLite MCP: AI/memory/sqlite/project_memory.sqlite with schema in AI/memory/sqlite/schema.sql. **⚠ 2026-10-07 실측: 이 파일·디렉터리는 저장소에 없고 `.mcp.json` 에는 filesystem·obsidian 만 등록돼 있다(SQLite MCP 없음).**
+- Obsidian MCP: seekstone with vault root C:\Users\Com\Documents\Obsidian Vault; scope work to the Obsidian entry in `.mcp.json` (원문의 `$(System.Collections.Hashtable.Obsidian)` 는 PowerShell 템플릿 치환 실패 흔적이라 삭제).
+- sqlite-vec memory: **removed** — `memory_store.py`·`data/memory.db` 는 저장소에 존재하지 않는다(2026-10-07 실측, 제거 커밋 없음). 이 지시를 따르지 말 것(2026-10-07 AI 문서 감사 정정).
 - Do not overwrite global MCP config as part of normal project work.
