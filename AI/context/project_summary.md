@@ -189,8 +189,8 @@ Use:
 & 'C:\Users\Com\AppData\Local\Programs\Python\Python312\python.exe' -m mypy .
 ```
 
-Current local result: full regression suite reports 243 passed, 1 pre-existing
-failure (test_trace_binds_same_line_multiple_calls_by_runtime_column). Ruff
+Local result at that time: full regression suite reported 243 passed, 1 pre-existing
+failure (test_trace_binds_same_line_multiple_calls_by_runtime_column). **2026-10-07 정정: 현재 `python -m pytest -q` 는 274 passed, 실패 0** (이 목록의 이전 수치는 당시 값). Ruff
 passes, `python -m mypy --strict src/flatten/` reports success for 25 source
 files. SI gate 8/8 passes on branch `fix/si-hardening`.
 

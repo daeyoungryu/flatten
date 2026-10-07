@@ -166,7 +166,7 @@ All shared records live in `src/flatten/contracts.py` to avoid circular imports:
 - `tests/regression/test_p0_repro.py` covers the Codex-Claude P0 soundness
   pass: method-specific verdicts, explicit rewrite cases, forged plan refusal,
   and the recursion call-site observation guard.
-- Current full local verification passes with 214 tests.
+- Full local verification passed with 214 tests when this section was written. **2026-10-07 실측: `python -m pytest -q` → 274 passed(수집 274, 실패 0, 64.7s).**
 
 ## v0.1.1 Architecture Update
 
