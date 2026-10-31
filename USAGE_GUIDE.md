@@ -1,4 +1,4 @@
-﻿# flatten-polymorph 사용 가이드
+# flatten-polymorph 사용 가이드
 # flatten-polymorph Usage Guide
 
 > **대상 독자 / Audience:** Python 경력 1년 미만의 초급 개발자
