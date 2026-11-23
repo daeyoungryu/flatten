@@ -15,8 +15,8 @@ from flatten.observations import ObservationRecord, TypeRef, observations_from_j
 
 
 def _read(path: Path) -> str:
-    """Read a UTF-8 text file and return its contents."""
-    return path.read_text(encoding="utf-8")
+    """Read a UTF-8 text file (a leading BOM is accepted and stripped)."""
+    return path.read_text(encoding="utf-8-sig")
 
 
 def _load_observations(path: Path) -> list[ObservationRecord]:

@@ -172,7 +172,7 @@ class DispatchEliminator:
 
 
 def load_args_json(path: Path) -> tuple[tuple[Any, ...], dict[str, Any]]:
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw = json.loads(_read(path))
     if isinstance(raw, dict):
         args = raw.get("args", [])
         kwargs = raw.get("kwargs", {})

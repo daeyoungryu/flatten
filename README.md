@@ -91,7 +91,7 @@ UNSAFE examples:
 flatten analyze examples/simple_closed_single.py --json
 flatten trace examples/simple_closed_single.py --entry examples.simple_closed_single:main --out /tmp/fp_obs.json
 flatten plan examples/simple_closed_single.py --observations /tmp/fp_obs.json --out /tmp/fp_plan.json
-flatten rewrite examples/simple_closed_single.py --plan /tmp/fp_plan.json --out /tmp/fp_rewritten.py
+flatten rewrite examples/simple_closed_single.py --plan /tmp/fp_plan.json --out /tmp/fp_rewritten.py --apply --skip-verify
 flatten verify examples/simple_closed_single.py /tmp/fp_rewritten.py --entry examples.simple_closed_single:main
 flatten report /tmp/fp_plan.json
 ```
@@ -99,7 +99,10 @@ flatten report /tmp/fp_plan.json
 All commands print JSON with a short summary. `analyze` also supports `--format html`.
 Use `--strict` to turn unsafe or unbound evidence into a non-zero exit where
 the command supports it. `rewrite` is dry-run by default; pass `--apply` to
-write output.
+write output. `rewrite --apply` must either verify the result (`--entry module:function`
+together with `--cases cases.json`, a JSON list of `{"args": [...], "kwargs": {...}}`)
+or opt out with `--skip-verify`; you can run `flatten verify` separately afterwards, as above.
+Source files may be saved with a UTF-8 BOM.
 
 ## Observation Schema
 

@@ -21,7 +21,7 @@ class BenchmarkProject:
 
 
 def load_benchmark_catalog(path: Path) -> list[BenchmarkProject]:
-    with path.open(encoding="utf-8", newline="") as handle:
+    with path.open(encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         if reader.fieldnames != ["name", "package", "repo_url", "category"]:
             raise ValueError("benchmark catalog must use name,package,repo_url,category")
