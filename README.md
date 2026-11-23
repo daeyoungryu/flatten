@@ -21,8 +21,19 @@ source code
 
 ## Quickstart
 
+`flatten-polymorph` is not published on PyPI yet. Install it from GitHub:
+
 ```powershell
-pip install flatten-polymorph
+pip install "git+https://github.com/daeyoungryu/flatten.git"
+python -m flatten --help
+```
+
+Or install from a source checkout:
+
+```powershell
+git clone https://github.com/daeyoungryu/flatten.git
+cd flatten
+pip install .
 python -m flatten --help
 ```
 
