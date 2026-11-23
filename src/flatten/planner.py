@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast as _ast_module
 import functools
 from collections import defaultdict
 from collections.abc import Iterable
@@ -38,6 +39,9 @@ def _most_conservative(a: ClosureVerdict, b: ClosureVerdict) -> ClosureVerdict:
     b_rank = _CONSERVATISM_RANK.get(b.status) if b.status is not None else 2
     a_rank = a_rank if a_rank is not None else 2
     b_rank = b_rank if b_rank is not None else 2
+    if a_rank == b_rank and bool(b.blockers) != bool(a.blockers):
+        # Same status: the verdict that carries blockers must win the collision.
+        return b if b.blockers else a
     return a if a_rank <= b_rank else b
 
 
@@ -92,7 +96,11 @@ class EvaluationSafety:
             if self._n_impls == 1:
                 # Refuse only when receiver is an untyped function parameter (RP).
                 # Local-variable receivers with 1 observed impl are allowed (direct).
-                return _is_receiver_a_function_parameter(self._source, self._site)
+                return _is_receiver_a_function_parameter(
+                    self._source, self._site
+                ) or not _is_receiver_pinned_by_constructor(
+                    self._source, self._site, self._receiver_types
+                )
             # Identifier + ≥2 impls: 'guarded' strategy is safe (identifier evaluated once).
             return False
         # Non-identifier + 1 impl: 'direct' is safe (no re-eval needed).
@@ -180,6 +188,13 @@ class RewritePlanner:
         if not self.opt_in:
             raise ValueError("rewrite is disabled by default; pass opt_in=True")
         plan_list = list(plans)
+        for plan in plan_list:
+            decision = _with_proof(RewriteDecision.from_verdict(plan.verdict))
+            if not decision.allowed or decision.proof_status != "safe":
+                raise ValueError(
+                    "refusing to rewrite: plan lacks a CLOSED verdict with positive evidence "
+                    "and no blockers"
+                )
         if any(plan.target_call_site is not None for plan in plan_list):
             rewritten = rewrite_source_with_plan(source, plan_list)
         else:
@@ -343,6 +358,83 @@ def _is_receiver_a_function_parameter(source: str, site: CallSite) -> bool:
         + ([args.kwarg.arg] if args.kwarg else [])
     )
     return receiver in param_names
+
+
+_MATCH_CAPTURE_NODES: tuple[type, ...] = tuple(
+    getattr(_ast_module, name)
+    for name in ("MatchAs", "MatchStar")
+    if hasattr(_ast_module, name)
+)
+_MATCH_MAPPING_NODES: tuple[type, ...] = tuple(
+    getattr(_ast_module, name) for name in ("MatchMapping",) if hasattr(_ast_module, name)
+)
+
+
+def _is_receiver_pinned_by_constructor(
+    source: str, site: CallSite, receiver_types: list[str]
+) -> bool:
+    """True only when the receiver name is bound exactly once, as ``name = Class(...)``.
+
+    A single observed type proves nothing about a variable that can also be bound
+    elsewhere (conditional expression, reassignment, loop/with/walrus target, nested
+    function or lambda parameter, global/nonlocal): the unobserved branch would be
+    silently redirected to the observed class. Anything but one plain constructor
+    assignment of the observed class inside the enclosing function is refused.
+    """
+    import ast as _ast
+
+    try:
+        tree = _ast.parse(source)
+    except SyntaxError:
+        return False
+    receiver = site.receiver_expr
+    wanted = {name.rsplit(".", 1)[-1] for name in receiver_types}
+    enclosing: _ast.AST | None = None
+    best_start = -1
+    for node in _ast.walk(tree):
+        if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
+            end = getattr(node, "end_lineno", None) or node.lineno
+            if node.lineno <= site.line <= end and node.lineno > best_start:
+                best_start = node.lineno
+                enclosing = node
+    if enclosing is None:
+        return False
+    bindings: list[_ast.AST] = []
+    for node in _ast.walk(enclosing):
+        if isinstance(node, (_ast.Global, _ast.Nonlocal)) and receiver in node.names:
+            return False
+        if isinstance(node, _ast.arg) and node.arg == receiver:
+            return False
+        # ast.Match* only exists on Python 3.10+; flatten supports 3.8+.
+        if isinstance(node, _MATCH_CAPTURE_NODES) and getattr(node, "name", None) == receiver:
+            return False
+        if isinstance(node, _MATCH_MAPPING_NODES) and getattr(node, "rest", None) == receiver:
+            return False
+        if isinstance(node, _ast.Name) and node.id == receiver and not isinstance(
+            node.ctx, _ast.Load
+        ):
+            bindings.append(node)
+        if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef, _ast.ClassDef)) and (
+            node is not enclosing and node.name == receiver
+        ):
+            return False
+        if isinstance(node, (_ast.Import, _ast.ImportFrom)):
+            for alias in node.names:
+                if (alias.asname or alias.name.split(".")[0]) == receiver:
+                    return False
+    if len(bindings) != 1:
+        return False
+    for node in _ast.walk(enclosing):
+        if isinstance(node, _ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            if isinstance(target, _ast.Name) and target.id == receiver:
+                value = node.value
+                return (
+                    isinstance(value, _ast.Call)
+                    and isinstance(value.func, _ast.Name)
+                    and value.func.id in wanted
+                )
+    return False
 
 
 def _has_local_class_receiver(receiver_types: list[str]) -> bool:

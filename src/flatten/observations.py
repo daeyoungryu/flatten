@@ -43,6 +43,7 @@ class ObservationRecord:
     input_hash: str = ""
     module: str = ""
     qualname: str = ""
+    source_hash: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -100,6 +101,7 @@ def observations_from_json(payload: str) -> list[ObservationRecord]:
                 input_hash=str(item.get("input_hash", "")),
                 module=str(item.get("module", "")),
                 qualname=str(item.get("qualname", "")),
+                source_hash=str(item.get("source_hash", "")),
             )
         )
     return records

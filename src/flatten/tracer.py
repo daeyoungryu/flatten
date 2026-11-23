@@ -365,10 +365,10 @@ _ast_cache: dict[str, ast.Module] = {}
 # Module-level position cache: (filename, lineno) -> (col_offset, end_col_offset)
 _position_cache: dict[tuple[str, int], tuple[int, int]] = {}
 # Module-level bytecode position cache:
-# ((filename, firstlineno, name), f_lasti, lineno) -> columns or None
-_bytecode_position_cache: dict[
-    tuple[tuple[str, int, str], int, int], tuple[int, int] | None
-] = {}
+# (id(code), f_lasti, lineno) -> columns or None; _code_refs pins the code objects so an
+# id cannot be reused by a different code object while its cache entries exist.
+_bytecode_position_cache: dict[tuple[int, int, int], tuple[int, int] | None] = {}
+_code_refs: dict[int, Any] = {}
 
 
 def _parse_file(filename: str) -> ast.Module | None:
@@ -420,7 +420,11 @@ def _caller_position(frame: Any | None) -> tuple[int, int, int]:
     if not calls:
         _position_cache[cache_key] = (-1, -1)
         return lineno, -1, -1
-    calls.sort(key=lambda n: getattr(n, "col_offset", 0))
+    if len(calls) > 1:
+        # Several calls share this line and the interpreter gave no column: picking one
+        # would attribute the observation to a call that may not have run. Leave unbound.
+        _position_cache[cache_key] = (-1, -1)
+        return lineno, -1, -1
     call = calls[0]
     col = getattr(call, "col_offset", None)
     end_col = getattr(call, "end_col_offset", None)
@@ -434,12 +438,10 @@ def _bytecode_call_position(frame: Any, lineno: int) -> tuple[int, int] | None:
     code = getattr(frame, "f_code", None)
     if f_lasti is None or code is None:
         return None
-    code_identity = (
-        str(getattr(code, "co_filename", "")),
-        int(getattr(code, "co_firstlineno", 0)),
-        str(getattr(code, "co_name", "")),
-    )
-    cache_key = (code_identity, int(f_lasti), lineno)
+    # Distinct code objects can share (file, first line, name) -- e.g. two lambdas on one
+    # line -- so the cache is keyed by the code object itself (kept alive below).
+    _code_refs[id(code)] = code
+    cache_key = (id(code), int(f_lasti), lineno)
     if cache_key in _bytecode_position_cache:
         return _bytecode_position_cache[cache_key]
     call_position: tuple[int, int] | None = None

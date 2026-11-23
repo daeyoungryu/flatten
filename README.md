@@ -1,8 +1,10 @@
 # flatten-polymorph
 
-`flatten-polymorph` is an experimental Python 3.8+ library for turning positively closed polymorphic method calls into explicit direct calls or guarded dispatch expressions.
+`flatten-polymorph` is an experimental Python 3.8+ library for turning polymorphic method calls into explicit direct calls or guarded dispatch expressions when runtime observation and static checks suggest that the call site is closed. It is an observation-based heuristic, not a soundness proof.
 
-The package is intentionally conservative. Observation is evidence, not proof. A rewrite is emitted only when the call site, observed implementation set, and closure verdict agree that the target is closed. The default policy is safe reject: when closure is unclear, the tool refuses to rewrite.
+The package is meant to be conservative. Observation is evidence, not proof. A rewrite is emitted only when the call site, observed implementation set, and closure verdict agree that the target looks closed. The intended default policy is safe reject: when closure is unclear, the tool should refuse to rewrite.
+
+**Status: experimental.** An independent full-code review in November 2026 found many cases where this intent is not met. The localized ones are fixed and covered by regression tests; the structural ones are listed under [Known Limitations](#known-limitations). Do not rely on a rewrite without reviewing the diff and running your own tests.
 
 ## Problem
 
@@ -65,7 +67,7 @@ Local hierarchy completeness without positive evidence is not enough.
 
 ## OPEN and UNSAFE Cases
 
-The checker leaves a call site unrevised when it cannot prove closure.
+The checker is designed to leave a call site unrevised when it cannot establish closure (see Known Limitations for gaps).
 
 OPEN examples:
 
@@ -198,6 +200,40 @@ return B.run(_flatten_receiver_1) if isinstance(_flatten_receiver_1, B) else A.r
 - `examples/unsafe_phase2_dynamic.py`: dynamic hooks, eval, and imports should remain UNSAFE.
 - `examples/same_shape_callsites.py`: repeated `worker.run()` shapes get distinct positions.
 - `examples/verify_exception_equivalence.py`: verifier compares exception type and message.
+
+## Known Limitations
+
+These are known gaps where flatten can still approve a rewrite that changes behavior, or where its checks are weaker than the documentation above may suggest. They were found by an independent code review and are not fixed yet.
+
+Receiver and closure checks:
+
+- A call on a non-variable receiver, such as `factory().run()`, can still be turned into a direct call after seeing only one type.
+- A name can be shadowed (for example by a parameter default like `def main(A=A)`), and a class can fake `__class__`, which can fool the guarded fallback.
+- The closed-world scan can miss subclasses created through aliases such as `import m; P = m.Base`, or an alias in the same file.
+- Some class hooks are not detected everywhere: `__getattribute__` on a base class, writes to an instance through an alias, and a final leaf class that overrides a final root method.
+- A verdict for one class hierarchy can wrongly approve a call site that belongs to another hierarchy.
+
+Generated code:
+
+- Guarded dispatch can be missing parentheses inside large expressions, can use a temporary variable in a place where it is not defined, can crash on generator arguments such as `f(i for i in x)`, and can change the message of an error raised for `*args`.
+
+Trust and files:
+
+- Saved plan files are checked for accidental edits only. They are not signed, so a plan that was deliberately forged and given a fresh digest would be accepted.
+- Observation files that were written by older versions (no `source_hash`) are still accepted without a warning, and a type reference inside an observation file can import a module while planning.
+- `verify` and `rewrite --apply` run your module in the same process as flatten. This is not a sandbox and not a separate-process check.
+
+Verification:
+
+- A cases file may contain `effect_expression`; it is currently read and ignored.
+- Exceptions are compared by class name and message, not by identity of the class. Types inside containers (for example `[True]` versus `[1]`) are not compared.
+- Behavior checks run on copies of the inputs, so code that depends on object identity can pass verification and still behave differently. Code that depends on the name of the directory it is published in can also differ.
+- Passing verification covers only the inputs you gave it.
+
+Tracing and platforms:
+
+- Errors raised by `__deepcopy__` or `__repr__` while values are captured can escape the tracer. Async entry points produce empty evidence.
+- All checks so far were run on Windows with Python 3.12. Python 3.8 to 3.11 (the `sys.settrace` backend) and other operating systems are not verified.
 
 ## Non-Goals
 

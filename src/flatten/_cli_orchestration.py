@@ -5,6 +5,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import linecache
+import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -23,6 +26,7 @@ from flatten._cli_io import (
     _source_hash,
     _verdict_to_json,
 )
+from flatten._utils import discard_stage, stage_text
 from flatten._utils import normalize_filename as _normalize_filename
 from flatten.benchmarks import (
     load_benchmark_catalog,
@@ -100,6 +104,26 @@ def _verdicts_from_observations(
                 observed_impls.append(restored)
         else:
             checker = ClosureChecker(ClosureConfig(closed_world=closed_world))
+            if closed_world and source_path is not None:
+                hits = _unscanned_subclass_candidates(source_path, observed_impls)
+                if hits:
+                    signal = (
+                        "OPEN: closed-world scan found other modules deriving from the observed "
+                        f"classes: {', '.join(hits)}"
+                    )
+                    verdicts.append(
+                        ClosureVerdict(
+                            method_qualname=method_qualname,
+                            known_impls=observed_impls,
+                            open_signals=[signal],
+                            signal="OPEN",
+                            rationale="closed-world assumption contradicted by sibling modules",
+                            status=ClosureStatus.OPEN,
+                            blockers=(signal,),
+                            evidence=("scanned sibling modules for subclasses",),
+                        )
+                    )
+                    continue
             if source_path is not None and source_path.exists():
                 source = _read(source_path)
                 static_analysis = analyze_class_hierarchy(
@@ -151,6 +175,64 @@ def _verdicts_from_observations(
                 )
             verdicts.append(checker.check(method_qualname, observed_impls))
     return verdicts
+
+
+def _unscanned_subclass_candidates(source_path: Path, observed_impls: list[type]) -> list[str]:
+    """Names of other .py files below the target's directory that derive from observed classes.
+
+    ``--closed-world`` claims a package scan; analysing only the target file would miss
+    subclasses declared in sibling modules. This is a name-based check (a base class
+    spelled like an observed class or one of its user-defined ancestors), so it can
+    over-report but not silently skip a sibling.
+    """
+    import ast
+
+    wanted = {
+        cls.__name__
+        for impl in observed_impls
+        for cls in impl.__mro__
+        if cls is not object and cls.__module__ != "builtins"
+    }
+    hits: list[str] = []
+    root = source_path.resolve().parent
+    for candidate in sorted(root.rglob("*.py")):
+        if candidate == source_path.resolve() or "__pycache__" in candidate.parts:
+            continue
+        try:
+            tree = ast.parse(candidate.read_bytes())
+        except (SyntaxError, ValueError, OSError):
+            hits.append(f"{candidate.name} (unparsable)")
+            continue
+        local_wanted = set(wanted)
+        for node in ast.walk(tree):
+            # ``from m import Base as Parent`` and ``Parent = Base`` keep the class reachable
+            # under another name; follow those aliases before looking at base lists.
+            if isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    if alias.name in wanted and alias.asname:
+                        local_wanted.add(alias.asname)
+            elif (
+                isinstance(node, ast.Assign)
+                and isinstance(node.value, ast.Name)
+                and node.value.id in local_wanted
+            ):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        local_wanted.add(target.id)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            for base in node.bases:
+                name = (
+                    base.id
+                    if isinstance(base, ast.Name)
+                    else base.attr
+                    if isinstance(base, ast.Attribute)
+                    else ""
+                )
+                if name in local_wanted:
+                    hits.append(f"{candidate.name}:{node.name}")
+    return hits
 
 
 def _method_qualname_from_observation(record: ObservationRecord) -> str:
@@ -245,8 +327,11 @@ def cmd_trace(args: argparse.Namespace) -> int:
     )
     with Tracer(target=fn, capture_values=args.capture_values) as tracer:
         fn()
+    source_text = _read(args.path)
+    source_hash = _source_hash(source_text)
+    source_lines = re.split(r"\r\n|\r|\n", source_text)
     records = [
-        _observation_from_trace(record, call_sites, index)
+        _observation_from_trace(record, call_sites, index, source_hash, source_lines)
         for index, record in enumerate(tracer.records, start=1)
         if record.is_dispatch_target and record.impl_class is not None
     ]
@@ -254,6 +339,7 @@ def cmd_trace(args: argparse.Namespace) -> int:
     unbound_count = len(records) - bound_count
     payload = observations_to_json(records)
     if args.out:
+        _reject_output_alias(args.out, args.path)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(payload, encoding="utf-8")
         print(f"wrote {args.out}")
@@ -269,16 +355,61 @@ def cmd_trace(args: argparse.Namespace) -> int:
     return 0
 
 
+def _same_function_name(attribute_qualname: str | None, traced_qualname: str) -> bool:
+    """True when the traced function and the class attribute have the same qualified name.
+
+    Local classes carry a ``<locals>`` prefix on one side only, so a dotted-suffix match
+    is accepted; a different owner (``Alternate.run`` vs ``A.run``) is not.
+    """
+    if attribute_qualname is None:
+        return False
+    return (
+        attribute_qualname == traced_qualname
+        or attribute_qualname.endswith("." + traced_qualname)
+        or traced_qualname.endswith("." + attribute_qualname)
+    )
+
+
+def _byte_column_to_char_column(
+    filename: str,
+    lineno: int,
+    column: int,
+    source_lines: list[str] | None = None,
+) -> int:
+    """Convert the interpreter's UTF-8 byte column to LibCST's character column.
+
+    ``source_lines`` is the text the tracer's target was read from; without it the
+    line cache is revalidated first so an edited file is never read from a stale entry.
+    """
+    if column <= 0 or lineno <= 0 or not filename or filename.startswith("<"):
+        return column
+    if source_lines is not None:
+        line = source_lines[lineno - 1] if lineno <= len(source_lines) else ""
+    else:
+        linecache.checkcache(filename)
+        line = linecache.getline(filename, lineno)
+    if not line:
+        return column
+    return len(line.encode("utf-8")[:column].decode("utf-8", "ignore"))
+
+
 def _observation_from_trace(
     record: Any,
     call_sites: list[Any],
     index: int,
+    source_hash: str = "",
+    source_lines: list[str] | None = None,
 ) -> ObservationRecord:
     """Convert a raw OracleRecord into a bound ObservationRecord."""
     traced_method_name = record.qualname.rsplit(".", 1)[-1]
     caller_filename = _normalize_filename(str(getattr(record, "caller_filename", "")))
     caller_lineno = int(getattr(record, "caller_lineno", 0))
-    caller_column = int(getattr(record, "caller_column", -1))
+    caller_column = _byte_column_to_char_column(
+        caller_filename,
+        caller_lineno,
+        int(getattr(record, "caller_column", -1)),
+        source_lines,
+    )
     candidates = [
         site
         for site in call_sites
@@ -288,17 +419,21 @@ def _observation_from_trace(
             and site.method_name == traced_method_name
         )
     ]
-    if len(candidates) > 1 and caller_column >= 0:
-        column_matches = [
-            site
-            for site in candidates
-            if site.column <= caller_column < site.end_column
+    if caller_column >= 0:
+        # With a known column the call site must contain it, even when only one call on
+        # the line shares the method name (it may be a different, unexecuted call).
+        candidates = [
+            site for site in candidates if site.column <= caller_column < site.end_column
         ]
-        if len(column_matches) == 1:
-            candidates = column_matches
     site = candidates[0] if len(candidates) == 1 else None
     method_name = site.method_name if site is not None else traced_method_name
     method = getattr(record.impl_class, method_name, None)
+    if site is not None and not _same_function_name(
+        getattr(method, "__qualname__", None), record.qualname
+    ):
+        # The function that actually ran is not the class attribute we would record
+        # (instance-level override, wrapper, ...): do not claim the class method ran.
+        site = None
     resolved = FunctionRef(
         module=record.impl_class.__module__,
         qualname=f"{record.impl_class.__qualname__}.{method_name}",
@@ -318,6 +453,7 @@ def _observation_from_trace(
         ).hexdigest(),
         module=record.impl_class.__module__,
         qualname=f"{record.impl_class.__qualname__}.{method_name}",
+        source_hash=source_hash,
     )
 
 
@@ -334,7 +470,16 @@ def _make_plans(
     source = _read(args.path)
     call_sites = discover_call_sites(source, filename=str(args.path).replace("\\", "/"))
     observations = _load_observations(args.observations)
-    bound_observations = [record for record in observations if record.call_site_id]
+    current_hash = _source_hash(source)
+    stale = {r.source_hash for r in observations if r.source_hash and r.source_hash != current_hash}
+    if stale:
+        raise ValueError(
+            "observations were recorded for a different version of the source; re-run trace"
+        )
+    known_sites = {site.call_site_id for site in call_sites}
+    # An observation whose id does not join to a call site of this source is unbound,
+    # not evidence: it must be counted (and fail --strict) rather than silently dropped.
+    bound_observations = [record for record in observations if record.call_site_id in known_sites]
     unbound_count = len(observations) - len(bound_observations)
     verdicts = _verdicts_from_observations(
         bound_observations,
@@ -364,7 +509,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
     call_sites, verdicts, plans, decisions, unbound_count = _make_plans(args)
     source = _read(args.path)
     observations = _load_observations(args.observations)
-    payload = {
+    payload: dict[str, Any] = {
         "summary": f"created {len(plans)} rewrite plan(s)",
         "source_hash": _source_hash(source),
         "call_sites": [site.__dict__ for site in call_sites],
@@ -376,22 +521,37 @@ def cmd_plan(args: argparse.Namespace) -> int:
         ],
         "unbound_observations": unbound_count,
     }
+    payload["plan_digest"] = _plan_digest(payload)
     if args.out:
         args.out = args.out.resolve()
+        _reject_output_alias(args.out, args.path, getattr(args, "observations", None))
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
         print(f"wrote {args.out}")
     else:
         _json_print(payload)
-    if not plans and unbound_count:
+    if unbound_count:
+        outcome = (
+            "no rewrite plans created" if not plans else "plans were created for the bound ones"
+        )
         print(
-            f"flatten: warning: {unbound_count} unbound observation(s); "
-            "no rewrite plans created",
+            f"flatten: warning: {unbound_count} unbound observation(s); {outcome}",
             file=sys.stderr,
         )
         if args.strict:
             return 2
     return 0
+
+
+def _plan_digest(payload: dict[str, Any]) -> str:
+    """Digest of the parts of a plan file that authorize edits (detects hand edits)."""
+    material = {
+        key: payload.get(key)
+        for key in ("source_hash", "rewrite_decisions", "rewrite_plans")
+    }
+    return hashlib.sha256(
+        json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def _plan_to_json(
@@ -441,6 +601,19 @@ def _proof_artifact_for_plan(
     }
 
 
+def _reject_output_alias(out: Path, *inputs: Path | None) -> None:
+    """Refuse to write an output file over one of the command's own input files."""
+    resolved = out.resolve()
+    for candidate in inputs:
+        if candidate is None:
+            continue
+        same = Path(candidate).resolve() == resolved
+        if not same and out.exists() and Path(candidate).exists():
+            same = os.path.samefile(out, candidate)  # hard links / other aliases
+        if same:
+            raise ValueError(f"--out {out} would overwrite the input file {candidate}")
+
+
 def cmd_rewrite(args: argparse.Namespace) -> int:
     """Rewrite a source file to flatten observed polymorphic dispatch.
 
@@ -461,6 +634,14 @@ def cmd_rewrite(args: argparse.Namespace) -> int:
         args.observations = args.observations.resolve()
     if args.plan is not None:
         args.plan = args.plan.resolve()
+    _reject_output_alias(args.out, args.observations, args.plan, args.cases)
+    if (
+        args.out.exists()
+        and args.path.exists()
+        and args.out.resolve() != args.path.resolve()
+        and os.path.samefile(args.out, args.path)
+    ):
+        raise ValueError(f"--out {args.out} is a hard link to the input file {args.path}")
     if args.plan:
         plans = _plans_from_plan_file(args.plan, _read(args.path))
         verdicts: list[Any] = []
@@ -487,11 +668,20 @@ def cmd_rewrite(args: argparse.Namespace) -> int:
         return 1
     rewritten = RewritePlanner(opt_in=True).rewrite_source(_read(args.path), plans)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(rewritten, encoding="utf-8")
     if not args.skip_verify and args.entry:
+        # Verify BEFORE publishing: the original is loaded from the untouched input,
+        # the rewrite from a temporary file, and --out is only replaced on success.
         original = _entry_func(args.path, args.entry, "_original")
-        rewritten_entry = _entry_func(args.out, args.entry, "_rewritten")
-        assert_equivalent(original, rewritten_entry, _load_cases(args.cases))
+        cases = _load_cases(args.cases)
+        stage_dir, staged = stage_text(args.out, rewritten)
+        try:
+            rewritten_entry = _entry_func(staged, args.entry, "_rewritten")
+            assert_equivalent(original, rewritten_entry, cases)
+            os.replace(staged, args.out)
+        finally:
+            discard_stage(stage_dir)
+    else:
+        args.out.write_text(rewritten, encoding="utf-8")
     summary = (
         f"wrote {args.out}; applied 0 rewrite plan(s)"
         if not plans
@@ -509,6 +699,10 @@ def _plans_from_plan_file(path: Path, source: str) -> list[Any]:
     source_class_names = _top_level_class_names(source)
     if raw.get("source_hash") != _source_hash(source):
         raise ValueError("untrusted plan: source hash missing or does not match")
+    if raw.get("plan_digest") != _plan_digest(raw):
+        raise ValueError(
+            "untrusted plan: integrity digest missing or contents modified after planning"
+        )
     plans: list[Any] = []
     for item in raw.get("rewrite_plans", []):
         verdict_raw = item.get("verdict")
@@ -530,6 +724,16 @@ def _plans_from_plan_file(path: Path, source: str) -> list[Any]:
         artifact = item.get("proof_artifact")
         if not isinstance(artifact, dict) or artifact.get("rewrite_allowed") is not True:
             raise ValueError("untrusted plan: missing positive proof artifact")
+        item_method = str(verdict_raw.get("method_qualname") or "")
+        matching = [
+            d
+            for d in decisions
+            if isinstance(d, dict) and str(d.get("method_qualname") or "") == item_method
+        ]
+        if not item_method or not matching or any(d.get("allowed") is not True for d in matching):
+            raise ValueError(
+                "untrusted plan: no allowed rewrite decision for the plan item's method"
+            )
         replacement = cst.parse_expression(item["replacement"])
         verdict = ClosureVerdict(
             method_qualname="",
@@ -575,10 +779,18 @@ def _call_site_for_range(
     source: str, call_site_id: str, target_range: str | None
 ) -> CallSite | None:
     """Reconstruct a CallSite from plan metadata by matching id or position range."""
-    filename = call_site_id.split(":", 1)[0] if ":" in call_site_id else "<memory>"
-    for site in discover_call_sites(source, filename=filename):
+    id_match = re.match(r"^(.*):\d+:\d+-\d+:\d+$", call_site_id)
+    filename = id_match.group(1) if id_match else "<memory>"
+    sites = discover_call_sites(source, filename=filename)
+    for site in sites:
         if site.call_site_id == call_site_id:
+            site_range = f"{site.line}:{site.column}-{site.end_line}:{site.end_column}"
+            if target_range and site_range != target_range:
+                raise ValueError(
+                    "untrusted plan: target_range does not belong to the plan's call_site_id"
+                )
             return site
+    for site in sites:
         if target_range and (
             f"{site.line}:{site.column}-{site.end_line}:{site.end_column}" == target_range
         ):
@@ -703,7 +915,13 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     Returns:
         Exit code 0.
     """
-    projects = load_benchmark_catalog(args.catalog.resolve())
+    catalog = args.catalog.resolve()
+    outputs = [p.resolve() for p in (args.out_json, args.out_md) if p is not None]
+    for out in outputs:
+        _reject_output_alias(out, catalog)
+    if len(outputs) == 2 and outputs[0] == outputs[1]:
+        raise ValueError("--out-json and --out-md must be different files")
+    projects = load_benchmark_catalog(catalog)
     summary = summarize_benchmark_catalog(projects)
     write_benchmark_reports(
         summary,

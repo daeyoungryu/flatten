@@ -21,8 +21,10 @@ class DispatchTransformer(cst.CSTTransformer):
         for plan in self._plans:
             if plan.target_node is None:
                 continue
-            if original is plan.target_node or original.deep_equals(plan.target_node):
-                if not plan.verdict.is_closed:
+            # Identity only: a structurally equal call elsewhere (two ``w.run()`` of the
+            # same shape) is a different call site and must not be rewritten.
+            if original is plan.target_node:
+                if not plan.verdict.is_closed or plan.verdict.blockers:
                     return updated
                 return plan.replacement
         return updated

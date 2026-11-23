@@ -19,7 +19,15 @@ def test_rewrite_planner_is_disabled_by_default():
 
 def test_rewrite_planner_opt_in_adds_warning_to_rewritten_source():
     source = "def f(obj):\n    return obj.run()\n"
-    verdict = ClosureVerdict("Obj.run", False, [], ["OPEN: observed only"], "OPEN")
+    verdict = ClosureVerdict(
+        "Obj.run",
+        True,
+        [],
+        [],
+        "CLOSED",
+        status=ClosureStatus.CLOSED,
+        evidence=("checked",),
+    )
     plan = TransformPlan(
         cst.parse_expression("obj.run()"),
         cst.Integer("1"),
@@ -31,6 +39,20 @@ def test_rewrite_planner_opt_in_adds_warning_to_rewritten_source():
 
     assert "observed-based guess; unobserved implementations may exist" in rewritten
     assert "return 1" in rewritten
+
+
+def test_rewrite_source_refuses_plans_without_a_closed_verdict():
+    source = "def f(obj):\n    return obj.run()\n"
+    verdict = ClosureVerdict("Obj.run", False, [], ["OPEN: observed only"], "OPEN")
+    plan = TransformPlan(
+        cst.parse_expression("obj.run()"),
+        cst.Integer("1"),
+        verdict,
+        target_range="2:11-2:20",
+    )
+
+    with pytest.raises(ValueError):
+        RewritePlanner(opt_in=True).rewrite_source(source, [plan])
 
 
 def test_analysis_report_renders_json_and_html():

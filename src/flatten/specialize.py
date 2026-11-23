@@ -8,8 +8,11 @@ verification around a generated ``specialized()`` entry point.
 
 from __future__ import annotations
 
+import copy
 import inspect
 import json
+import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -17,6 +20,7 @@ from typing import Any
 import libcst as cst
 
 from flatten._cli_io import _entry_func, _load_module, _read
+from flatten._utils import discard_stage, stage_text
 from flatten.tracer import Tracer
 
 
@@ -148,7 +152,7 @@ class Verifier:
         )
         original_value = original_entry(*args, **kwargs)
         generated_value = generated.specialized()
-        if original_value != generated_value:
+        if type(original_value) is not type(generated_value) or original_value != generated_value:
             raise AssertionError(
                 f"specialized output mismatch: {original_value!r} != {generated_value!r}"
             )
@@ -206,10 +210,15 @@ def specialize_source(
     args, kwargs = load_args_json(args_path.resolve())
     TargetResolver(path).resolve(target_spec)
     entry = _entry_func(path, entry_spec, "_specialize_entry")
-    graph = CallGraphBuilder().build(entry, args, kwargs)
+    # Tracing calls the entry; give it a private copy so mutations cannot leak into
+    # the literal arguments embedded in the generated module.
+    trace_args, trace_kwargs = copy.deepcopy((args, kwargs))
+    graph = CallGraphBuilder().build(entry, trace_args, trace_kwargs)
 
     function_name = entry_spec.partition(":")[2]
     source = _read(path)
+    if re.search(r"^(?:def|class)\s+specialized\b|^specialized\s*=", source, re.MULTILINE):
+        raise ValueError("source already defines 'specialized'; refusing to overwrite it")
     source = DispatchEliminator().eliminate(source, graph)
     source = FunctionInliner().inline(source, graph)
     specialized_call = PartialEvaluator().entry_call(function_name, args, kwargs)
@@ -217,14 +226,25 @@ def specialize_source(
     emitted = ConstantFolder().fold_source(emitted)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(emitted, encoding="utf-8")
-    verified = Verifier().verify(entry, out_path, args, kwargs)
+    stage_dir, staged = stage_text(out_path, emitted)
+    try:
+        verified = Verifier().verify(entry, staged, *copy.deepcopy((args, kwargs)))
+        os.replace(staged, out_path)
+    finally:
+        discard_stage(stage_dir)
     return SpecializationResult(source=emitted, call_graph=graph, verified=verified)
 
 
 def _python_literal(value: Any) -> str:
     if isinstance(value, str):
-        return json.dumps(value)
+        # ensure_ascii=False keeps non-BMP characters intact (json's default would emit
+        # surrogate-pair escapes that Python reads back as two characters).
+        literal = json.dumps(value, ensure_ascii=False)
+        try:
+            literal.encode("utf-8")
+        except UnicodeEncodeError:
+            return repr(value)
+        return literal
     if value is True:
         return "True"
     if value is False:

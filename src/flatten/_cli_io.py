@@ -39,7 +39,10 @@ def _load_module(path: Path, module_name: str) -> Any:
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     try:
-        spec.loader.exec_module(module)
+        # Compile from the current file bytes instead of spec.loader.exec_module so a
+        # stale timestamp-matching __pycache__ entry can never replace the source we verify.
+        code = compile(path.read_bytes(), str(path), "exec", dont_inherit=True)
+        exec(code, module.__dict__)
     except Exception as exc:
         raise RuntimeError(f"Failed to load module from {path}: {exc}") from exc
     return module

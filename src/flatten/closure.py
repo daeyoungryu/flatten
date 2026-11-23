@@ -26,11 +26,13 @@ class ClosureConfig:
 def get_all_subclasses(cls: type) -> list[type]:
     """Return every subclass below cls, including indirect descendants."""
     result: list[type] = []
-    queue: deque[type] = deque(cls.__subclasses__())
+    # type.__subclasses__(cls) also works when cls is itself a metaclass, where the
+    # bound form ``cls.__subclasses__()`` raises TypeError.
+    queue: deque[type] = deque(type.__subclasses__(cls))
     while queue:
         subclass = queue.popleft()
         result.append(subclass)
-        queue.extend(subclass.__subclasses__())
+        queue.extend(type.__subclasses__(subclass))
     return result
 
 
@@ -251,6 +253,17 @@ def _risk_signals(base_cls: type, observed_impls: list[type], method_name: str) 
         if len(user_bases) > 1:
             signals.append(f"UNSAFE: multiple inheritance in {_qualname(cls)}")
 
+        resolved_attr = _raw_attr_for(cls, method_name)
+        if resolved_attr is None:
+            signals.append(
+                f"UNSAFE: {_qualname(cls)} has no attribute {method_name} to bind a rewrite to"
+            )
+        elif isinstance(resolved_attr, (staticmethod, classmethod)):
+            signals.append(
+                f"UNSAFE: staticmethod/classmethod binding for {_qualname(cls)}.{method_name}; "
+                "a direct Class.method(receiver) call would bind arguments differently"
+            )
+
         raw_attr = cls.__dict__.get(method_name)
         if isinstance(raw_attr, property) or (
             raw_attr is not None
@@ -293,6 +306,14 @@ def _method_dynamic_hazards(method: FunctionType) -> list[str]:
         # AST path: detect eval / exec / __import__ referenced from global namespace.
         local_names = set(method.__code__.co_varnames)
         for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Attribute)
+                and node.attr in {"import_module", "__import__"}
+            ):
+                signals.append(
+                    f"UNSAFE: dynamic import via {node.attr} in {method.__qualname__}"
+                )
+                break
             if (
                 isinstance(node, ast.Name)
                 and node.id in _DANGEROUS_NAMES
@@ -460,13 +481,23 @@ class ClosureChecker:
             *_state_read_evidence(methods),
         ]
 
-        known_names = {_qualname(cls) for cls in {base_cls, *observed_impls}}
         raw_method = _raw_attr_for(base_cls, method_name)
+        # Finality must cover EVERY observed implementation: a final class (or a final
+        # method that the class does not override) proves nothing about an observed
+        # receiver of an unrelated or overriding class.
         final_closed = self.config.allow_final and (
-            _is_final(base_cls)
-            or _is_final(raw_method)
+            base_cls in observed_impls or _is_final(base_cls) or _is_final(raw_method)
+        ) and all(
+            _is_final(impl)
+            or (
+                _is_final(_raw_attr_for(impl, method_name))
+                and _raw_attr_for(impl, method_name) is raw_method
+            )
+            for impl in observed_impls
         )
-        sealed_closed = bool(known_names & self.config.sealed_roots)
+        # A sealed declaration counts only for the class that declares the method, not
+        # for a sealed descendant that happens to be observed.
+        sealed_closed = _qualname(base_cls) in self.config.sealed_roots
         closed_world = self.config.closed_world and not open_signals
 
         if not open_signals and (final_closed or sealed_closed or closed_world):

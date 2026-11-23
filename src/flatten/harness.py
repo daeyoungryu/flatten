@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import re
@@ -74,6 +75,15 @@ def capture_behavior(
     effect_collectors: dict[str, EffectCollector] | None = None,
     **kwargs: Any,
 ) -> BehaviorObservation:
+    return _capture(func, args, kwargs, effect_collectors)
+
+
+def _capture(
+    func: Callable[..., Any],
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    effect_collectors: dict[str, EffectCollector] | None,
+) -> BehaviorObservation:
     stdout_buf = StringIO()
     stderr_buf = StringIO()
     effects: dict[str, Any] = {}
@@ -85,15 +95,19 @@ def capture_behavior(
         for name, collector in (effect_collectors or {}).items():
             effects[name] = collector()
         return BehaviorObservation("return", value=result, effects=effects)
-    except Exception as exc:
+    except (Exception, SystemExit) as exc:
         effects["stdout"] = stdout_buf.getvalue()
         effects["stderr"] = stderr_buf.getvalue()
         for name, collector in (effect_collectors or {}).items():
             effects[name] = collector()
+        # SystemExit(0) and SystemExit("0") print the same text but exit differently.
+        message = (
+            f"SystemExit({exc.code!r}):{exc}" if isinstance(exc, SystemExit) else str(exc)
+        )
         return BehaviorObservation(
             "raise",
             exception_type=exc.__class__.__qualname__,
-            exception_message=str(exc),
+            exception_message=message,
             effects=effects,
         )
 
@@ -114,14 +128,32 @@ def compute_behavior_hash(
     effect_collectors: dict[str, EffectCollector] | None = None,
 ) -> str:
     observations = [
-        capture_behavior(fn, *args, effect_collectors=effect_collectors, **kwargs)
-        for args, kwargs in inputs
+        _capture(fn, args, kwargs, effect_collectors) for args, kwargs in inputs
     ]
     return _digest(observations)
 
 
 def _default_equivalent(left: Any, right: Any) -> bool:
-    return bool(left == right)
+    return type(left) is type(right) and bool(left == right)
+
+
+def _pristine_copy(
+    index: int, args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> tuple[tuple[Any, ...], dict[str, Any]]:
+    """Deep copy of one case, taken before the original runs, for the transformed run.
+
+    The original runs on the objects the caller supplied (identity checks against
+    outside objects behave as they would for real); the transformed function runs on a
+    pristine copy so neither can observe the other's mutations. A case that cannot be
+    copied cannot be verified fairly, so it is rejected instead of silently shared.
+    """
+    try:
+        return copy.deepcopy((args, kwargs))
+    except Exception as exc:
+        raise ValueError(
+            f"test input #{index} cannot be deep-copied ({exc}); supply an independent "
+            "input for each run"
+        ) from exc
 
 
 def assert_equivalent(
@@ -133,12 +165,13 @@ def assert_equivalent(
     effect_collectors: dict[str, EffectCollector] | None = None,
 ) -> None:
     value_equivalent = equivalent or _default_equivalent
+    if not test_inputs:
+        raise ValueError("assert_equivalent requires at least one test input; got none")
     for index, (args, kwargs) in enumerate(test_inputs):
-        original = capture_behavior(
-            original_func, *args, effect_collectors=effect_collectors, **kwargs
-        )
-        transformed = capture_behavior(
-            flattened_func, *args, effect_collectors=effect_collectors, **kwargs
+        transformed_args, transformed_kwargs = _pristine_copy(index, args, kwargs)
+        original = _capture(original_func, args, kwargs, effect_collectors)
+        transformed = _capture(
+            flattened_func, transformed_args, transformed_kwargs, effect_collectors
         )
 
         if original.outcome != transformed.outcome:
@@ -181,6 +214,8 @@ def assert_modules_equivalent_subprocess(
     seed: int | None = None,
 ) -> dict[str, Any]:
     """Compare module entry behavior in isolated subprocesses."""
+    if not cases:
+        raise ValueError("assert_modules_equivalent_subprocess requires at least one case")
     validate_effect_expression(effect_expression)
     original_results = [
         _run_module_case_subprocess(

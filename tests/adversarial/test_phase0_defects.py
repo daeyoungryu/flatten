@@ -315,26 +315,25 @@ def test_plan_file_rewrite_refuses_class_name_missing_from_source_scope(tmp_path
     source = path.read_text(encoding="utf-8")
     import hashlib
 
-    plan.write_text(
-        json.dumps(
+    from flatten._cli_orchestration import _plan_digest
+
+    payload = {
+        "source_hash": hashlib.sha256(source.encode("utf-8")).hexdigest(),
+        "rewrite_plans": [
             {
-                "source_hash": hashlib.sha256(source.encode("utf-8")).hexdigest(),
-                "rewrite_plans": [
-                    {
-                        "replacement": "External.run(obj)",
-                        "target_range": "3:11-3:20",
-                        "confidence": 1.0,
-                        "verdict": {
-                            "status": "closed",
-                            "signal": "CLOSED",
-                            "evidence": ["test closed fixture"],
-                        },
-                    }
-                ],
+                "replacement": "External.run(obj)",
+                "target_range": "3:11-3:20",
+                "confidence": 1.0,
+                "verdict": {
+                    "status": "closed",
+                    "signal": "CLOSED",
+                    "evidence": ["test closed fixture"],
+                },
             }
-        ),
-        encoding="utf-8",
-    )
+        ],
+    }
+    payload["plan_digest"] = _plan_digest(payload)
+    plan.write_text(json.dumps(payload), encoding="utf-8")
 
     assert (
         main(

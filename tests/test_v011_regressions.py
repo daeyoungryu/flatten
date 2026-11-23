@@ -199,7 +199,7 @@ def test_trace_binding_requires_matching_method_name_on_same_line():
         kwargs={},
         caller_filename=str(Path("sample.py").resolve()).replace("\\", "/"),
         caller_lineno=2,
-        caller_column=11,
+        caller_column=21,
     )
     observation = _observation_from_trace(record, sites, 1)
 

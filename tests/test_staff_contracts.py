@@ -258,7 +258,7 @@ def test_cli_plan_emits_rewrite_decisions_for_refused_observations(tmp_path, cap
         json.dumps(
             [
                 {
-                    "call_site_id": f"{source.as_posix()}:7:11-7:23",
+                    "call_site_id": f"{source.as_posix()}:8:11-8:23",
                     "receiver_type": {
                         "module": "case",
                         "qualname": "Worker",

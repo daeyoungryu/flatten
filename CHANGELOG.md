@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Full-code review fixes (verification and output safety, observation binding, stored-plan integrity, closure/planner checks) with regression tests; rewrite now refuses more cases and old plan files need a `plan_digest`.
+- README: describe flatten as an observation-based heuristic (not a soundness proof) and list Known Limitations.
+
 ## 0.2.1
 
 - SI hardening pass (RP/SE/P2, phases 1-4): tighten rewrite preconditions and

@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
+
+from flatten._utils import discard_stage, stage_text
 
 
 @dataclass(frozen=True)
@@ -67,12 +70,24 @@ def write_benchmark_reports(
     out_json: Path | None = None,
     out_md: Path | None = None,
 ) -> None:
+    targets: list[tuple[Path, str]] = []
     if out_json is not None:
-        out_json.parent.mkdir(parents=True, exist_ok=True)
-        out_json.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+        targets.append((out_json, json.dumps(summary, indent=2, sort_keys=True)))
     if out_md is not None:
-        out_md.parent.mkdir(parents=True, exist_ok=True)
-        out_md.write_text(_summary_to_markdown(summary), encoding="utf-8")
+        targets.append((out_md, _summary_to_markdown(summary)))
+    if len(targets) == 2 and targets[0][0].resolve() == targets[1][0].resolve():
+        raise ValueError("benchmark JSON and Markdown outputs must be different files")
+    # Stage every report first so a failure cannot leave one existing report replaced.
+    staged: list[tuple[Path, Path, Path]] = []
+    try:
+        for target, text in targets:
+            stage_dir, staged_file = stage_text(target, text)
+            staged.append((stage_dir, staged_file, target))
+        for _, staged_file, target in staged:
+            os.replace(staged_file, target)
+    finally:
+        for stage_dir, _, _ in staged:
+            discard_stage(stage_dir)
 
 
 def _summary_to_markdown(summary: dict[str, Any]) -> str:

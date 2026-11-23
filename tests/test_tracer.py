@@ -362,7 +362,7 @@ def test_caller_position_uses_ast_column_lookup(tmp_path, monkeypatch):
     assert end_col == 18  # 'foo(1, 2)' ends at column 18
 
 
-def test_caller_position_picks_leftmost_call_on_line(tmp_path, monkeypatch):
+def test_caller_position_is_unbound_when_several_calls_share_the_line(tmp_path, monkeypatch):
     src = "x = a() + b()\n"
     src_file = tmp_path / "multi.py"
     src_file.write_text(src, encoding="utf-8")
@@ -374,7 +374,9 @@ def test_caller_position_picks_leftmost_call_on_line(tmp_path, monkeypatch):
     )
     line, col, end_col = _caller_position(frame)
     assert line == 1
-    assert col == 4
+    # No instruction columns and two candidate calls: guessing the leftmost one could
+    # attribute the observation to a call that did not run, so the position stays unknown.
+    assert (col, end_col) == (-1, -1)
 
 
 def test_bytecode_position_cache_key_uses_stable_code_identity(monkeypatch):
@@ -392,8 +394,5 @@ def test_bytecode_position_cache_key_uses_stable_code_identity(monkeypatch):
     _bytecode_call_position(frame, frame.f_lineno)
 
     key = next(iter(cache))
-    assert key[0] == (
-        sample.__code__.co_filename,
-        sample.__code__.co_firstlineno,
-        sample.__code__.co_name,
-    )
+    # Keyed by the code object itself: two lambdas on one line share file/line/name.
+    assert key[0] == id(sample.__code__)
